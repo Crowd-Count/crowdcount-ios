@@ -1,0 +1,35 @@
+//
+//  CrowdCount_AppApp.swift
+//  CrowdCount_App
+//
+//  Created by Elkan Bruha on 6/11/24.
+//
+
+import SwiftUI
+
+@main
+struct CrowdCount_AppApp: App {
+    @StateObject private var appSettings = AppSettings()
+    @UIApplicationDelegateAdaptor(AppDelegate.self) var appDelegate
+    @AppStorage("selectedShortcutItem") private var selectedShortcutItem: String?
+
+    var body: some Scene {
+        WindowGroup {
+            ContentView()
+                .environmentObject(appSettings)
+                .onAppear {
+                    if let shortcut = selectedShortcutItem {
+                        handleShortcut(shortcut)
+                        selectedShortcutItem = nil
+                    }
+                }
+        }
+    }
+
+    private func handleShortcut(_ shortcut: String) {
+        if shortcut == "com.CrowdCount.openmap" {
+            // Here you could send a notification or set a state variable to navigate to the map view
+            NotificationCenter.default.post(name: NSNotification.Name("NavigateToMap"), object: nil)
+        }
+    }
+}
