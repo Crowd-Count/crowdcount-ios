@@ -42,7 +42,7 @@ struct ContentView: View {
     @EnvironmentObject var appSettings: AppSettings
     
     let appVersion = Bundle.main.infoDictionary?["CFBundleShortVersionString"] as? String
-    let serverURL = "https://crowdcount.tech"
+    let serverURL = AppSettings.apiBaseURL
     
     let networkMonitor = NetworkMonitor.shared
 
@@ -446,7 +446,7 @@ struct ContentView: View {
     }
 
     func checkServerStatus() {
-        let urlString = "\(serverURL)/api/healthcheck"
+        let urlString = "\(serverURL)/healthcheck"
         guard let url = URL(string: urlString) else {
             DispatchQueue.main.async {
                 self.serverStatus = "Invalid server URL"
@@ -496,7 +496,7 @@ struct ContentView: View {
         }
 
         let user = users[userIndex]
-        let urlString = "\(serverURL)/api/currentcount?user_id=\(user.userId)"
+        let urlString = "\(serverURL)/currentcount?user_id=\(user.userId)"
         guard let url = URL(string: urlString) else {
             print("Invalid URL for user: \(user.userId)")
             return
@@ -549,7 +549,7 @@ struct ContentView: View {
 
         print("Setting current count for user: \(currentUserId) to \(newCount) with password: \(password)")
 
-        let urlString = "\(serverURL)/api/currentcount"
+        let urlString = "\(serverURL)/currentcount"
         guard let url = URL(string: urlString) else {
             errorMessage = "Invalid URL"
             print("Error: Invalid URL")
@@ -609,7 +609,7 @@ struct ContentView: View {
             return
         }
 
-        let urlString = "\(serverURL)/api/check_password?user_id=\(userId)&password=\(password)"
+        let urlString = "\(serverURL)/check_password?user_id=\(userId)&password=\(password)"
         guard let url = URL(string: urlString) else {
             errorMessage = "Invalid URL"
             return
@@ -769,7 +769,7 @@ struct ContentView: View {
     }
 
     func checkDeviceStatus(for user: User) {
-        let urlString = "\(serverURL)/api/connection_status?user_id=\((user.userId))"
+        let urlString = "\(serverURL)/connection_status?user_id=\((user.userId))"
         guard let url = URL(string: urlString) else {
             DispatchQueue.main.async {
                 self.deviceStatuses[user.id] = "Invalid URL"
@@ -809,7 +809,7 @@ struct ContentView: View {
     // Register the app with the server
     func registerApp() {
         let appId = getAppId()
-        let urlString = "\(serverURL)/api/register"
+        let urlString = "\(serverURL)/register"
         guard let url = URL(string: urlString) else {
             print("Invalid URL")
             return
@@ -838,7 +838,7 @@ struct ContentView: View {
     // Send a heartbeat signal to the server
     func sendHeartbeat() {
         let appId = getAppId()
-        let urlString = "\(serverURL)/api/heartbeat"
+        let urlString = "\(serverURL)/heartbeat"
         guard let url = URL(string: urlString) else {
             print("Invalid URL")
             return

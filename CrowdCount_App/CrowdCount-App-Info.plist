@@ -9,6 +9,8 @@
 	</dict>
 	<key>NSBluetoothWhenInUseUsageDescription</key>
 	<string>We need access to Bluetooth to connect to devices while using the app.</string>
+	<key>NSLocationWhenInUseUsageDescription</key>
+	<string>We need access to your location to center the map to your current location.</string>
 	<key>UIApplicationShortcutItems</key>
 	<array>
 		<dict>

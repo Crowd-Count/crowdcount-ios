@@ -5,6 +5,8 @@ struct UserView: View {
     let serverURL: String
     @Binding var userPasswords: [UUID: String]
     
+    @Environment(\.colorScheme) var colorScheme
+    
     @State private var showNewCountField: Bool = false
     @State private var showOvercrowdingField: Bool = false
     
@@ -273,13 +275,19 @@ struct UserView: View {
         .padding()
         .navigationBarItems(trailing: Button(action: showSettingsForUser) {
             Image(systemName: "gear")
-                .foregroundColor(.primary)
+                .foregroundColor(colorScheme == .dark ? .white : .primary)
                 .padding()
         })
         .navigationBarItems(leading: NavigationLink(destination: InformationView()) {
-            Image(systemName: "info.circle")
-                .foregroundColor(.primary)
-                .padding()
+            if #available(iOS 26.0, *) {
+                Image(systemName: "info")
+                    .padding()
+                    .foregroundColor(colorScheme == .dark ? .white : .primary)
+            } else {
+                Image(systemName: "info.circle")
+                    .foregroundColor(.primary)
+                    .padding()
+            }
         })
         .onAppear {
             deviceName = loadDeviceName()
@@ -328,7 +336,7 @@ struct UserView: View {
             return
         }
         
-        guard let url = URL(string: "\(serverURL)/api/add_overcrowding") else { return }
+        guard let url = URL(string: "\(serverURL)/add_overcrowding") else { return }
         
         let body: [String: Any] = [
             "device_name": user.userId,
@@ -366,7 +374,7 @@ struct UserView: View {
     }
     
     func fetchOvercrowdingLimit(_ user: User) {
-        guard let url = URL(string: "\(serverURL)/api/get_overcrowding?device_name=\(user.userId)") else { return }
+        guard let url = URL(string: "\(serverURL)/get_overcrowding?device_name=\(user.userId)") else { return }
 
         URLSession.shared.dataTask(with: url) { data, response, error in
             guard let data = data, error == nil else {
@@ -393,7 +401,7 @@ struct UserView: View {
     
     func removeOvercrowding(_ user: User) {
         guard let password = userPasswords[user.id] else { return }
-        guard let url = URL(string: "\(serverURL)/api/remove_overcrowding") else { return }
+        guard let url = URL(string: "\(serverURL)/remove_overcrowding") else { return }
         
         let body: [String: Any] = [
             "device_name": user.userId,
@@ -430,7 +438,7 @@ struct UserView: View {
     }
     
     func checkIfOvercrowdingExists(_ user: User) {
-        guard let url = URL(string: "\(serverURL)/api/check_if_overcrowding_exists?device_name=\(user.userId)") else { return }
+        guard let url = URL(string: "\(serverURL)/check_if_overcrowding_exists?device_name=\(user.userId)") else { return }
         
         URLSession.shared.dataTask(with: url) { data, response, error in
             guard let data = data, error == nil else {

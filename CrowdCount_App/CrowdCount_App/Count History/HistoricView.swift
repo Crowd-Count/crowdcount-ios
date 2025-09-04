@@ -337,7 +337,7 @@ struct HistoricView: View {
             return
         }
 
-        var urlComponents = URLComponents(string: "https://crowdcount.tech/api/get_user_days")!
+        var urlComponents = URLComponents(string: "\(AppSettings.apiBaseURL)/get_user_days")!
         urlComponents.queryItems = [
             URLQueryItem(name: "user_id", value: userId),
             URLQueryItem(name: "password", value: password)
@@ -394,7 +394,7 @@ struct HistoricView: View {
             return
         }
 
-        let urlString = "https://crowdcount.tech/api/get_year_data?user_id=\(userId)&password=\(password)&year=\(year)"
+        let urlString = "\(AppSettings.apiBaseURL)/get_year_data?user_id=\(userId)&password=\(password)&year=\(year)"
 
         guard let url = URL(string: urlString) else { return }
 
@@ -439,7 +439,7 @@ struct HistoricView: View {
 
     // NEW: Function to fetch average year data
     func fetchAverageYearData(for year: Int, password: String) {
-        let urlString = "https://crowdcount.tech/api/get_average_year_data?user_id=\(userId)&password=\(password)&year=\(year)"
+        let urlString = "\(AppSettings.apiBaseURL)/get_average_year_data?user_id=\(userId)&password=\(password)&year=\(year)"
 
         guard let url = URL(string: urlString) else { return }
 
@@ -496,7 +496,7 @@ struct HistoricView: View {
         }
 
         let formattedDate = (date == "Today") ? getCurrentDate() : formattedDateshort(from: date)
-        let urlString = "https://crowdcount.tech/api/check_if_user_has_day?user_id=\(userId)&password=\(password)&date=\(formattedDate)"
+        let urlString = "\(AppSettings.apiBaseURL)/check_if_user_has_day?user_id=\(userId)&password=\(password)&date=\(formattedDate)"
 
         guard let url = URL(string: urlString) else { return }
 
@@ -533,45 +533,60 @@ struct HistoricView: View {
         }.resume()
     }
 
+    // Fetch a single UTC day’s data, then rotate hour bins into the user’s local time
     func fetchDayData(for date: String) {
+        // `date` must be a UTC "yyyy-MM-dd" string sent to your API
         guard let password = userPasswords[userUUID] else {
-            print("Password not found for user \(userUUID)")
+            print("fetchDayData: missing password for user \(userUUID)")
             return
         }
 
-        let urlString = "https://crowdcount.tech/api/get_day_data?user_id=\(userId)&password=\(password)&date=\(date)"
-
-        guard let url = URL(string: urlString) else { return }
+        let urlString = "\(AppSettings.apiBaseURL)/get_day_data?user_id=\(userId)&password=\(password)&date=\(date)"
+        guard let url = URL(string: urlString) else {
+            print("fetchDayData: bad URL")
+            return
+        }
 
         URLSession.shared.dataTask(with: url) { data, response, error in
             if let error = error {
-                print("Failed to fetch day data: \(error.localizedDescription)")
+                print("fetchDayData: network error:", error.localizedDescription)
+                DispatchQueue.main.async {
+                    self.dayData = [:]
+                    self.mostRecentDataTime = nil
+                }
                 return
             }
-
             guard let data = data else {
-                print("No data received")
+                print("fetchDayData: empty response data")
+                DispatchQueue.main.async {
+                    self.dayData = [:]
+                    self.mostRecentDataTime = nil
+                }
                 return
             }
 
             do {
-                let decodedResponse = try JSONDecoder().decode(DayDataResponse.self, from: data)
+                let decoded = try JSONDecoder().decode(DayDataResponse.self, from: data)
                 DispatchQueue.main.async {
-                    self.dayData = decodedResponse.day_data
-                    self.mostRecentDataTime = self.findMostRecentDataTime(in: decodedResponse.day_data)
-                    print("Parsed dayData: \(self.dayData)")
-                    print("Most recent data time: \(String(describing: self.mostRecentDataTime))")
+                    // Shift 0..23 UTC hour keys into local hour keys for that calendar date
+                    let localBins = TZ.shiftHourlyBinsUTCtoLocal(forUTCDate: date, bins: decoded.day_data)
+                    self.dayData = localBins
+                    self.mostRecentDataTime = self.findMostRecentDataTime(in: localBins)
                 }
             } catch {
-                print("Failed to decode day data: \(error.localizedDescription)")
-                if let errorResponse = try? JSONSerialization.jsonObject(with: data, options: []) {
-                    print("Error response: \(errorResponse)")
+                print("fetchDayData: decode error:", error)
+                if let raw = String(data: data, encoding: .utf8) { print("raw:", raw) }
+                DispatchQueue.main.async {
+                    self.dayData = [:]
+                    self.mostRecentDataTime = nil
                 }
             }
         }.resume()
 
+        // Also load the average for this UTC date
         fetchAverageDayData(for: date, password: password)
     }
+
 
     func findMostRecentDataTime(in data: [String: Double]) -> String? {
         let nonZeroEntries = data.filter { $0.value > 0 }
@@ -598,45 +613,42 @@ struct HistoricView: View {
         return nonZeroEntries.keys.first
     }
 
+    // Fetch average day bins for the UTC date, then rotate hour bins into local time
     func fetchAverageDayData(for date: String, password: String) {
-        let urlString = "https://crowdcount.tech/api/get_average_day_data?user_id=\(userId)&password=\(password)&date=\(date)"
-
-        guard let url = URL(string: urlString) else { return }
+        let urlString = "\(AppSettings.apiBaseURL)/get_average_day_data?user_id=\(userId)&password=\(password)&date=\(date)"
+        guard let url = URL(string: urlString) else {
+            print("fetchAverageDayData: bad URL")
+            return
+        }
 
         URLSession.shared.dataTask(with: url) { data, response, error in
             if let error = error {
-                print("Failed to fetch average day data: \(error.localizedDescription)")
-                DispatchQueue.main.async {
-                    self.averageDayData = nil
-                }
+                print("fetchAverageDayData: network error:", error.localizedDescription)
+                DispatchQueue.main.async { self.averageDayData = nil }
                 return
             }
-
             guard let data = data else {
-                print("No data received")
-                DispatchQueue.main.async {
-                    self.averageDayData = nil
-                }
+                print("fetchAverageDayData: empty response data")
+                DispatchQueue.main.async { self.averageDayData = nil }
                 return
             }
 
             do {
-                let decodedResponse = try JSONDecoder().decode(AverageDayDataResponse.self, from: data)
+                let decoded = try JSONDecoder().decode(AverageDayDataResponse.self, from: data)
+                let serverBins = decoded.average_day_data
+                let localBins = TZ.shiftHourlyBinsUTCtoLocal(forUTCDate: date, bins: serverBins)
+
                 DispatchQueue.main.async {
-                    self.averageDayData = decodedResponse.average_day_data
-                    print("Parsed averageDayData: \(String(describing: self.averageDayData))")
+                    self.averageDayData = localBins.isEmpty ? nil : localBins
                 }
             } catch {
-                print("Failed to decode average day data: \(error.localizedDescription)")
-                if let errorResponse = try? JSONSerialization.jsonObject(with: data, options: []) {
-                    print("Error response: \(errorResponse)")
-                }
-                DispatchQueue.main.async {
-                    self.averageDayData = nil
-                }
+                print("fetchAverageDayData: decode error:", error)
+                if let raw = String(data: data, encoding: .utf8) { print("raw:", raw) }
+                DispatchQueue.main.async { self.averageDayData = nil }
             }
         }.resume()
     }
+
 
     func checkAndFetchWeekData(for startDate: String) {
         guard let password = userPasswords[userUUID] else {
@@ -653,7 +665,7 @@ struct HistoricView: View {
 
         print("Formatted Start Date for week data check: \(formattedStartDate)")
 
-        let urlString = "https://crowdcount.tech/api/check_if_user_has_week?user_id=\(userId)&password=\(password)&start_date=\(formattedStartDate)"
+        let urlString = "\(AppSettings.apiBaseURL)/check_if_user_has_week?user_id=\(userId)&password=\(password)&date=\(formattedStartDate)"
         
         print("URL String: \(urlString)")
 
@@ -711,7 +723,7 @@ struct HistoricView: View {
             return
         }
 
-        let urlString = "https://crowdcount.tech/api/get_week_data?user_id=\(userId)&password=\(password)&date=\(date)"
+        let urlString = "\(AppSettings.apiBaseURL)/get_week_data?user_id=\(userId)&password=\(password)&date=\(date)"
 
         guard let url = URL(string: urlString) else { return }
 
@@ -746,7 +758,7 @@ struct HistoricView: View {
     }
 
     func fetchAverageWeekData(for date: String, password: String) {
-        let urlString = "https://crowdcount.tech/api/get_average_week_data?user_id=\(userId)&password=\(password)&date=\(date)"
+        let urlString = "\(AppSettings.apiBaseURL)/get_average_week_data?user_id=\(userId)&password=\(password)&date=\(date)"
 
         guard let url = URL(string: urlString) else { return }
 
@@ -786,7 +798,7 @@ struct HistoricView: View {
     }
 
     func fetchConnectionStatus() {
-        guard let url = URL(string: "https://crowdcount.tech/api/connection_status?user_id=\(userId)") else { return }
+        guard let url = URL(string: "\(AppSettings.apiBaseURL)/connection_status?user_id=\(userId)") else { return }
 
         URLSession.shared.dataTask(with: url) { data, response, error in
             if let error = error {
@@ -813,35 +825,28 @@ struct HistoricView: View {
         }.resume()
     }
 
-    // Helper functions to format dates and months
+    // Display: server gives "yyyy-MM-dd" in UTC → show as local long date
     func formattedDatelong(from date: String) -> String {
-        let dateFormatter = DateFormatter()
-        dateFormatter.dateFormat = "yyyy-MM-dd"
-        if let date = dateFormatter.date(from: date) {
-            dateFormatter.dateStyle = .long
-            return dateFormatter.string(from: date)
-        }
-        return date
+        TZ.longLocal(fromUTCyyyyMMdd: date)
     }
 
+    // Build API param: long local label → "yyyy-MM-dd" **in UTC**
     func formattedDateshort(from longDate: String) -> String {
-        let dateFormatter = DateFormatter()
-        dateFormatter.dateStyle = .long
-        if let date = dateFormatter.date(from: longDate) {
-            dateFormatter.dateFormat = "yyyy-MM-dd"
-            return dateFormatter.string(from: date)
-        }
-        return longDate
+        let fIn = DateFormatter()
+        fIn.timeZone = .current
+        fIn.locale   = .current
+        fIn.dateStyle = .long
+        guard let d = fIn.date(from: longDate) else { return longDate }
+        return TZ.yyyyMMddUTC(from: d)
     }
 
+    // Year extraction from UTC date string
     func formattedYear(from date: String) -> String {
-        let dateFormatter = DateFormatter()
-        dateFormatter.dateFormat = "yyyy-MM-dd"
-        if let date = dateFormatter.date(from: date) {
-            dateFormatter.dateFormat = "yyyy"
-            return dateFormatter.string(from: date)
-        }
-        return date
+        guard let d = TZ.utcDate(from: date) else { return date }
+        let f = DateFormatter()
+        f.timeZone = .current
+        f.dateFormat = "yyyy"
+        return f.string(from: d)
     }
 
     // NEW: Helper functions for year handling
@@ -866,9 +871,10 @@ struct HistoricView: View {
     }
 
     func generateAvailableWeeks(from dates: [String]) -> [WeekInfo] {
-        let dateFormatter = DateFormatter()
-        dateFormatter.dateFormat = "yyyy-MM-dd"
-        let sortedDates = dates.compactMap { dateFormatter.date(from: $0) }.sorted(by: >)
+        let f = DateFormatter()
+        f.dateFormat = "yyyy-MM-dd"
+        f.timeZone = TZ.utc
+        let sortedDates = dates.compactMap { f.date(from: $0) }.sorted(by: >)
 
         var weeks = [WeekInfo]()
         var calendar = Calendar.current
@@ -889,7 +895,7 @@ struct HistoricView: View {
                 currentWeekDates.append(date)
             } else {
                 if let startDate = currentWeekStart {
-                    weeks.append(WeekInfo(label: currentWeekLabel, startDate: dateFormatter.string(from: startDate)))
+                    weeks.append(WeekInfo(label: currentWeekLabel, startDate: f.string(from: startDate)))
                 }
                 currentWeekDates.removeAll()
                 currentWeekStart = calendar.date(from: calendar.dateComponents([.yearForWeekOfYear, .weekOfYear], from: date))
@@ -899,7 +905,7 @@ struct HistoricView: View {
         }
 
         if let startDate = currentWeekStart, !currentWeekDates.isEmpty {
-            weeks.append(WeekInfo(label: currentWeekLabel, startDate: dateFormatter.string(from: startDate)))
+            weeks.append(WeekInfo(label: currentWeekLabel, startDate: f.string(from: startDate)))
         }
 
         return weeks
@@ -913,10 +919,9 @@ struct HistoricView: View {
         return "\(startOfWeek) - \(endOfWeek)"
     }
 
+    // API "today": use today's **UTC** yyyy-MM-dd
     func getCurrentDate() -> String {
-        let dateFormatter = DateFormatter()
-        dateFormatter.dateFormat = "yyyy-MM-dd"
-        return dateFormatter.string(from: Date())
+        TZ.yyyyMMddUTC(from: Date())
     }
 
     func checkAndDownloadData(for date: String, period: String) {
@@ -927,7 +932,7 @@ struct HistoricView: View {
 
         let formattedDate = (date == "Today") ? getCurrentDate() : formattedDateshort(from: date)
 
-        let urlString = "https://crowdcount.tech/api/check_if_user_has_day?user_id=\(userId)&password=\(password)&date=\(formattedDate)"
+        let urlString = "\(AppSettings.apiBaseURL)/check_if_user_has_day?user_id=\(userId)&password=\(password)&date=\(formattedDate)"
         guard let url = URL(string: urlString) else { return }
 
         URLSession.shared.dataTask(with: url) { data, response, error in
@@ -967,9 +972,9 @@ struct HistoricView: View {
         let urlString: String
         switch period {
         case "day":
-            urlString = "https://crowdcount.tech/api/export_csv?user_id=\(userId)&password=\(password)&date=\(date)"
+            urlString = "\(AppSettings.apiBaseURL)/export_csv?user_id=\(userId)&password=\(password)&date=\(date)"
         case "week":
-            urlString = "https://crowdcount.tech/api/export_csv?user_id=\(userId)&password=\(password)&date=\(date)"
+            urlString = "\(AppSettings.apiBaseURL)/export_csv?user_id=\(userId)&password=\(password)&date=\(date)"
         case "year":
             print("Year data export is not yet implemented")
             return
@@ -1031,5 +1036,52 @@ extension UIApplication {
             return topViewController(base: presented)
         }
         return base
+    }
+}
+
+// MARK: - Time zone & bin-shifting helpers
+private enum TZ {
+    static let utc = TimeZone(secondsFromGMT: 0)!
+
+    static func utcDate(from yyyyMMdd: String) -> Date? {
+        let f = DateFormatter()
+        f.calendar = Calendar(identifier: .iso8601)
+        f.timeZone = utc
+        f.dateFormat = "yyyy-MM-dd"
+        return f.date(from: yyyyMMdd)
+    }
+
+    static func yyyyMMddUTC(from localDate: Date) -> String {
+        let f = DateFormatter()
+        f.calendar = Calendar(identifier: .iso8601)
+        f.timeZone = utc
+        f.dateFormat = "yyyy-MM-dd"
+        return f.string(from: localDate)
+    }
+
+    static func longLocal(fromUTCyyyyMMdd s: String) -> String {
+        guard let d = utcDate(from: s) else { return s }
+        let f = DateFormatter()
+        f.timeZone = .current
+        f.locale = .current
+        f.dateStyle = .long
+        return f.string(from: d)
+    }
+
+    // Shift 0..23 UTC hourly bins into local 0..23 bins for the *same calendar slot*.
+    // (Counts that would spill across day edges are rotated; server-side re-aggregation
+    // would be needed for perfect day-boundary semantics.)
+    static func shiftHourlyBinsUTCtoLocal(forUTCDate yyyyMMdd: String,
+                                          bins: [String: Double]) -> [String: Double] {
+        guard let d = utcDate(from: yyyyMMdd) else { return bins }
+        let offsetHours = TimeZone.current.secondsFromGMT(for: d) / 3600  // DST-aware
+        var out: [String: Double] = [:]
+        for (k, v) in bins {
+            guard let h = Int(k) else { continue }
+            var localH = (h + offsetHours) % 24
+            if localH < 0 { localH += 24 }
+            out[String(localH), default: 0] += v
+        }
+        return out
     }
 }

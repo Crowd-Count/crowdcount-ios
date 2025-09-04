@@ -168,7 +168,7 @@ struct BluetoothSetupView: View {
     }
 
     func checkDeviceStatus() {
-        let urlString = "\(bluetoothManager.serverURL)/api/connection_status?user_id=\(bluetoothManager.userId)"
+        let urlString = "\(AppSettings.apiBaseURL)/connection_status?user_id=\(bluetoothManager.userId)"
         guard let url = URL(string: urlString) else {
             self.message = "Server end issue, please try again later."
             self.messageColor = .red

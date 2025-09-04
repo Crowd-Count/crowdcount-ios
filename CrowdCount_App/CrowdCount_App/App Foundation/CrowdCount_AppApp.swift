@@ -17,6 +17,7 @@ struct CrowdCount_AppApp: App {
         WindowGroup {
             ContentView()
                 .environmentObject(appSettings)
+                .environment(\.colorScheme, appSettings.isDarkMode ? .dark : .light)
                 .onAppear {
                     if let shortcut = selectedShortcutItem {
                         handleShortcut(shortcut)
@@ -28,7 +29,6 @@ struct CrowdCount_AppApp: App {
 
     private func handleShortcut(_ shortcut: String) {
         if shortcut == "com.CrowdCount.openmap" {
-            // Here you could send a notification or set a state variable to navigate to the map view
             NotificationCenter.default.post(name: NSNotification.Name("NavigateToMap"), object: nil)
         }
     }

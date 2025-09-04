@@ -17,7 +17,7 @@ class BluetoothManager: NSObject, ObservableObject, CBCentralManagerDelegate, CB
     @Published var connectionError: String?
     @Published var isBluetoothReady: Bool = false
 
-    public let serverURL = "https://crowdcount.tech"
+    public let serverURL = "\(AppSettings.apiBaseURL)"
 
     var mainUUID: CBUUID?
     var ssidCharacteristicUUID: CBUUID?
@@ -94,7 +94,7 @@ class BluetoothManager: NSObject, ObservableObject, CBCentralManagerDelegate, CB
     }
 
     func getBluetoothUUID(idNeeded: String, completion: @escaping (Result<String, Error>) -> Void) {
-        guard let url = URL(string: "\(serverURL)/api/get_bluetooth_id?user_id=\(userId)&id_needed=\(idNeeded)") else {
+        guard let url = URL(string: "\(serverURL)/get_bluetooth_id?user_id=\(userId)&id_needed=\(idNeeded)") else {
             completion(.failure(NSError(domain: "", code: 0, userInfo: [NSLocalizedDescriptionKey: "Invalid URL"])))
             return
         }

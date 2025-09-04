@@ -18,6 +18,7 @@ struct LoginView: View {
     @State private var continuousTapping = false
     
     @EnvironmentObject var appSettings: AppSettings
+    @Environment(\.colorScheme) private var colorScheme
     
     let rainbowColors: [Color] = [.red, .orange, .yellow, .green, .blue, .indigo, .purple]
     
@@ -141,7 +142,7 @@ struct LoginView: View {
                             Text("View the Map")
                         }
                         .padding()
-                        .foregroundColor(.primary)
+                        .foregroundColor(colorScheme == .dark ? .white : .primary)
                         .font(.title2)
                         .background(Color.green.opacity(0.75))
                         .clipShape(Capsule())
@@ -215,12 +216,8 @@ struct LoginView: View {
         .navigationBarItems(leading: NavigationLink(destination: InformationView()) {
             if #available(iOS 26.0, *) {
                 Image(systemName: "info")
-                    .resizable()
-                    .scaledToFit()
-                    .padding(8)
-                    .frame(width: 36, height: 36)
-                    .foregroundColor(.primary)
-                    .glassEffect(in: .circle)
+                    .padding()
+                    .foregroundColor(colorScheme == .dark ? .white : .primary)
             } else {
                 Image(systemName: "info.circle")
                     .foregroundColor(.primary)
@@ -230,19 +227,9 @@ struct LoginView: View {
         .navigationBarItems(trailing: Button(action: {
             toggleMode()
         }) {
-            if #available(iOS 26.0, *) {
-                Image(systemName: appSettings.isDarkMode ? "moon.fill" : "sun.max.fill")
-                    .resizable()
-                    .scaledToFit()
-                    .padding(8)
-                    .frame(width: 36, height: 36)
-                    .foregroundColor(.primary)
-                    .glassEffect(in: .circle)
-            } else {
-                Image(systemName: appSettings.isDarkMode ? "moon.fill" : "sun.max.fill")
-                    .foregroundColor(.primary)
-                    .padding()
-            }
+            Image(systemName: appSettings.isDarkMode ? "moon.fill" : "sun.max.fill")
+                .foregroundColor(colorScheme == .dark ? .white : .primary)
+                .padding()
         })
     }
     

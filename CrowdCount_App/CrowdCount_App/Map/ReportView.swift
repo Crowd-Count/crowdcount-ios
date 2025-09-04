@@ -139,7 +139,7 @@ struct ReportContentView: View {
     }
     
     private func submitReport() {
-        guard let url = URL(string: "https://crowdcount.tech/api/submit_report") else {
+        guard let url = URL(string: "\(AppSettings.apiBaseURL)/submit_report") else {
             alertMessage = "Invalid URL"
             showAlert = true
             return
@@ -207,7 +207,7 @@ struct ReportContentView: View {
     }
     
     private func fetchOptions() {
-        guard let url = URL(string: "https://crowdcount.tech/api/get_all_location_names") else {
+        guard let url = URL(string: "\(AppSettings.apiBaseURL)/get_all_location_names") else {
             print("Invalid URL")
             return
         }

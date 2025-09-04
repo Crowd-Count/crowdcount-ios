@@ -26,6 +26,7 @@ struct SettingsView: View {
     let serverURL: String
 
     @Environment(\.presentationMode) var presentationMode
+    @Environment(\.colorScheme) private var colorScheme
     
     var body: some View {
         NavigationView {
@@ -58,15 +59,18 @@ struct SettingsView: View {
                             }) {
                                 Text("Update Frequency")
                                     .padding()
-                                    .background(Color.secondary.opacity(0.5))
+                                    .background(
+                                        RoundedRectangle(cornerRadius: 20)
+                                            .fill(colorScheme == .dark ?
+                                                Color(UIColor.tertiarySystemBackground) :
+                                                Color(UIColor.secondarySystemBackground))
+                                    )
                                     .foregroundColor(.primary)
-                                    .cornerRadius(20)
                             }
                             .padding(10)
                         }
                         
                         if showSlider {
-//                            CHANGE TO 3 SECONDS FOR FINAL RELEASE
                             HStack {
                                 Text("Update Frequency:")
                                     .bold()
@@ -85,7 +89,7 @@ struct SettingsView: View {
                                     updateFrequencies[user.id] = validValues.min(by: { abs($0 - newValue) < abs($1 - newValue) }) ?? newValue
                                 }
                             ), in: 1...60, step: 1)
-                                .accentColor(.secondary)
+                                .accentColor(.blue)
                                 .padding(.horizontal,40)
                             
                             Button(action: {
@@ -93,9 +97,13 @@ struct SettingsView: View {
                             }) {
                                 Text("Close")
                                     .padding()
-                                    .background(Color.secondary.opacity(0.25))
+                                    .background(
+                                        RoundedRectangle(cornerRadius: 20)
+                                            .fill(colorScheme == .dark ?
+                                                Color(UIColor.tertiarySystemBackground) :
+                                                Color(UIColor.secondarySystemBackground))
+                                    )
                                     .foregroundColor(.primary)
-                                    .cornerRadius(20)
                             }
                             .padding(10)
                         }
@@ -110,9 +118,13 @@ struct SettingsView: View {
                             }) {
                                 Text("Change Password")
                                     .padding()
-                                    .background(Color.secondary.opacity(0.5))
+                                    .background(
+                                        RoundedRectangle(cornerRadius: 20)
+                                            .fill(colorScheme == .dark ?
+                                                Color(UIColor.tertiarySystemBackground) :
+                                                Color(UIColor.secondarySystemBackground))
+                                    )
                                     .foregroundColor(.primary)
-                                    .cornerRadius(20)
                             }
                         }
                         .padding(10)
@@ -123,8 +135,12 @@ struct SettingsView: View {
                             HStack{
                                 SecureField("Enter Current Password", text: $currentPassword)
                                     .padding()
-                                    .background(Color.secondary.opacity(0.25))
-                                    .cornerRadius(15)
+                                    .background(
+                                        RoundedRectangle(cornerRadius: 15)
+                                            .fill(colorScheme == .dark ?
+                                                Color(UIColor.tertiarySystemBackground) :
+                                                Color(UIColor.secondarySystemBackground))
+                                    )
                                     .onTapGesture {
                                         hideKeyboard()
                                     }
@@ -134,8 +150,12 @@ struct SettingsView: View {
                             HStack{
                                 SecureField("Enter New Password", text: $newPassword)
                                     .padding()
-                                    .background(Color.secondary.opacity(0.25))
-                                    .cornerRadius(15)
+                                    .background(
+                                        RoundedRectangle(cornerRadius: 15)
+                                            .fill(colorScheme == .dark ?
+                                                Color(UIColor.tertiarySystemBackground) :
+                                                Color(UIColor.secondarySystemBackground))
+                                    )
                                     .onTapGesture {
                                         hideKeyboard()
                                     }
@@ -145,8 +165,12 @@ struct SettingsView: View {
                             HStack{
                                 SecureField("Confirm New Password", text: $confirmPassword)
                                     .padding()
-                                    .background(Color.secondary.opacity(0.25))
-                                    .cornerRadius(15)
+                                    .background(
+                                        RoundedRectangle(cornerRadius: 15)
+                                            .fill(colorScheme == .dark ?
+                                                Color(UIColor.tertiarySystemBackground) :
+                                                Color(UIColor.secondarySystemBackground))
+                                    )
                                     .onTapGesture {
                                         hideKeyboard()
                                     }
@@ -161,18 +185,24 @@ struct SettingsView: View {
                                 }) {
                                     Text("Cancel")
                                         .padding()
-                                        .background(Color.secondary.opacity(0.25))
+                                        .background(
+                                            RoundedRectangle(cornerRadius: 20)
+                                                .fill(colorScheme == .dark ?
+                                                    Color(UIColor.tertiarySystemBackground) :
+                                                    Color(UIColor.secondarySystemBackground))
+                                        )
                                         .foregroundColor(.primary)
-                                        .cornerRadius(20)
                                 }
                                 Button(action: {
                                     changePassword()
                                 }) {
                                     Text("Set New Password")
                                         .padding()
-                                        .background(Color.secondary.opacity(0.75))
-                                        .foregroundColor(.primary)
-                                        .cornerRadius(20)
+                                        .background(
+                                            RoundedRectangle(cornerRadius: 20)
+                                                .fill(Color.blue.opacity(0.8))
+                                        )
+                                        .foregroundColor(.white)
                                 }
                             }
                             .padding()
@@ -201,9 +231,11 @@ struct SettingsView: View {
                                 Text("Reset Data")
                                     .padding()
                                     .bold()
-                                    .background(Color.red.opacity(0.2))
+                                    .background(
+                                        RoundedRectangle(cornerRadius: 20)
+                                            .fill(Color.red.opacity(0.2))
+                                    )
                                     .foregroundColor(.red)
-                                    .cornerRadius(20)
                             }
                         }
                         .padding(10)
@@ -216,16 +248,22 @@ struct SettingsView: View {
                                 Text("Remove Device")
                                     .padding()
                                     .bold()
-                                    .background(Color.secondary.opacity(0.2))
+                                    .background(
+                                        RoundedRectangle(cornerRadius: 20)
+                                            .fill(colorScheme == .dark ?
+                                                Color(UIColor.tertiarySystemBackground).opacity(0.5) :
+                                                Color(UIColor.secondarySystemBackground))
+                                    )
                                     .foregroundColor(.red)
-                                    .cornerRadius(20)
                             }
                         }
                         .padding(10)
                         Spacer()
                         HStack {
                             Text(appSettings.isDarkMode ? "Change to light mode  -" : "Change to dark mode  -")
+                                .foregroundColor(.primary)
                             Image(systemName: appSettings.isDarkMode ? "sun.max.fill" : "moon.fill")
+                                .foregroundColor(.primary)
                         }
                         .onTapGesture {
                             toggleMode()
@@ -273,7 +311,9 @@ struct SettingsView: View {
             }
             .alert("Confirm Device ID and password", isPresented: $showConfirmationAlert) {
                 TextField("\(user.userId)", text: $confirmationUserId)
+                    .foregroundColor(.primary)
                 SecureField("Password", text: $confirmationPassword)
+                    .foregroundColor(.primary)
                 Button("Cancel", role: .cancel) {}
                 Button("Confirm") {
                     resetDeviceData()
@@ -282,7 +322,7 @@ struct SettingsView: View {
                 Text("Please enter your Device ID to confirm:")
             }
         }
-        .environment(\.colorScheme, appSettings.isDarkMode ? .dark : .light)
+        .preferredColorScheme(appSettings.isDarkMode ? .dark : .light)
     }
     
     func toggleMode() {
@@ -307,7 +347,7 @@ struct SettingsView: View {
             return
         }
         
-        let urlString = "\(serverURL)/api/set_password"
+        let urlString = "\(serverURL)/set_password"
         guard let url = URL(string: urlString) else {
             errorMessage = "Invalid URL"
             return
@@ -358,7 +398,7 @@ struct SettingsView: View {
             return
         }
         
-        let urlString = "\(serverURL)/api/reset_device_data?user_id=\(user.userId)&password=\(confirmationPassword)"
+        let urlString = "\(serverURL)/reset_device_data?user_id=\(user.userId)&password=\(confirmationPassword)"
         guard let url = URL(string: urlString) else {
             errorMessage = "Invalid URL"
             return
@@ -400,7 +440,7 @@ struct SettingsView: View {
     }
 
     func checkServerStatus() {
-        let urlString = "\(serverURL)/api/healthcheck"
+        let urlString = "\(serverURL)/healthcheck"
         guard let url = URL(string: urlString) else {
             DispatchQueue.main.async {
                 self.isServerRunning = false
@@ -469,7 +509,7 @@ extension View {
 
 struct SettingsView_Previews: PreviewProvider {
     static var previews: some View {
-        SettingsView(showSettings: .constant(true), user: User(id: UUID(), userId: "SampleUser", currentCount: 0), updateFrequencies: .constant([:]), logOut: { _ in }, serverURL: "https://crowdcount.tech")
+        SettingsView(showSettings: .constant(true), user: User(id: UUID(), userId: "SampleUser", currentCount: 0), updateFrequencies: .constant([:]), logOut: { _ in }, serverURL: "\(AppSettings.apiBaseURL)")
             .environmentObject(AppSettings())
     }
 }

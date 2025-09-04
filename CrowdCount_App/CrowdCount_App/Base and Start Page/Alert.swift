@@ -7,7 +7,7 @@ class AlertViewModel: ObservableObject {
     @Published var isLoading: Bool = false
     
     func checkForAlert() {
-        guard let url = URL(string: "https://crowdcount.tech/api/check_if_alert") else { return }
+        guard let url = URL(string: "\(AppSettings.apiBaseURL)/check_if_alert") else { return }
         
         isLoading = true
         URLSession.shared.dataTask(with: url) { data, response, error in
@@ -48,7 +48,7 @@ class AlertViewModel: ObservableObject {
     }
     
     func fetchAlertInfo() {
-        guard let url = URL(string: "https://crowdcount.tech/api/get_active_alert") else { return }
+        guard let url = URL(string: "\(AppSettings.apiBaseURL)/get_active_alert") else { return }
         
         URLSession.shared.dataTask(with: url) { data, response, error in
             if let error = error {
@@ -117,19 +117,18 @@ class AlertViewModel: ObservableObject {
 
 struct AlertOverlay: View {
     @ObservedObject var alertViewModel: AlertViewModel
-    
     @EnvironmentObject var appSettings: AppSettings
     
     var body: some View {
         VStack {
         }
-        .environment(\.colorScheme, appSettings.isDarkMode ? .dark : .light)
         .sheet(isPresented: $alertViewModel.showAlert) {
             AlertPage(alertInfo: alertViewModel.alertInfo) {
                 print("AlertPage dismissed")
                 alertViewModel.markAlertAsSeen(alert_id: alertViewModel.alertInfo.alert_id)
                 alertViewModel.showAlert = false
             }
+            .environmentObject(appSettings)
         }
         .onAppear {
             print("AlertOverlay onAppear")
@@ -143,104 +142,118 @@ struct AlertPage: View {
     let dismissAction: () -> Void
     
     @EnvironmentObject var appSettings: AppSettings
+    @Environment(\.colorScheme) private var colorScheme
     
     var body: some View {
         NavigationView {
-            VStack {
-                Image(systemName: "chevron.compact.down")
-                    .resizable()
-                    .scaledToFit()
-                    .foregroundColor(.secondary.opacity(0.5))
-                    .offset(y: -50)
-                    .frame(width: 40, height: 10)
-                Spacer()
-                switch alertInfo.type {
-                case "info":
-                    Image(systemName: "info.circle.fill")
+            ZStack {
+                // Background
+                (colorScheme == .dark ? Color(UIColor.systemBackground) : Color(UIColor.secondarySystemBackground))
+                    .edgesIgnoringSafeArea(.all)
+                
+                VStack {
+                    Image(systemName: "chevron.compact.down")
                         .resizable()
                         .scaledToFit()
-                        .symbolRenderingMode(.palette)
-                        .foregroundStyle(.primary, .blue)
-                        .frame(width: 50, height: 50)
-                case "warning":
-                    Image(systemName: "exclamationmark.triangle.fill")
-                        .resizable()
-                        .scaledToFit()
-                        .symbolRenderingMode(.palette)
-                        .foregroundStyle(.primary, .yellow)
-                        .frame(width: 50, height: 50)
-                case "celebration":
-                    Image(systemName: "sparkles")
-                        .resizable()
-                        .scaledToFit()
-                        .foregroundColor(.yellow)
-                        .frame(width: 50, height: 50)
-                case "privacy":
-                    Image(systemName: "hand.raised.fill")
-                        .resizable()
-                        .scaledToFit()
-                        .foregroundColor(.blue)
-                        .frame(width: 50, height: 50)
-                case "terms-of-use":
-                    Image(systemName: "book.closed.fill")
-                        .resizable()
-                        .scaledToFit()
-                        .foregroundColor(.orange)
-                        .frame(width: 50, height: 50)
-                case "leaf":
-                    Image(systemName: "leaf.fill")
-                        .resizable()
-                        .scaledToFit()
-                        .foregroundColor(.green)
-                        .frame(width: 50, height: 50)
-                default:
-                    Image(systemName: "info.circle.fill")
-                        .resizable()
-                        .scaledToFit()
-                        .symbolRenderingMode(.palette)
-                        .foregroundStyle(.primary, .blue)
-                        .frame(width: 50, height: 50)
+                        .foregroundColor(.secondary.opacity(0.5))
+                        .offset(y: -50)
+                        .frame(width: 40, height: 10)
+                    Spacer()
+                    switch alertInfo.type {
+                    case "info":
+                        Image(systemName: "info.circle.fill")
+                            .resizable()
+                            .scaledToFit()
+                            .symbolRenderingMode(.palette)
+                            .foregroundStyle(.primary, .blue)
+                            .frame(width: 50, height: 50)
+                    case "warning":
+                        Image(systemName: "exclamationmark.triangle.fill")
+                            .resizable()
+                            .scaledToFit()
+                            .symbolRenderingMode(.palette)
+                            .foregroundStyle(.primary, .yellow)
+                            .frame(width: 50, height: 50)
+                    case "celebration":
+                        Image(systemName: "sparkles")
+                            .resizable()
+                            .scaledToFit()
+                            .foregroundColor(.yellow)
+                            .frame(width: 50, height: 50)
+                    case "privacy":
+                        Image(systemName: "hand.raised.fill")
+                            .resizable()
+                            .scaledToFit()
+                            .foregroundColor(.blue)
+                            .frame(width: 50, height: 50)
+                    case "terms-of-use":
+                        Image(systemName: "book.closed.fill")
+                            .resizable()
+                            .scaledToFit()
+                            .foregroundColor(.orange)
+                            .frame(width: 50, height: 50)
+                    case "leaf":
+                        Image(systemName: "leaf.fill")
+                            .resizable()
+                            .scaledToFit()
+                            .foregroundColor(.green)
+                            .frame(width: 50, height: 50)
+                    default:
+                        Image(systemName: "info.circle.fill")
+                            .resizable()
+                            .scaledToFit()
+                            .symbolRenderingMode(.palette)
+                            .foregroundStyle(.primary, .blue)
+                            .frame(width: 50, height: 50)
+                    }
+                    Text(alertInfo.title)
+                        .font(.title)
+                        .bold()
+                        .foregroundColor(.primary)
+                        .padding(.top)
+                    Text(alertInfo.body)
+                        .font(.body)
+                        .foregroundColor(.primary)
+                        .padding(5)
+                        .multilineTextAlignment(.center)
+                    Spacer()
+                    Text("Swipe down or close to dismiss.")
+                        .italic()
+                        .padding()
+                        .foregroundColor(.secondary)
+                    switch alertInfo.type {
+                    case "info":
+                        Text("\(Text("[crowdcount.tech](https://www.crowdcount.tech)"))  |  \(Text("[info@crowdcount.tech](mailto:info@crowdcount.tech)"))")
+                            .font(.body)
+                            .tint(.blue)
+                    case "warning":
+                        Text("\(Text("[crowdcount.tech](https://www.crowdcount.tech)"))  |  \(Text("[help@crowdcount.tech](mailto:help@crowdcount.tech)"))")
+                            .font(.body)
+                            .tint(.blue)
+                    case "celebration":
+                        Text("\(Text("[crowdcount.tech](https://www.crowdcount.tech)"))  |  \(Text("[info@crowdcount.tech](mailto:info@crowdcount.tech)"))")
+                            .font(.body)
+                            .tint(.blue)
+                    case "privacy":
+                        Text("\(Text("[Privacy Policy](https://www.crowdcount.tech/legal/privacy-policy)"))  |  \(Text("[info@crowdcount.tech](mailto:info@crowdcount.tech)"))")
+                            .font(.body)
+                            .tint(.blue)
+                    case "terms-of-use":
+                        Text("\(Text("[Terms of Use](https://www.crowdcount.tech/legal/terms-of-use)"))  |  \(Text("[info@crowdcount.tech](mailto:info@crowdcount.tech)"))")
+                            .font(.body)
+                            .tint(.blue)
+                    case "leaf":
+                        Text("\(Text("[crowdcount.tech](https://www.crowdcount.tech)"))  |  \(Text("[info@crowdcount.tech](mailto:info@crowdcount.tech)"))")
+                            .font(.body)
+                            .tint(.blue)
+                    default:
+                        Text("\(Text("[crowdcount.tech](https://www.crowdcount.tech)"))  |  \(Text("[info@crowdcount.tech](mailto:info@crowdcount.tech)"))")
+                            .font(.body)
+                            .tint(.blue)
+                    }
                 }
-                Text(alertInfo.title)
-                    .font(.title)
-                    .bold()
-                    .foregroundColor(.primary)
-                    .padding(.top)
-                Text(alertInfo.body)
-                    .font(.body)
-                    .foregroundColor(.primary)
-                    .padding(5)
-                Spacer()
-                Text("Swipe down or close to dismiss.")
-                    .italic()
-                    .padding()
-                    .foregroundColor(.secondary)
-                switch alertInfo.type {
-                case "info":
-                    Text("\(Text("[crowdcount.tech](https://www.crowdcount.tech)"))  |  \(Text("[info@crowdcount.tech](mailto:info@crowdcount.tech)"))")
-                        .font(.body)
-                case "warning":
-                    Text("\(Text("[crowdcount.tech](https://www.crowdcount.tech)"))  |  \(Text("[help@crowdcount.tech](mailto:help@crowdcount.tech)"))")
-                        .font(.body)
-                case "celebration":
-                    Text("\(Text("[crowdcount.tech](https://www.crowdcount.tech)"))  |  \(Text("[info@crowdcount.tech](mailto:info@crowdcount.tech)"))")
-                        .font(.body)
-                case "privacy":
-                    Text("\(Text("[Privacy Policy](https://www.crowdcount.tech/legal/privacy-policy)"))  |  \(Text("[info@crowdcount.tech](mailto:info@crowdcount.tech)"))")
-                        .font(.body)
-                case "terms-of-use":
-                    Text("\(Text("[Terms of Use](https://www.crowdcount.tech/legal/terms-of-use)"))  |  \(Text("[info@crowdcount.tech](mailto:info@crowdcount.tech)"))")
-                        .font(.body)
-                case "leaf":
-                    Text("\(Text("[crowdcount.tech](https://www.crowdcount.tech)"))  |  \(Text("[info@crowdcount.tech](mailto:info@crowdcount.tech)"))")
-                        .font(.body)
-                default:
-                    Text("\(Text("[crowdcount.tech](https://www.crowdcount.tech)"))  |  \(Text("[info@crowdcount.tech](mailto:info@crowdcount.tech)"))")
-                        .font(.body)
-                }
+                .padding()
             }
-            .padding()
-            .multilineTextAlignment(.center)
             .navigationBarItems(trailing: Button(action: {
                 print("Close button tapped")
                 dismissAction()
@@ -250,6 +263,6 @@ struct AlertPage: View {
                     .bold()
             })
         }
-        .environment(\.colorScheme, appSettings.isDarkMode ? .dark : .light)
+        .preferredColorScheme(appSettings.isDarkMode ? .dark : .light)
     }
 }

@@ -9,6 +9,7 @@ struct AddUserPage: View {
     @State private var errorMessage: String?
     
     @EnvironmentObject var appSettings: AppSettings
+    @Environment(\.colorScheme) var colorScheme
 
     let serverURL: String
     let startDeviceStatusCheck: (User) -> Void
@@ -71,9 +72,15 @@ struct AddUserPage: View {
         }
         .padding()
         .navigationBarItems(leading: NavigationLink(destination: InformationView()) {
-            Image(systemName: "info.circle")
-                .foregroundColor(.primary)
-                .padding()
+            if #available(iOS 26.0, *) {
+                Image(systemName: "info")
+                    .padding()
+                    .foregroundColor(colorScheme == .dark ? .white : .primary)
+            } else {
+                Image(systemName: "info.circle")
+                    .foregroundColor(.primary)
+                    .padding()
+            }
         })
     }
 
@@ -144,7 +151,7 @@ struct AddUserPage: View {
     }
     
     func checkPassword(userId: String, password: String, completion: @escaping (Bool) -> Void) {
-        guard let url = URL(string: "\(serverURL)/api/check_password?user_id=\(userId)&password=\(password)") else {
+        guard let url = URL(string: "\(serverURL)/check_password?user_id=\(userId)&password=\(password)") else {
             completion(false)
             return
         }

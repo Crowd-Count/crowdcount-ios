@@ -7,6 +7,7 @@
 	objects = {
 
 /* Begin PBXBuildFile section */
+		7C077D5E2E611AA70042C0AD /* LocationListView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 7C077D5D2E611AA40042C0AD /* LocationListView.swift */; };
 		7C2469DD2E09E05200409394 /* BarGraphYear.swift in Sources */ = {isa = PBXBuildFile; fileRef = 7C2469DC2E09E04E00409394 /* BarGraphYear.swift */; };
 		7C362EFA2C358DBA00F02FDA /* InformationView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 7C362EF92C358DB600F02FDA /* InformationView.swift */; };
 		7C464AF72E0B0F6F005EDE4B /* AppIcon.icon in Resources */ = {isa = PBXBuildFile; fileRef = 7C464AF62E0B0F6F005EDE4B /* AppIcon.icon */; };
@@ -59,6 +60,7 @@
 /* End PBXContainerItemProxy section */
 
 /* Begin PBXFileReference section */
+		7C077D5D2E611AA40042C0AD /* LocationListView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = LocationListView.swift; sourceTree = "<group>"; };
 		7C2469DC2E09E04E00409394 /* BarGraphYear.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = BarGraphYear.swift; sourceTree = "<group>"; };
 		7C362EF92C358DB600F02FDA /* InformationView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = InformationView.swift; sourceTree = "<group>"; };
 		7C464AF62E0B0F6F005EDE4B /* AppIcon.icon */ = {isa = PBXFileReference; lastKnownFileType = folder.iconcomposer.icon; path = AppIcon.icon; sourceTree = "<group>"; };
@@ -202,6 +204,7 @@
 				7CADFA4D2C5F96FF00657A09 /* MapView.swift */,
 				7C7F1B162C4D2F24005A5D18 /* ReportView.swift */,
 				7CAB5C392CBEC1E800F982B9 /* InfoMapView.swift */,
+				7C077D5D2E611AA40042C0AD /* LocationListView.swift */,
 				7C7F1B142C4C143E005A5D18 /* Color.swift */,
 			);
 			path = Map;
@@ -403,6 +406,7 @@
 				7CC3BE372C3C1BF400C5DEFC /* HistoricView.swift in Sources */,
 				7CAB5C3A2CBEC1ED00F982B9 /* InfoMapView.swift in Sources */,
 				7CBAF1782C19F8CE000E80E9 /* BluetoothSetupView.swift in Sources */,
+				7C077D5E2E611AA70042C0AD /* LocationListView.swift in Sources */,
 				7CBDF77E2C4003D50046C7FB /* ShareSheetHelper.swift in Sources */,
 				7C7F1B152C4C143F005A5D18 /* Color.swift in Sources */,
 				7CBAF1762C18E40D000E80E9 /* BluetoothManager.swift in Sources */,
@@ -583,7 +587,7 @@
 				ASSETCATALOG_COMPILER_GLOBAL_ACCENT_COLOR_NAME = AccentColor;
 				ASSETCATALOG_COMPILER_INCLUDE_ALL_APPICON_ASSETS = YES;
 				CODE_SIGN_STYLE = Automatic;
-				CURRENT_PROJECT_VERSION = 3;
+				CURRENT_PROJECT_VERSION = 26;
 				DEVELOPMENT_ASSET_PATHS = "\"CrowdCount_App/Preview Content\"";
 				ENABLE_PREVIEWS = YES;
 				GENERATE_INFOPLIST_FILE = YES;
@@ -604,7 +608,7 @@
 					"$(inherited)",
 					"@executable_path/Frameworks",
 				);
-				MARKETING_VERSION = 2.0.0;
+				MARKETING_VERSION = 2.0.1;
 				PRODUCT_BUNDLE_IDENTIFIER = "CrowdCount.CrowdCount-App";
 				PRODUCT_NAME = "$(TARGET_NAME)";
 				SUPPORTED_PLATFORMS = "iphoneos iphonesimulator";
@@ -624,7 +628,7 @@
 				ASSETCATALOG_COMPILER_GLOBAL_ACCENT_COLOR_NAME = AccentColor;
 				ASSETCATALOG_COMPILER_INCLUDE_ALL_APPICON_ASSETS = YES;
 				CODE_SIGN_STYLE = Automatic;
-				CURRENT_PROJECT_VERSION = 3;
+				CURRENT_PROJECT_VERSION = 26;
 				DEVELOPMENT_ASSET_PATHS = "\"CrowdCount_App/Preview Content\"";
 				ENABLE_PREVIEWS = YES;
 				GENERATE_INFOPLIST_FILE = YES;
@@ -645,7 +649,7 @@
 					"$(inherited)",
 					"@executable_path/Frameworks",
 				);
-				MARKETING_VERSION = 2.0.0;
+				MARKETING_VERSION = 2.0.1;
 				PRODUCT_BUNDLE_IDENTIFIER = "CrowdCount.CrowdCount-App";
 				PRODUCT_NAME = "$(TARGET_NAME)";
 				SUPPORTED_PLATFORMS = "iphoneos iphonesimulator";
