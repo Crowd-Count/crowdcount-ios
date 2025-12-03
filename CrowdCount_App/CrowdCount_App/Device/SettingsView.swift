@@ -22,6 +22,7 @@ struct SettingsView: View {
     @State private var showDirectionFlipAlert: Bool = false
     @State private var confirmationUserId: String = ""
     @State private var confirmationPassword: String = ""
+    @State private var showDirectionConfirmAlert: Bool = false
 
     @State private var directionFlipped: Bool = false
     @State private var isLoadingDirection: Bool = true
@@ -231,8 +232,7 @@ struct SettingsView: View {
                     if !showPasswordFields {
                         HStack {
                             Button(action:{
-                                // API call to flip direction
-                                flipDirection()
+                                showDirectionConfirmAlert = true
                             }){
                                 Text("Flip Counting Direction")
                                     .padding()
@@ -348,10 +348,24 @@ struct SettingsView: View {
             .alert("Direction Flipped", isPresented: $showDirectionFlipAlert) {
                 Button("OK", role: .cancel) {}
             } message: {
-                Text(directionFlipped ?
-                    "Entry/Exit direction has been flipped. What was previously entry is now exit, and vice versa." :
-                    "Entry/Exit direction has been reset to normal.")
+                VStack(alignment: .leading, spacing: 8) {
+                    Text(directionFlipped ?
+                        "Entry/Exit direction has been flipped. What was previously entry is now exit, and vice versa." :
+                        "Entry/Exit direction has been reset to normal.")
+                    Text("Note: It may take up to a minute for this change to take effect.")
+                        .foregroundColor(.secondary)
+                        .font(.footnote)
+                }
             }
+            .alert("Flip Counting Direction?", isPresented: $showDirectionConfirmAlert) {
+                Button("Cancel", role: .cancel) {}
+                Button("Continue") {
+                    flipDirection()
+                }
+            } message: {
+                Text("Flipping the entry and exit direction may take up to a minute to take effect.")
+            }
+
         }
         .preferredColorScheme(appSettings.isDarkMode ? .dark : .light)
     }
@@ -652,3 +666,4 @@ struct SettingsView_Previews: PreviewProvider {
             .environmentObject(AppSettings())
     }
 }
+
