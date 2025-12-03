@@ -94,7 +94,7 @@ struct InformationView: View {
             Text("CrowdCount App version \(appVersion ?? "error") (\(appBuildNumber ?? "error"))")
                 .foregroundColor(.secondary)
             Spacer()
-            Text("\u{00A9} 2025 CrowdCount. All rights reserved.")
+            Text("\u{00A9} 2025 CrowdCount LLC. All rights reserved.")
                 .foregroundColor(.secondary)
                 .font(.caption2)
                 .padding(2)

@@ -40,6 +40,10 @@
 		7CD02E992C2DFD59000EAFC5 /* TotalCountView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 7CD02E982C2DFD56000EAFC5 /* TotalCountView.swift */; };
 		7CD02E9B2C2DFD69000EAFC5 /* AddUserPage.swift in Sources */ = {isa = PBXBuildFile; fileRef = 7CD02E9A2C2DFD65000EAFC5 /* AddUserPage.swift */; };
 		7CD54D5A2C29EF4C00E144A1 /* SettingsView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 7CD54D592C29EF4800E144A1 /* SettingsView.swift */; };
+		7CF6F7E42EDE6CA900622E57 /* QRScannerView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 7CF6F7E32EDE6CA900622E57 /* QRScannerView.swift */; };
+		7CF6F7E62EDF9C9400622E57 /* AggregatedHistoricView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 7CF6F7E52EDF9C9400622E57 /* AggregatedHistoricView.swift */; };
+		7CF6F7E72EDF9C9400622E57 /* AggregatedHistoricView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 7CF6F7E52EDF9C9400622E57 /* AggregatedHistoricView.swift */; };
+		7CF6F7E82EDF9C9400622E57 /* AggregatedHistoricView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 7CF6F7E52EDF9C9400622E57 /* AggregatedHistoricView.swift */; };
 /* End PBXBuildFile section */
 
 /* Begin PBXContainerItemProxy section */
@@ -97,6 +101,8 @@
 		7CD02E982C2DFD56000EAFC5 /* TotalCountView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = TotalCountView.swift; sourceTree = "<group>"; };
 		7CD02E9A2C2DFD65000EAFC5 /* AddUserPage.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = AddUserPage.swift; sourceTree = "<group>"; };
 		7CD54D592C29EF4800E144A1 /* SettingsView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = SettingsView.swift; sourceTree = "<group>"; };
+		7CF6F7E32EDE6CA900622E57 /* QRScannerView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = QRScannerView.swift; sourceTree = "<group>"; };
+		7CF6F7E52EDF9C9400622E57 /* AggregatedHistoricView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = AggregatedHistoricView.swift; sourceTree = "<group>"; };
 /* End PBXFileReference section */
 
 /* Begin PBXFrameworksBuildPhase section */
@@ -215,6 +221,7 @@
 			children = (
 				7CBAF1752C18E400000E80E9 /* BluetoothManager.swift */,
 				7CBAF1772C19F8C2000E80E9 /* BluetoothSetupView.swift */,
+				7CF6F7E32EDE6CA900622E57 /* QRScannerView.swift */,
 			);
 			path = Bluetooth;
 			sourceTree = "<group>";
@@ -239,6 +246,7 @@
 				7C8FF56A2C3EAABC008D039F /* BarGraphWeek.swift */,
 				7C2469DC2E09E04E00409394 /* BarGraphYear.swift */,
 				7CBDF77D2C4003D20046C7FB /* ShareSheetHelper.swift */,
+				7CF6F7E52EDF9C9400622E57 /* AggregatedHistoricView.swift */,
 			);
 			path = "Count History";
 			sourceTree = "<group>";
@@ -417,6 +425,8 @@
 				7CD02E992C2DFD59000EAFC5 /* TotalCountView.swift in Sources */,
 				7C54AF9A2C5BD1FE00D9226B /* AppSettings.swift in Sources */,
 				7C2469DD2E09E05200409394 /* BarGraphYear.swift in Sources */,
+				7CF6F7E72EDF9C9400622E57 /* AggregatedHistoricView.swift in Sources */,
+				7CF6F7E42EDE6CA900622E57 /* QRScannerView.swift in Sources */,
 				7C7F1B172C4D2F26005A5D18 /* ReportView.swift in Sources */,
 				7CA928152C373EA900233AF4 /* BlurredEdgesViewRepresentable.swift in Sources */,
 				7C7F1B212C4F9FA2005A5D18 /* Alert.swift in Sources */,
@@ -428,6 +438,7 @@
 			isa = PBXSourcesBuildPhase;
 			buildActionMask = 2147483647;
 			files = (
+				7CF6F7E62EDF9C9400622E57 /* AggregatedHistoricView.swift in Sources */,
 				7C5A121D2C18D0BC0050C4D8 /* CrowdCount_AppTests.swift in Sources */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
@@ -437,6 +448,7 @@
 			buildActionMask = 2147483647;
 			files = (
 				7C5A12292C18D0BC0050C4D8 /* CrowdCount_AppUITestsLaunchTests.swift in Sources */,
+				7CF6F7E82EDF9C9400622E57 /* AggregatedHistoricView.swift in Sources */,
 				7C5A12272C18D0BC0050C4D8 /* CrowdCount_AppUITests.swift in Sources */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
@@ -587,7 +599,7 @@
 				ASSETCATALOG_COMPILER_GLOBAL_ACCENT_COLOR_NAME = AccentColor;
 				ASSETCATALOG_COMPILER_INCLUDE_ALL_APPICON_ASSETS = YES;
 				CODE_SIGN_STYLE = Automatic;
-				CURRENT_PROJECT_VERSION = 26;
+				CURRENT_PROJECT_VERSION = 5;
 				DEVELOPMENT_ASSET_PATHS = "\"CrowdCount_App/Preview Content\"";
 				ENABLE_PREVIEWS = YES;
 				GENERATE_INFOPLIST_FILE = YES;
@@ -608,7 +620,7 @@
 					"$(inherited)",
 					"@executable_path/Frameworks",
 				);
-				MARKETING_VERSION = 2.0.1;
+				MARKETING_VERSION = 3.0.0;
 				PRODUCT_BUNDLE_IDENTIFIER = "CrowdCount.CrowdCount-App";
 				PRODUCT_NAME = "$(TARGET_NAME)";
 				SUPPORTED_PLATFORMS = "iphoneos iphonesimulator";
@@ -628,7 +640,7 @@
 				ASSETCATALOG_COMPILER_GLOBAL_ACCENT_COLOR_NAME = AccentColor;
 				ASSETCATALOG_COMPILER_INCLUDE_ALL_APPICON_ASSETS = YES;
 				CODE_SIGN_STYLE = Automatic;
-				CURRENT_PROJECT_VERSION = 26;
+				CURRENT_PROJECT_VERSION = 5;
 				DEVELOPMENT_ASSET_PATHS = "\"CrowdCount_App/Preview Content\"";
 				ENABLE_PREVIEWS = YES;
 				GENERATE_INFOPLIST_FILE = YES;
@@ -649,7 +661,7 @@
 					"$(inherited)",
 					"@executable_path/Frameworks",
 				);
-				MARKETING_VERSION = 2.0.1;
+				MARKETING_VERSION = 3.0.0;
 				PRODUCT_BUNDLE_IDENTIFIER = "CrowdCount.CrowdCount-App";
 				PRODUCT_NAME = "$(TARGET_NAME)";
 				SUPPORTED_PLATFORMS = "iphoneos iphonesimulator";

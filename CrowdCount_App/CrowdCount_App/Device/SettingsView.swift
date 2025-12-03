@@ -4,9 +4,10 @@ struct SettingsView: View {
     @Binding var showSettings: Bool
     var user: User
     @Binding var updateFrequencies: [UUID: Double]
+    @Binding var userPasswords: [UUID: String]
     let logOut: (UUID) -> Void
     @State private var isServerRunning: Bool = true
-    
+
     @State private var currentPassword: String = ""
     @State private var newPassword: String = ""
     @State private var confirmPassword: String = ""
@@ -14,13 +15,17 @@ struct SettingsView: View {
     @State private var successMessage: String?
     @State private var showPasswordFields: Bool = false
     @State private var showSlider: Bool = false
-    
+
     @State private var showAlert: Bool = false
     @State private var showConfirmationAlert: Bool = false
     @State private var showDemoAlert: Bool = false
+    @State private var showDirectionFlipAlert: Bool = false
     @State private var confirmationUserId: String = ""
     @State private var confirmationPassword: String = ""
-    
+
+    @State private var directionFlipped: Bool = false
+    @State private var isLoadingDirection: Bool = true
+
     @EnvironmentObject var appSettings: AppSettings
 
     let serverURL: String
@@ -225,6 +230,23 @@ struct SettingsView: View {
                     
                     if !showPasswordFields {
                         HStack {
+                            Button(action:{
+                                // API call to flip direction
+                                flipDirection()
+                            }){
+                                Text("Flip Counting Direction")
+                                    .padding()
+                                    .background(
+                                        RoundedRectangle(cornerRadius: 20)
+                                            .fill(colorScheme == .dark ?
+                                                Color(UIColor.tertiarySystemBackground) :
+                                                Color(UIColor.secondarySystemBackground))
+                                    )
+                                    .foregroundColor(.primary)
+                            }
+                        }
+                        .padding(10)
+                        HStack {
                             Button(action: {
                                 showAlert = true
                             }) {
@@ -288,6 +310,8 @@ struct SettingsView: View {
             .onAppear {
                 // Check the server status when the view appears
                 checkServerStatus()
+                // Fetch the current direction flip setting
+                fetchDirectionFlipped()
             }
             .alert(isPresented: $showAlert) {
                 Alert(
@@ -320,6 +344,13 @@ struct SettingsView: View {
                 }
             } message: {
                 Text("Please enter your Device ID to confirm:")
+            }
+            .alert("Direction Flipped", isPresented: $showDirectionFlipAlert) {
+                Button("OK", role: .cancel) {}
+            } message: {
+                Text(directionFlipped ?
+                    "Entry/Exit direction has been flipped. What was previously entry is now exit, and vice versa." :
+                    "Entry/Exit direction has been reset to normal.")
             }
         }
         .preferredColorScheme(appSettings.isDarkMode ? .dark : .light)
@@ -458,6 +489,114 @@ struct SettingsView: View {
             }
         }.resume()
     }
+
+    func fetchDirectionFlipped() {
+        guard let password = userPasswords[user.id] else {
+            print("No password found for user")
+            DispatchQueue.main.async {
+                self.isLoadingDirection = false
+            }
+            return
+        }
+
+        let urlString = "\(serverURL)/get_direction_flipped?user_id=\(user.userId)&password=\(password)"
+        guard let url = URL(string: urlString) else {
+            print("Invalid URL for direction flip")
+            DispatchQueue.main.async {
+                self.isLoadingDirection = false
+            }
+            return
+        }
+
+        URLSession.shared.dataTask(with: url) { data, response, error in
+            DispatchQueue.main.async {
+                self.isLoadingDirection = false
+            }
+
+            if let error = error {
+                print("Error fetching direction flip: \(error.localizedDescription)")
+                return
+            }
+
+            guard let httpResponse = response as? HTTPURLResponse, httpResponse.statusCode == 200 else {
+                print("Failed to fetch direction flip setting")
+                return
+            }
+
+            guard let data = data else {
+                print("No data received")
+                return
+            }
+
+            do {
+                if let json = try JSONSerialization.jsonObject(with: data) as? [String: Any],
+                   let flipped = json["direction_flipped"] as? Bool {
+                    DispatchQueue.main.async {
+                        self.directionFlipped = flipped
+                        print("Direction flipped setting loaded: \(flipped)")
+                    }
+                }
+            } catch {
+                print("Error parsing direction flip response: \(error)")
+            }
+        }.resume()
+    }
+
+    func flipDirection() {
+        guard let password = userPasswords[user.id] else {
+            print("No password found for user")
+            errorMessage = "Authentication error"
+            return
+        }
+
+        let newValue = !directionFlipped
+
+        let urlString = "\(serverURL)/set_direction_flipped"
+        guard let url = URL(string: urlString) else {
+            print("Invalid URL for updating direction flip")
+            errorMessage = "Invalid URL"
+            return
+        }
+
+        var request = URLRequest(url: url)
+        request.httpMethod = "POST"
+
+        let bodyData = "user_id=\(user.userId)&password=\(password)&direction_flipped=\(newValue ? "true" : "false")"
+        request.httpBody = bodyData.data(using: .utf8)
+        request.setValue("application/x-www-form-urlencoded", forHTTPHeaderField: "Content-Type")
+
+        URLSession.shared.dataTask(with: request) { data, response, error in
+            if let error = error {
+                print("Error updating direction flip: \(error.localizedDescription)")
+                DispatchQueue.main.async {
+                    self.errorMessage = "Network error: \(error.localizedDescription)"
+                }
+                return
+            }
+
+            guard let httpResponse = response as? HTTPURLResponse else {
+                print("No response from server")
+                DispatchQueue.main.async {
+                    self.errorMessage = "No response from server"
+                }
+                return
+            }
+
+            if httpResponse.statusCode == 200 {
+                print("Direction flip updated successfully to: \(newValue)")
+                DispatchQueue.main.async {
+                    self.directionFlipped = newValue
+                    // Show alert on screen confirming that the direction has been flipped
+                    self.showDirectionFlipAlert = true
+                }
+            } else {
+                print("Failed to update direction flip: HTTP \(httpResponse.statusCode)")
+                DispatchQueue.main.async {
+                    self.errorMessage = "Failed to update direction flip"
+                }
+            }
+        }.resume()
+    }
 }
 
 // Extension to handle keyboard avoidance
@@ -509,7 +648,7 @@ extension View {
 
 struct SettingsView_Previews: PreviewProvider {
     static var previews: some View {
-        SettingsView(showSettings: .constant(true), user: User(id: UUID(), userId: "SampleUser", currentCount: 0), updateFrequencies: .constant([:]), logOut: { _ in }, serverURL: "\(AppSettings.apiBaseURL)")
+        SettingsView(showSettings: .constant(true), user: User(id: UUID(), userId: "SampleUser", currentCount: 0), updateFrequencies: .constant([:]), userPasswords: .constant([:]), logOut: { _ in }, serverURL: "\(AppSettings.apiBaseURL)")
             .environmentObject(AppSettings())
     }
 }

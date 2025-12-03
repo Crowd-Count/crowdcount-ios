@@ -243,14 +243,6 @@ struct UserView: View {
                         .foregroundColor(.primary)
                         .cornerRadius(20)
                 }
-                .simultaneousGesture(TapGesture().onEnded {
-                    bluetoothManager.userId = user.userId
-                    bluetoothManager.fetchBluetoothUUIDs { success in
-                        if !success {
-                            deviceStatusMessage = "Failed to fetch Bluetooth UUIDs"
-                        }
-                    }
-                })
                 .padding(.top, 10)
             }
             

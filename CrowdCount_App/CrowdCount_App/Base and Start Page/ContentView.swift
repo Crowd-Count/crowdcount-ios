@@ -14,6 +14,7 @@ struct ContentView: View {
     @State private var users: [User] = []
     @State private var currentUserIndex: Int = 0
     @State private var totalCount: Int = 0
+    @State private var totalOvercrowdingCount: Int = 0
     @State private var showSettings: Bool = false
     @State private var selectedUserForSettings: User?
     @State private var userId: String = ""
@@ -83,6 +84,7 @@ struct ContentView: View {
                                 users: $users,
                                 currentUserIndex: $currentUserIndex,
                                 totalCount: $totalCount,
+                                totalOvercrowdingCount: $totalOvercrowdingCount,
                                 userPasswords: $userPasswords,
                                 showNewCountField: $showNewCountField,
                                 newCount: $newCount,
@@ -138,6 +140,7 @@ struct ContentView: View {
                         showSettings: $showSettings,
                         user: user,
                         updateFrequencies: $updateFrequencies,
+                        userPasswords: $userPasswords,
                         logOut: logOut,
                         serverURL: serverURL
                     )
@@ -308,6 +311,7 @@ struct ContentView: View {
         @Binding var users: [User]
         @Binding var currentUserIndex: Int
         @Binding var totalCount: Int
+        @Binding var totalOvercrowdingCount: Int
         @Binding var userPasswords: [UUID: String]
         @Binding var showNewCountField: Bool
         @Binding var newCount: String
@@ -329,7 +333,7 @@ struct ContentView: View {
         var body: some View {
             TabView(selection: $currentUserIndex) {
                 if users.count > 1 {
-                    TotalCountView(totalCount: totalCount)
+                    TotalCountView(totalCount: totalCount, totalOvercrowdingCount: totalOvercrowdingCount, users: users, userPasswords: $userPasswords)
                         .tag(0)
                 }
                 ForEach(users.indices, id: \.self) { index in
@@ -478,7 +482,8 @@ struct ContentView: View {
     }
 
     func sendWiFiCredentials() {
-        bluetoothManager.sendWiFiCredentials(ssid: wifiSSID, password: wifiPassword)
+        // This function is no longer used - BluetoothSetupView handles provisioning internally
+        // Kept for backward compatibility with view signatures
     }
 
     func autoLoginIfNeeded() {
@@ -520,6 +525,7 @@ struct ContentView: View {
                         if let updatedIndex = self.users.firstIndex(where: { $0.id == userId }) {
                             self.users[updatedIndex].currentCount = count
                             self.calculateTotalCount()
+                            self.calculateTotalOvercrowdingCount()
                         }
                     }
                 } else {
@@ -637,6 +643,7 @@ struct ContentView: View {
                             self.users.append(newUser)
                             self.userPasswords[newUser.id] = self.password
                             self.calculateTotalCount()
+                            self.calculateTotalOvercrowdingCount()
                             self.showLoginScreen = false
                             self.startDeviceStatusCheck(for: newUser)
                             self.fetchCurrentCount(for: newUser.id)
@@ -669,6 +676,8 @@ struct ContentView: View {
                 for user in users {
                     startDeviceStatusCheck(for: user)
                 }
+                calculateTotalCount()
+                calculateTotalOvercrowdingCount()
                 DispatchQueue.main.async {
                     startLiveCountUpdate()
                 }
@@ -689,6 +698,66 @@ struct ContentView: View {
 
     func calculateTotalCount() {
         totalCount = users.reduce(0) { $0 + $1.currentCount }
+    }
+
+    func fetchOvercrowdingCount(for userId: UUID, completion: @escaping (Int) -> Void) {
+        guard let userIndex = users.firstIndex(where: { $0.id == userId }) else {
+            print("User not found for ID: \(userId)")
+            completion(0)
+            return
+        }
+
+        let user = users[userIndex]
+        let urlString = "\(serverURL)/get_overcrowding?device_name=\(user.userId)"
+        guard let url = URL(string: urlString) else {
+            print("Invalid URL for user: \(user.userId)")
+            completion(0)
+            return
+        }
+
+        URLSession.shared.dataTask(with: url) { data, _, error in
+            if let error = error {
+                print("Network error fetching overcrowding: \(error.localizedDescription)")
+                completion(0)
+                return
+            }
+
+            guard let data = data else {
+                print("No data received for overcrowding for user: \(user.userId)")
+                completion(0)
+                return
+            }
+
+            do {
+                if let json = try JSONSerialization.jsonObject(with: data, options: []) as? [String: Any],
+                   let overcrowding = json["overcrowding"] as? Int {
+                    completion(overcrowding)
+                } else {
+                    print("Invalid response format for overcrowding for user: \(user.userId)")
+                    completion(0)
+                }
+            } catch {
+                print("Error parsing overcrowding response for user: \(user.userId)")
+                completion(0)
+            }
+        }.resume()
+    }
+
+    func calculateTotalOvercrowdingCount() {
+        var total = 0
+        let group = DispatchGroup()
+
+        for user in users {
+            group.enter()
+            fetchOvercrowdingCount(for: user.id) { overcrowdingCount in
+                total += overcrowdingCount
+                group.leave()
+            }
+        }
+
+        group.notify(queue: .main) {
+            self.totalOvercrowdingCount = total
+        }
     }
 
     func logOut(userId: UUID) {
@@ -722,9 +791,10 @@ struct ContentView: View {
             self.userPasswords.removeValue(forKey: userId)
             
             self.updateFrequencies.removeValue(forKey: userId)
-            
+
             self.calculateTotalCount()
-            
+            self.calculateTotalOvercrowdingCount()
+
             print("After logout - currentUserIndex: \(self.currentUserIndex), users.count: \(self.users.count)")
         } else {
             print("Error: User with ID \(userId) not found")
@@ -748,6 +818,8 @@ struct ContentView: View {
                 for user in users {
                     startDeviceStatusCheck(for: user)
                 }
+                calculateTotalCount()
+                calculateTotalOvercrowdingCount()
                 DispatchQueue.main.async {
                     startLiveCountUpdate()
                 }
