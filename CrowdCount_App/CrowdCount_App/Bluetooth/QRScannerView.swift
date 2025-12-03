@@ -49,7 +49,7 @@ struct QRScannerView: View {
                                 .padding()
                                 .background(Color.black.opacity(0.7))
                                 .cornerRadius(10)
-                                .offset(y: 40)
+                                .offset(y: 80)
                         }
                     )
 

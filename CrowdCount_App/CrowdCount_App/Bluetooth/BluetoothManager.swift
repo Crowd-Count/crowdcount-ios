@@ -61,7 +61,7 @@ class BluetoothManager: NSObject, ObservableObject, CBCentralManagerDelegate, CB
         }
 
         print("Starting to scan for peripheral with service UUID: \(serviceUUID)")
-        print("Looking for device: CrowdCount-\(deviceId)")
+        print("Looking for device: CrowdCount: \(deviceId)")
         isScanning = true
         centralManager.scanForPeripherals(withServices: [serviceUUID], options: nil)
     }
@@ -183,8 +183,8 @@ class BluetoothManager: NSObject, ObservableObject, CBCentralManagerDelegate, CB
         if let localName = advertisementData[CBAdvertisementDataLocalNameKey] as? String {
             print("Peripheral local name: \(localName)")
 
-            // Match device name format: "CrowdCount-CC-00001"
-            let expectedName = "CrowdCount-\(deviceId)"
+            // Match device name format: "CrowdCount: CC-00001" (with colon and space)
+            let expectedName = "CrowdCount: \(deviceId)"
             if localName == expectedName {
                 print("✓ Matching peripheral found: \(localName)")
                 self.peripheral = peripheral

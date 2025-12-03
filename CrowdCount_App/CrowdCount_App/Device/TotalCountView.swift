@@ -40,7 +40,7 @@ struct TotalCountView: View {
             }
             .padding(.top)
             Spacer()
-            Text("Data for the count, overcrowding count, and count history is an aggregate from all of your counters added.")
+            Text("Counts and history are aggregated from all of your counters.")
                 .font(.footnote)
                 .foregroundColor(.secondary)
                 .multilineTextAlignment(.center)

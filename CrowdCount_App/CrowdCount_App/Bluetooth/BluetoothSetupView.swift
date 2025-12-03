@@ -41,9 +41,7 @@ struct BluetoothSetupView: View {
     @State private var isScanning: Bool = true
 
     // Provisioning Form State
-    @State private var tailscaleKey: String = ""
-    @State private var serverIP: String = "100.72.64.80" // Default Tailscale server IP
-    @State private var streamName: String = ""
+    @State private var serverIP: String = "" // Leave blank to use default Tailscale server IP
 
     // Advanced Settings
     @State private var showAdvanced: Bool = false
@@ -82,12 +80,9 @@ struct BluetoothSetupView: View {
                 }
             }
             .padding()
-            .navigationBarTitle("Device Setup", displayMode: .inline)
-            .navigationBarItems(leading: Button("Cancel") {
-                bluetoothManager.disconnect()
-                presentationMode.wrappedValue.dismiss()
-            })
         }
+        .navigationTitle("Device Setup")
+        .navigationBarTitleDisplayMode(.inline)
         .onChange(of: isScanning) { oldValue, newValue in
             if !newValue && !scannedDeviceId.isEmpty {
                 // QR code scanned successfully
@@ -204,6 +199,7 @@ struct BluetoothSetupView: View {
                             .foregroundColor(.primary)
                             .cornerRadius(20)
                     }
+                    .padding(10)
                 }
                 .background(Color.secondary.opacity(0.1))
                 .cornerRadius(25)
@@ -228,11 +224,13 @@ struct BluetoothSetupView: View {
                 .font(.title3)
                 .bold()
                 .padding()
-
             Text("Device: \(scannedDeviceId)")
                 .foregroundColor(.secondary)
                 .padding(.bottom)
-
+            Text("Make sure to stay in range of the device")
+                .foregroundColor(.secondary)
+                .font(.caption)
+                .padding(.bottom)
             ScrollView {
                 VStack(spacing: 15) {
                     // WiFi SSID
@@ -253,18 +251,6 @@ struct BluetoothSetupView: View {
                             .font(.caption)
                             .foregroundColor(.secondary)
                         SecureField("WiFi Password", text: $wifiPassword)
-                            .padding()
-                            .background(Color.secondary.opacity(0.25))
-                            .cornerRadius(15)
-                            .autocapitalization(.none)
-                    }
-
-                    // Tailscale Auth Key
-                    VStack(alignment: .leading) {
-                        Text("Tailscale Auth Key")
-                            .font(.caption)
-                            .foregroundColor(.secondary)
-                        TextField("tskey-auth-...", text: $tailscaleKey)
                             .padding()
                             .background(Color.secondary.opacity(0.25))
                             .cornerRadius(15)
@@ -317,71 +303,57 @@ struct BluetoothSetupView: View {
                                         .font(.caption)
                                         .foregroundColor(.secondary)
                                     Spacer()
-                                    if !serverIP.isEmpty {
-                                        Text("Default: configured")
+                                    if serverIP.isEmpty {
+                                        Text("Using default IP")
+                                            .font(.caption2)
+                                            .foregroundColor(.secondary)
+                                    } else {
+                                        Text("Custom IP set")
                                             .font(.caption2)
                                             .foregroundColor(.green)
                                     }
                                 }
-                                TextField("Enter custom IP (optional)", text: $serverIP)
+                                TextField("Leave blank to use default IP", text: $serverIP)
                                     .padding()
                                     .background(Color.secondary.opacity(0.25))
                                     .cornerRadius(15)
                                     .keyboardType(.decimalPad)
                             }
-
-                            // Stream Name (Optional)
-                            VStack(alignment: .leading) {
-                                Text("Stream Name (Optional)")
-                                    .font(.caption)
-                                    .foregroundColor(.secondary)
-                                TextField("Leave blank to use device ID", text: $streamName)
-                                    .padding()
-                                    .background(Color.secondary.opacity(0.25))
-                                    .cornerRadius(15)
-                                    .autocapitalization(.none)
-                            }
                         }
                         .transition(.opacity)
                     }
+
+                    if isLoading {
+                        ProgressView()
+                            .padding()
+                    } else {
+                        Button(action: submitCredentials) {
+                            Text("Submit Configuration")
+                                .bold()
+                                .padding()
+                                .frame(maxWidth: .infinity)
+                                .background(Color.blue.opacity(0.75))
+                                .foregroundColor(.primary)
+                                .cornerRadius(20)
+                        }
+                    }
+
+                    if showMessage {
+                        Text(message)
+                            .foregroundColor(messageColor)
+                            .padding()
+                    }
+
+                    if let connectionError = bluetoothManager.connectionError {
+                        Text(connectionError)
+                            .foregroundColor(.red)
+                            .multilineTextAlignment(.center)
+                            .padding()
+                    }
                 }
+                .scrollDismissesKeyboard(.interactively)
                 .padding(.horizontal)
             }
-
-            if isLoading {
-                ProgressView()
-                    .padding()
-            } else {
-                Button(action: submitCredentials) {
-                    Text("Submit Configuration")
-                        .bold()
-                        .padding()
-                        .frame(maxWidth: .infinity)
-                        .background(Color.blue.opacity(0.75))
-                        .foregroundColor(.primary)
-                        .cornerRadius(20)
-                }
-                .padding(.horizontal)
-                .padding(.top)
-            }
-
-            if showMessage {
-                Text(message)
-                    .foregroundColor(messageColor)
-                    .padding()
-            }
-
-            if let connectionError = bluetoothManager.connectionError {
-                Text(connectionError)
-                    .foregroundColor(.red)
-                    .multilineTextAlignment(.center)
-                    .padding()
-            }
-
-            Text("Make sure to stay in range of the device")
-                .foregroundColor(.secondary)
-                .font(.caption)
-                .padding()
         }
     }
 
@@ -474,13 +446,6 @@ struct BluetoothSetupView: View {
             return
         }
 
-        guard !tailscaleKey.isEmpty else {
-            message = "Please enter Tailscale auth key"
-            messageColor = .red
-            showMessage = true
-            return
-        }
-
         // Server IP has a default value, no need to validate
         // Stream name is optional
 
@@ -492,9 +457,9 @@ struct BluetoothSetupView: View {
         bluetoothManager.sendProvisioningData(
             ssid: wifiSSID,
             password: wifiPassword,
-            tailscaleKey: tailscaleKey,
-            serverIP: serverIP,
-            streamName: streamName.isEmpty ? nil : streamName
+            tailscaleKey: "",
+            serverIP: serverIP.isEmpty ? "" : serverIP,
+            streamName: nil
         )
 
         // Wait for device to configure (30 seconds), then check status
