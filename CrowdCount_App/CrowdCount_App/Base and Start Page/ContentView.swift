@@ -259,10 +259,18 @@ struct ContentView: View {
             
             if serverStatusColor == .gray {
                 VStack {
-                    Image(colorScheme == .dark ? .transparentLogo : .transparentLogoBlack)
-                        .resizable()
-                        .scaledToFit()
-                        .frame(width: 125, height: 125)
+                    if (colorScheme == .dark) {
+                        Image(.transparentLogo)
+                            .resizable()
+                            .scaledToFit()
+                            .frame(width: 125, height: 125)
+                    } else {
+                        Image("LogoRounded")
+                            .resizable()
+                            .scaledToFit()
+                            .frame(width: 120, height: 120)
+                            .padding(.bottom, 5)
+                    }
                     ProgressView()
                 }
             }
@@ -733,7 +741,7 @@ struct ContentView: View {
                    let overcrowding = json["overcrowding"] as? Int {
                     completion(overcrowding)
                 } else {
-                    print("Invalid response format for overcrowding for user: \(user.userId)")
+                    print("No overcrowding for, or invalid response format for overcrowding for user: \(user.userId)")
                     completion(0)
                 }
             } catch {

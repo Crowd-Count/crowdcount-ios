@@ -31,7 +31,7 @@ struct BarGraphWeek: View {
                     AxisGridLine().foregroundStyle(Color.gray.opacity(0.5))
                 }
             }
-            .chartYScale(domain: 0...(max(weekData.values.max() ?? 1, averageWeekData?.values.max() ?? 1)))
+            .chartYScale(domain: 0...(max(1, weekData.values.max() ?? 1, averageWeekData?.values.max() ?? 1)))
             .frame(height: 200)
             .padding(.horizontal)
 

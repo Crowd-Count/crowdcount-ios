@@ -5,6 +5,7 @@ struct TotalCountView: View {
     let totalOvercrowdingCount: Int
     let users: [User]
     @Binding var userPasswords: [UUID: String]
+    @Environment(\.colorScheme) var colorScheme
 
     var body: some View {
         VStack {
@@ -49,9 +50,15 @@ struct TotalCountView: View {
         }
         .padding()
         .navigationBarItems(leading: NavigationLink(destination: InformationView()) {
-            Image(systemName: "info")
-                .foregroundColor(.primary)
-                .padding()
+            if #available(iOS 26.0, *) {
+                Image(systemName: "info")
+                    .padding()
+                    .foregroundColor(colorScheme == .dark ? .white : .primary)
+            } else {
+                Image(systemName: "info.circle")
+                    .foregroundColor(.primary)
+                    .padding()
+            }
         })
     }
 }

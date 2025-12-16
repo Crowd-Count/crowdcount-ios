@@ -11,6 +11,17 @@ struct MapContentView: View {
     @Environment(\.colorScheme) private var colorScheme
     @State private var showingListView = false
 
+    // Helper to compare coordinates with a small tolerance
+    private func coordsEqual(_ a: CLLocationCoordinate2D?, _ b: CLLocationCoordinate2D?, epsilon: Double = 1e-6) -> Bool {
+        switch (a, b) {
+        case (nil, nil): return true
+        case let (lhs?, rhs?):
+            return abs(lhs.latitude - rhs.latitude) < epsilon && abs(lhs.longitude - rhs.longitude) < epsilon
+        default:
+            return false
+        }
+    }
+
     var body: some View {
         ZStack {
             Map(position: $viewModel.cameraPosition) {
@@ -63,6 +74,40 @@ struct MapContentView: View {
             .onAppear {
                 viewModel.refreshLocations()
                 locationManager.requestLocationPermission()
+
+                // If authorization was already determined before view appeared, check status
+                if locationManager.authorizationStatus == .authorizedWhenInUse ||
+                   locationManager.authorizationStatus == .authorizedAlways {
+                    locationManager.requestLocation()
+                } else if locationManager.authorizationStatus == .denied ||
+                          locationManager.authorizationStatus == .restricted {
+                    locationManager.locationDetermined = true
+                }
+
+                // Timeout fallback: if we don't get location within 5 seconds, fit all markers
+                DispatchQueue.main.asyncAfter(deadline: .now() + 5.0) {
+                    if !viewModel.hasSetInitialPosition && !viewModel.isLoading {
+                        viewModel.setInitialPosition(userLocation: locationManager.userLocation)
+                    }
+                }
+            }
+            // Set initial position when we have location info and locations are loaded
+            .onChange(of: locationManager.locationDetermined) { _, determined in
+                if determined && !viewModel.isLoading {
+                    viewModel.setInitialPosition(userLocation: locationManager.userLocation)
+                }
+            }
+            .onChange(of: viewModel.isLoading) { _, isLoading in
+                if !isLoading && locationManager.locationDetermined {
+                    viewModel.setInitialPosition(userLocation: locationManager.userLocation)
+                }
+            }
+            // Also handle when user location becomes available
+            .onReceive(locationManager.objectWillChange) { _ in
+                // When userLocation becomes available and initial position hasn't been set
+                if !viewModel.hasSetInitialPosition, let newLocation = locationManager.userLocation, !viewModel.isLoading {
+                    viewModel.setInitialPosition(userLocation: newLocation)
+                }
             }
             .edgesIgnoringSafeArea(.all)
             .navigationBarTitle("CrowdCount Map", displayMode: .inline)
@@ -77,14 +122,14 @@ struct MapContentView: View {
                 }
                 }
             )
-            
+
             ButtonOverlay(
                 viewModel: viewModel,
                 locationManager: locationManager,
                 isMapCenteredOnUser: $viewModel.isMapCenteredOnUser,
                 showingListView: $showingListView
             )
-            
+
             if viewModel.isLoading {
                 ProgressView()
                     .frame(width: 80, height: 80)
@@ -104,37 +149,62 @@ class LocationManager: NSObject, ObservableObject, CLLocationManagerDelegate {
     private let manager = CLLocationManager()
     @Published var userLocation: CLLocationCoordinate2D?
     @Published var authorizationStatus: CLAuthorizationStatus = .notDetermined
-    
+    @Published var locationDetermined = false  // True once we know if we can get location or not
+
     override init() {
         super.init()
         manager.delegate = self
         manager.desiredAccuracy = kCLLocationAccuracyBest
         authorizationStatus = manager.authorizationStatus
     }
-    
+
     func requestLocationPermission() {
         manager.requestWhenInUseAuthorization()
     }
-    
+
     func requestLocation() {
         manager.requestLocation()
     }
-    
+
+    func startUpdatingLocation() {
+        manager.startUpdatingLocation()
+    }
+
+    func stopUpdatingLocation() {
+        manager.stopUpdatingLocation()
+    }
+
     func locationManager(_ manager: CLLocationManager, didUpdateLocations locations: [CLLocation]) {
         if let location = locations.first {
             DispatchQueue.main.async {
                 self.userLocation = location.coordinate
+                self.locationDetermined = true
             }
         }
     }
-    
+
     func locationManager(_ manager: CLLocationManager, didFailWithError error: Error) {
         print("Location error: \(error.localizedDescription)")
+        DispatchQueue.main.async {
+            self.locationDetermined = true  // Mark as determined even on failure
+        }
     }
-    
+
     func locationManagerDidChangeAuthorization(_ manager: CLLocationManager) {
         DispatchQueue.main.async {
             self.authorizationStatus = manager.authorizationStatus
+
+            // If authorization changed to authorized, start getting location
+            switch manager.authorizationStatus {
+            case .authorizedWhenInUse, .authorizedAlways:
+                self.manager.requestLocation()
+            case .denied, .restricted:
+                self.locationDetermined = true  // Can't get location, mark as determined
+            case .notDetermined:
+                break  // Still waiting for user decision
+            @unknown default:
+                break
+            }
         }
     }
 }
@@ -146,17 +216,18 @@ class MapViewModel: ObservableObject {
     @Published var locations = [Location]()
     @Published var cameraPosition: MapCameraPosition = .region(
         MKCoordinateRegion(
-            center: CLLocationCoordinate2D(latitude: 40.010483, longitude: -105.271124),
-            span: MKCoordinateSpan(latitudeDelta: 0.035, longitudeDelta: 0.035)
+            center: CLLocationCoordinate2D(latitude: 39.8283, longitude: -98.5795), // Center of USA as initial
+            span: MKCoordinateSpan(latitudeDelta: 50, longitudeDelta: 50) // Wide view initially
         )
     )
     @Published var isLoading = true
     @Published var isMapCenteredOnUser = false
+    @Published var hasSetInitialPosition = false  // Track if we've set the initial map position
 
     init() {
         refreshLocations()
     }
-    
+
     func centerOnUserLocation(_ coordinate: CLLocationCoordinate2D) {
         withAnimation {
             cameraPosition = .region(
@@ -165,7 +236,58 @@ class MapViewModel: ObservableObject {
                     span: MKCoordinateSpan(latitudeDelta: 0.005, longitudeDelta: 0.005)
                 )
             )
+            isMapCenteredOnUser = true
         }
+    }
+
+    /// Fit all location markers in the map view
+    func fitAllMarkers() {
+        guard !locations.isEmpty else { return }
+
+        // Calculate the bounding box of all locations
+        var minLat = locations[0].coordinate.latitude
+        var maxLat = locations[0].coordinate.latitude
+        var minLon = locations[0].coordinate.longitude
+        var maxLon = locations[0].coordinate.longitude
+
+        for location in locations {
+            minLat = min(minLat, location.coordinate.latitude)
+            maxLat = max(maxLat, location.coordinate.latitude)
+            minLon = min(minLon, location.coordinate.longitude)
+            maxLon = max(maxLon, location.coordinate.longitude)
+        }
+
+        // Calculate center and span with some padding
+        let centerLat = (minLat + maxLat) / 2
+        let centerLon = (minLon + maxLon) / 2
+        let spanLat = (maxLat - minLat) * 1.5  // 50% padding
+        let spanLon = (maxLon - minLon) * 1.5
+
+        // Ensure minimum span so we don't zoom in too much for single/close markers
+        let finalSpanLat = max(spanLat, 0.01)
+        let finalSpanLon = max(spanLon, 0.01)
+
+        withAnimation {
+            cameraPosition = .region(
+                MKCoordinateRegion(
+                    center: CLLocationCoordinate2D(latitude: centerLat, longitude: centerLon),
+                    span: MKCoordinateSpan(latitudeDelta: finalSpanLat, longitudeDelta: finalSpanLon)
+                )
+            )
+        }
+    }
+
+    /// Set initial map position based on user location or fall back to fitting all markers
+    func setInitialPosition(userLocation: CLLocationCoordinate2D?) {
+        guard !hasSetInitialPosition else { return }
+        hasSetInitialPosition = true
+
+        if let userLocation = userLocation {
+            centerOnUserLocation(userLocation)
+        } else if !locations.isEmpty {
+            fitAllMarkers()
+        }
+        // If no user location and no markers, keep the default USA-wide view
     }
 
     func fetchLocations() async -> [[String: Any]] {

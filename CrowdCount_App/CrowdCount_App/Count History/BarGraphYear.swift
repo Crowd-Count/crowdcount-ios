@@ -32,7 +32,7 @@ struct BarGraphYear: View {
                     AxisGridLine().foregroundStyle(Color.gray.opacity(0.5))
                 }
             }
-            .chartYScale(domain: 0...(max(yearData.values.max() ?? 1, averageYearData?.values.max() ?? 1)))
+            .chartYScale(domain: 0...(max(1, yearData.values.max() ?? 1, averageYearData?.values.max() ?? 1)))
             .frame(height: 200)
             .padding(.horizontal)
 

@@ -8,12 +8,18 @@ struct InformationView: View {
     var body: some View {
         VStack {
             Spacer()
-            Image(appSettings.isDarkMode ? .transparentLogo : .transparentLogoBlack)
-                .resizable()
-                .scaledToFit()
-                .frame(width: 75, height: 75)
-                .foregroundColor(.secondary)
-//                .padding(5)
+            if appSettings.isDarkMode {
+                Image(.transparentLogo)
+                    .resizable()
+                    .scaledToFit()
+                    .frame(width: 75, height: 75)
+            } else {
+                Image("LogoRounded")
+                    .resizable()
+                    .scaledToFit()
+                    .frame(width: 70, height: 70)
+                    .padding(.bottom, 5)
+            }
             Text("CrowdCount Information")
                 .bold()
                 .foregroundColor(.primary)
@@ -24,7 +30,7 @@ struct InformationView: View {
                 .foregroundColor(.primary)
                 .multilineTextAlignment(.center)
                 .padding(.horizontal)
-            Text("If you want to know more about us, please refer to our website above. If you have any issues, questions or want to leave a review feel free to send us an email and we'll be happy to hear from you.")
+            Text("If you want to know more about us, please refer to our website above. If you have any issues, questions, or want to leave a review, feel free to send us an email and we'll be happy to hear from you.")
                 .padding(.bottom,5)
                 .padding(.horizontal)
                 .multilineTextAlignment(.center)
@@ -115,3 +121,4 @@ struct InformationView_Previews: PreviewProvider {
             .environmentObject(AppSettings())
     }
 }
+

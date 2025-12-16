@@ -243,9 +243,11 @@ struct AggregatedHistoricView: View {
         }
 
         group.notify(queue: .main) {
-            self.availableDates = Array(allDates).sorted(by: >)
-            self.availableYears = Array(Set(allDates.map { formattedYear(from: $0) })).sorted(by: >)
-            self.availableWeeks = generateAvailableWeeks(from: Array(allDates))
+            // Convert UTC dates from server to local dates for display
+            let localDates = TZ.utcDatesToLocalDates(Array(allDates))
+            self.availableDates = localDates.sorted(by: >)
+            self.availableYears = Array(Set(localDates.map { self.formattedYear(from: $0) })).sorted(by: >)
+            self.availableWeeks = self.generateAvailableWeeks(from: localDates)
             if let firstWeek = self.availableWeeks.first {
                 self.selectedWeek = firstWeek
                 self.fetchAggregatedWeekData(for: firstWeek.startDate)
@@ -254,60 +256,71 @@ struct AggregatedHistoricView: View {
     }
 
     // MARK: - Aggregate Day Data
-    func fetchAggregatedDayData(for date: String) {
+    /// Fetch aggregated day data for a LOCAL date by fetching from the UTC days that cover it
+    func fetchAggregatedDayData(for localDate: String) {
+        // Get the UTC dates that cover this local day
+        let utcDates = TZ.utcDatesForLocalDay(localDate)
+        let utcDatesToFetch = [utcDates.primary] + (utcDates.secondary.map { [$0] } ?? [])
+
         var aggregatedData: [String: Double] = [:]
         var aggregatedAverageData: [String: Double] = [:]
         var hasAnyData = false
         let group = DispatchGroup()
+        let lock = NSLock()
 
         for user in users {
             guard let password = userPasswords[user.id] else { continue }
-            group.enter()
 
-            let urlString = "\(AppSettings.apiBaseURL)/get_day_data?user_id=\(user.userId)&password=\(password)&date=\(date)"
-            guard let url = URL(string: urlString) else {
-                group.leave()
-                continue
-            }
+            // Fetch day data from each UTC date that covers this local day
+            for utcDate in utcDatesToFetch {
+                group.enter()
 
-            URLSession.shared.dataTask(with: url) { data, response, error in
-                defer { group.leave() }
+                let urlString = "\(AppSettings.apiBaseURL)/get_day_data?user_id=\(user.userId)&password=\(password)&date=\(utcDate)"
+                guard let url = URL(string: urlString) else {
+                    group.leave()
+                    continue
+                }
 
-                guard let data = data, error == nil else { return }
+                URLSession.shared.dataTask(with: url) { data, response, error in
+                    defer { group.leave() }
 
-                if let decoded = try? JSONDecoder().decode(DayDataResponse.self, from: data) {
-                    let localBins = TZ.shiftHourlyBinsUTCtoLocal(forUTCDate: date, bins: decoded.day_data)
-                    DispatchQueue.main.async {
-                        hasAnyData = true
+                    guard let data = data, error == nil else { return }
+
+                    if let decoded = try? JSONDecoder().decode(DayDataResponse.self, from: data) {
+                        // Filter and shift bins to only include hours that fall within the target local day
+                        let localBins = TZ.shiftHourlyBinsUTCtoLocal(forUTCDate: utcDate, bins: decoded.day_data, targetLocalDate: localDate)
+                        lock.lock()
+                        hasAnyData = hasAnyData || !localBins.isEmpty
                         for (hour, count) in localBins {
                             aggregatedData[hour, default: 0] += count
                         }
+                        lock.unlock()
                     }
+                }.resume()
+
+                // Also fetch average data for this UTC date
+                group.enter()
+                let avgUrlString = "\(AppSettings.apiBaseURL)/get_average_day_data?user_id=\(user.userId)&password=\(password)&date=\(utcDate)"
+                guard let avgUrl = URL(string: avgUrlString) else {
+                    group.leave()
+                    continue
                 }
-            }.resume()
 
-            // Also fetch average data
-            group.enter()
-            let avgUrlString = "\(AppSettings.apiBaseURL)/get_average_day_data?user_id=\(user.userId)&password=\(password)&date=\(date)"
-            guard let avgUrl = URL(string: avgUrlString) else {
-                group.leave()
-                continue
-            }
+                URLSession.shared.dataTask(with: avgUrl) { data, response, error in
+                    defer { group.leave() }
 
-            URLSession.shared.dataTask(with: avgUrl) { data, response, error in
-                defer { group.leave() }
+                    guard let data = data, error == nil else { return }
 
-                guard let data = data, error == nil else { return }
-
-                if let decoded = try? JSONDecoder().decode(AverageDayDataResponse.self, from: data) {
-                    let localBins = TZ.shiftHourlyBinsUTCtoLocal(forUTCDate: date, bins: decoded.average_day_data)
-                    DispatchQueue.main.async {
+                    if let decoded = try? JSONDecoder().decode(AverageDayDataResponse.self, from: data) {
+                        let localBins = TZ.shiftHourlyBinsUTCtoLocal(forUTCDate: utcDate, bins: decoded.average_day_data, targetLocalDate: localDate)
+                        lock.lock()
                         for (hour, count) in localBins {
                             aggregatedAverageData[hour, default: 0] += count
                         }
+                        lock.unlock()
                     }
-                }
-            }.resume()
+                }.resume()
+            }
         }
 
         group.notify(queue: .main) {
@@ -482,21 +495,19 @@ struct AggregatedHistoricView: View {
         return nonZeroEntries.keys.first
     }
 
+    // Display: LOCAL "yyyy-MM-dd" → show as local long date (e.g., "January 14, 2024")
     func formattedDatelong(from date: String) -> String {
-        TZ.longLocal(fromUTCyyyyMMdd: date)
+        TZ.longLocal(fromLocalyyyyMMdd: date)
     }
 
+    // Convert long local label → "yyyy-MM-dd" LOCAL format
     func formattedDateshort(from longDate: String) -> String {
-        let fIn = DateFormatter()
-        fIn.timeZone = .current
-        fIn.locale   = .current
-        fIn.dateStyle = .long
-        guard let d = fIn.date(from: longDate) else { return longDate }
-        return TZ.yyyyMMddUTC(from: d)
+        return TZ.yyyyMMddLocal(fromLongLocal: longDate) ?? longDate
     }
 
+    // Year extraction from LOCAL date string
     func formattedYear(from date: String) -> String {
-        guard let d = TZ.utcDate(from: date) else { return date }
+        guard let d = TZ.localDate(from: date) else { return date }
         let f = DateFormatter()
         f.timeZone = .current
         f.dateFormat = "yyyy"
@@ -513,8 +524,9 @@ struct AggregatedHistoricView: View {
         return Calendar.current.component(.year, from: Date())
     }
 
+    // Get today's LOCAL date as "yyyy-MM-dd"
     func getCurrentDate() -> String {
-        TZ.yyyyMMddUTC(from: Date())
+        TZ.yyyyMMddLocal(from: Date())
     }
 
     func getCurrentWeekStartDate() -> String {
@@ -529,7 +541,7 @@ struct AggregatedHistoricView: View {
     func generateAvailableWeeks(from dates: [String]) -> [WeekInfo] {
         let f = DateFormatter()
         f.dateFormat = "yyyy-MM-dd"
-        f.timeZone = TZ.utc
+        f.timeZone = .current  // Dates are now LOCAL dates
         let sortedDates = dates.compactMap { f.date(from: $0) }.sorted(by: >)
 
         var weeks = [WeekInfo]()
@@ -586,6 +598,7 @@ struct AggregatedHistoricView_Previews: PreviewProvider {
 private enum TZ {
     static let utc = TimeZone(secondsFromGMT: 0)!
 
+    /// Parse a "yyyy-MM-dd" string as a UTC date (midnight UTC on that day)
     static func utcDate(from yyyyMMdd: String) -> Date? {
         let f = DateFormatter()
         f.calendar = Calendar(identifier: .iso8601)
@@ -594,16 +607,36 @@ private enum TZ {
         return f.date(from: yyyyMMdd)
     }
 
-    static func yyyyMMddUTC(from localDate: Date) -> String {
+    /// Parse a "yyyy-MM-dd" string as a LOCAL date (midnight local on that day)
+    static func localDate(from yyyyMMdd: String) -> Date? {
+        let f = DateFormatter()
+        f.calendar = Calendar(identifier: .iso8601)
+        f.timeZone = .current
+        f.dateFormat = "yyyy-MM-dd"
+        return f.date(from: yyyyMMdd)
+    }
+
+    /// Format a Date as "yyyy-MM-dd" in UTC timezone
+    static func yyyyMMddUTC(from date: Date) -> String {
         let f = DateFormatter()
         f.calendar = Calendar(identifier: .iso8601)
         f.timeZone = utc
         f.dateFormat = "yyyy-MM-dd"
-        return f.string(from: localDate)
+        return f.string(from: date)
     }
 
-    static func longLocal(fromUTCyyyyMMdd s: String) -> String {
-        guard let d = utcDate(from: s) else { return s }
+    /// Format a Date as "yyyy-MM-dd" in LOCAL timezone
+    static func yyyyMMddLocal(from date: Date) -> String {
+        let f = DateFormatter()
+        f.calendar = Calendar(identifier: .iso8601)
+        f.timeZone = .current
+        f.dateFormat = "yyyy-MM-dd"
+        return f.string(from: date)
+    }
+
+    /// Display a LOCAL "yyyy-MM-dd" as a long local date string (e.g., "January 14, 2024")
+    static func longLocal(fromLocalyyyyMMdd s: String) -> String {
+        guard let d = localDate(from: s) else { return s }
         let f = DateFormatter()
         f.timeZone = .current
         f.locale = .current
@@ -611,20 +644,129 @@ private enum TZ {
         return f.string(from: d)
     }
 
-    // Shift 0..23 UTC hourly bins into local 0..23 bins for the *same calendar slot*.
-    // (Counts that would spill across day edges are rotated; server-side re-aggregation
-    // would be needed for perfect day-boundary semantics.)
-    static func shiftHourlyBinsUTCtoLocal(forUTCDate yyyyMMdd: String,
-                                          bins: [String: Double]) -> [String: Double] {
-        guard let d = utcDate(from: yyyyMMdd) else { return bins }
-        let offsetHours = TimeZone.current.secondsFromGMT(for: d) / 3600  // DST-aware
-        var out: [String: Double] = [:]
-        for (k, v) in bins {
-            guard let h = Int(k) else { continue }
-            var localH = (h + offsetHours) % 24
-            if localH < 0 { localH += 24 }
-            out[String(localH), default: 0] += v
+    /// Parse a long local date string back to "yyyy-MM-dd" LOCAL format
+    static func yyyyMMddLocal(fromLongLocal longDate: String) -> String? {
+        let fIn = DateFormatter()
+        fIn.timeZone = .current
+        fIn.locale = .current
+        fIn.dateStyle = .long
+        guard let d = fIn.date(from: longDate) else { return nil }
+        return yyyyMMddLocal(from: d)
+    }
+
+    /// Given a LOCAL date "yyyy-MM-dd", return the two UTC dates that cover this local day
+    static func utcDatesForLocalDay(_ localYYYYMMDD: String) -> (primary: String, secondary: String?) {
+        guard let localMidnight = localDate(from: localYYYYMMDD) else {
+            return (localYYYYMMDD, nil)
         }
+
+        let utcAtLocalMidnight = yyyyMMddUTC(from: localMidnight)
+        let offsetSeconds = TimeZone.current.secondsFromGMT(for: localMidnight)
+        let offsetHours = offsetSeconds / 3600
+
+        if offsetHours == 0 {
+            return (utcAtLocalMidnight, nil)
+        } else if offsetHours < 0 {
+            let calendar = Calendar(identifier: .iso8601)
+            if let nextDay = calendar.date(byAdding: .day, value: 1, to: localMidnight) {
+                let nextUTCDate = yyyyMMddUTC(from: nextDay)
+                return (utcAtLocalMidnight, nextUTCDate)
+            }
+            return (utcAtLocalMidnight, nil)
+        } else {
+            let calendar = Calendar(identifier: .iso8601)
+            if let prevDay = calendar.date(byAdding: .day, value: -1, to: localMidnight) {
+                let prevUTCDate = yyyyMMddUTC(from: prevDay)
+                return (utcAtLocalMidnight, prevUTCDate)
+            }
+            return (utcAtLocalMidnight, nil)
+        }
+    }
+
+    /// Shift UTC hour bins to local hours, filtering to only include hours that fall within the target local day
+    static func shiftHourlyBinsUTCtoLocal(
+        forUTCDate utcYYYYMMDD: String,
+        bins: [String: Double],
+        targetLocalDate: String
+    ) -> [String: Double] {
+        guard let utcMidnight = utcDate(from: utcYYYYMMDD),
+              let targetLocalMidnight = localDate(from: targetLocalDate) else {
+            return [:]
+        }
+
+        // IMPORTANT: Use UTC calendar for setting UTC hours
+        var utcCalendar = Calendar(identifier: .iso8601)
+        utcCalendar.timeZone = utc
+
+        // Use local calendar for converting to local time
+        var localCalendar = Calendar(identifier: .iso8601)
+        localCalendar.timeZone = .current
+
+        var out: [String: Double] = [:]
+
+        for (hourKey, value) in bins {
+            guard let utcHour = Int(hourKey), utcHour >= 0, utcHour < 24 else { continue }
+
+            // Create the actual UTC timestamp for this hour (using UTC calendar!)
+            guard let utcTimestamp = utcCalendar.date(bySettingHour: utcHour, minute: 0, second: 0, of: utcMidnight) else {
+                continue
+            }
+
+            // Convert to local time components
+            let localComponents = localCalendar.dateComponents([.year, .month, .day, .hour], from: utcTimestamp)
+
+            // Check if this timestamp falls on our target local day
+            let targetComponents = localCalendar.dateComponents([.year, .month, .day], from: targetLocalMidnight)
+
+            if localComponents.year == targetComponents.year &&
+               localComponents.month == targetComponents.month &&
+               localComponents.day == targetComponents.day {
+                if let localHour = localComponents.hour {
+                    out[String(localHour), default: 0] += value
+                }
+            }
+        }
+
         return out
+    }
+
+    /// Convert a list of UTC dates to the set of local dates they contribute to.
+    /// Filters out any local dates that are in the future (after today).
+    static func utcDatesToLocalDates(_ utcDates: [String]) -> [String] {
+        var localDatesSet = Set<String>()
+
+        // Get today's local date for filtering
+        let todayLocal = yyyyMMddLocal(from: Date())
+
+        for utcDate in utcDates {
+            guard let utcMidnight = self.utcDate(from: utcDate) else { continue }
+
+            var localCalendar = Calendar(identifier: .iso8601)
+            localCalendar.timeZone = .current
+
+            let localAtUTCMidnight = localCalendar.dateComponents([.year, .month, .day], from: utcMidnight)
+            if let y = localAtUTCMidnight.year, let m = localAtUTCMidnight.month, let d = localAtUTCMidnight.day {
+                let localDateStr = String(format: "%04d-%02d-%02d", y, m, d)
+                // Only add if not in the future
+                if localDateStr <= todayLocal {
+                    localDatesSet.insert(localDateStr)
+                }
+            }
+
+            var utcCalendar = Calendar(identifier: .iso8601)
+            utcCalendar.timeZone = utc
+            if let utcEndOfDay = utcCalendar.date(bySettingHour: 23, minute: 59, second: 0, of: utcMidnight) {
+                let localAtUTCEnd = localCalendar.dateComponents([.year, .month, .day], from: utcEndOfDay)
+                if let y = localAtUTCEnd.year, let m = localAtUTCEnd.month, let d = localAtUTCEnd.day {
+                    let localDateStr = String(format: "%04d-%02d-%02d", y, m, d)
+                    // Only add if not in the future
+                    if localDateStr <= todayLocal {
+                        localDatesSet.insert(localDateStr)
+                    }
+                }
+            }
+        }
+
+        return Array(localDatesSet)
     }
 }

@@ -14,16 +14,7 @@
 	<key>NSCameraUsageDescription</key>
 	<string>We need access to your camera to scan device QR codes for provisioning.</string>
 	<key>UIApplicationShortcutItems</key>
-	<array>
-		<dict>
-			<key>UIApplicationShortcutItemIconFile</key>
-			<string>mapIcon</string>
-			<key>UIApplicationShortcutItemTitle</key>
-			<string>View the Map</string>
-			<key>UIApplicationShortcutItemType</key>
-			<string>com.CrowdCount.openmap</string>
-		</dict>
-	</array>
+	<array/>
 	<key>UIBackgroundModes</key>
 	<array>
 		<string>bluetooth-central</string>
