@@ -195,6 +195,16 @@ struct HistoricView: View {
                         .padding()
 
                         Spacer()
+
+                        Button(action: {
+                            downloadWeekDataAsCSV()
+                        }) {
+                            Image(systemName: "square.and.arrow.down")
+                                .font(.title2)
+                                .foregroundColor(.primary)
+                                .offset(y: -3)
+                        }
+                        .padding()
                     }
 
                     if hasDataForSelectedWeek {
@@ -251,6 +261,16 @@ struct HistoricView: View {
                         .padding()
 
                         Spacer()
+
+                        Button(action: {
+                            downloadYearDataAsCSV()
+                        }) {
+                            Image(systemName: "square.and.arrow.down")
+                                .font(.title2)
+                                .foregroundColor(.primary)
+                                .offset(y: -3)
+                        }
+                        .padding()
                     }
 
                     if hasDataForSelectedYear {
@@ -1095,6 +1115,78 @@ struct HistoricView: View {
         downloadTask.resume()
     }
 
+    func downloadWeekDataAsCSV() {
+        guard !weekData.isEmpty else {
+            print("No week data available to download")
+            return
+        }
+
+        // Define the correct weekday order
+        let weekdayOrder = ["Monday", "Tuesday", "Wednesday", "Thursday", "Friday", "Saturday", "Sunday"]
+
+        // Build CSV content
+        var csvContent = "Day,Count,Average\n"
+
+        for day in weekdayOrder {
+            let count = weekData[day] ?? 0
+            let average = averageWeekData?[day]
+            let averageString = average != nil ? String(format: "%.1f", average!) : ""
+            csvContent += "\(day),\(String(format: "%.1f", count)),\(averageString)\n"
+        }
+
+        // Convert to Data
+        guard let csvData = csvContent.data(using: .utf8) else {
+            print("Failed to convert CSV to data")
+            return
+        }
+
+        // Generate filename using week start date
+        let weekLabel = selectedWeek?.startDate ?? "unknown"
+        let fileName = "user_\(userId)_week_\(weekLabel).csv"
+
+        // Present share sheet
+        if let topController = UIApplication.shared.topViewController() {
+            presentShareSheet(data: csvData, fileName: fileName, from: topController)
+        }
+    }
+
+    func downloadYearDataAsCSV() {
+        guard !yearData.isEmpty else {
+            print("No year data available to download")
+            return
+        }
+
+        // Define the correct month order
+        let monthOrder = ["January", "February", "March", "April", "May", "June",
+                          "July", "August", "September", "October", "November", "December"]
+
+        // Build CSV content
+        var csvContent = "Month,Count,Average\n"
+
+        for month in monthOrder {
+            if let count = yearData[month] {
+                let average = averageYearData?[month]
+                let averageString = average != nil ? String(format: "%.1f", average!) : ""
+                csvContent += "\(month),\(String(format: "%.1f", count)),\(averageString)\n"
+            }
+        }
+
+        // Convert to Data
+        guard let csvData = csvContent.data(using: .utf8) else {
+            print("Failed to convert CSV to data")
+            return
+        }
+
+        // Generate filename using year
+        let yearValue = selectedYear == "This Year" ? getCurrentYear() : selectedYear
+        let fileName = "user_\(userId)_year_\(yearValue).csv"
+
+        // Present share sheet
+        if let topController = UIApplication.shared.topViewController() {
+            presentShareSheet(data: csvData, fileName: fileName, from: topController)
+        }
+    }
+
     func documentInteractionControllerViewControllerForPreview(_ controller: UIDocumentInteractionController) -> UIViewController {
         return UIApplication.shared.topViewController() ?? UIViewController()
     }
@@ -1321,5 +1413,18 @@ private enum TZ {
         }
 
         return Array(localDatesSet)
+    }
+}
+
+// MARK: - Preview
+
+#Preview("Historic View") {
+    NavigationView {
+        HistoricView(
+            userId: "Demo",
+            userUUID: UUID(),
+            userPasswords: .constant([UUID(): "password"])
+        )
+        .environmentObject(AppSettings())
     }
 }

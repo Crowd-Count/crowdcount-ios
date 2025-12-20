@@ -244,7 +244,7 @@ struct LoginView: View {
         isAnimating = true
         continuousTapping = true
         let animationDuration = 2.0 / Double(rainbowColors.count)
-        
+
         for i in 0..<rainbowColors.count {
             DispatchQueue.main.asyncAfter(deadline: .now() + animationDuration * Double(i)) {
                 currentColorIndex = i
@@ -259,5 +259,35 @@ struct LoginView: View {
                 }
             }
         }
+    }
+}
+
+// MARK: - Preview
+
+#Preview("Login View") {
+    NavigationView {
+        LoginView(
+            userId: .constant(""),
+            password: .constant(""),
+            errorMessage: .constant(nil),
+            setUser: {},
+            serverStatus: "Online",
+            serverStatusColor: .green
+        )
+        .environmentObject(AppSettings())
+    }
+}
+
+#Preview("Login View - With Error") {
+    NavigationView {
+        LoginView(
+            userId: .constant("T1234"),
+            password: .constant("password"),
+            errorMessage: .constant("Invalid credentials"),
+            setUser: {},
+            serverStatus: "Online",
+            serverStatusColor: .green
+        )
+        .environmentObject(AppSettings())
     }
 }

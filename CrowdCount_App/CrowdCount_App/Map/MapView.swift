@@ -7,9 +7,33 @@ import CoreLocation
 struct MapContentView: View {
     @StateObject private var viewModel = MapViewModel()
     @StateObject private var locationManager = LocationManager()
+    @StateObject private var adService = AdService()
     @EnvironmentObject var appSettings: AppSettings
     @Environment(\.colorScheme) private var colorScheme
     @State private var showingListView = false
+    @State private var showAdCarousel: Bool
+    private var previewAds: [ServerAd]?
+
+    init(showAds: Bool = true, previewAds: [ServerAd]? = nil) {
+        _showAdCarousel = State(initialValue: showAds)
+        self.previewAds = previewAds
+    }
+
+    // Get the bottom safe area inset
+    private var bottomSafeAreaInset: CGFloat {
+        if let windowScene = UIApplication.shared.connectedScenes
+            .compactMap({ $0 as? UIWindowScene })
+            .first,
+           let window = windowScene.windows.first(where: { $0.isKeyWindow }) {
+            return window.safeAreaInsets.bottom
+        }
+        return 0
+    }
+
+    // Bottom padding for ad carousel: 8pt from the absolute bottom of the screen
+    private var adCarouselBottomPadding: CGFloat {
+        8 - bottomSafeAreaInset
+    }
 
     // Helper to compare coordinates with a small tolerance
     private func coordsEqual(_ a: CLLocationCoordinate2D?, _ b: CLLocationCoordinate2D?, epsilon: Double = 1e-6) -> Bool {
@@ -123,18 +147,40 @@ struct MapContentView: View {
                 }
             )
 
-            ButtonOverlay(
-                viewModel: viewModel,
-                locationManager: locationManager,
-                isMapCenteredOnUser: $viewModel.isMapCenteredOnUser,
-                showingListView: $showingListView
-            )
+            // Buttons and Ad Carousel at bottom
+            VStack(spacing: 0) {
+                Spacer()
+                HStack {
+                    Spacer()
+                    VStack(spacing: 8) {
+                        RefreshButtonOverlay(viewModel: viewModel, adService: adService)
+                        LocationButtonOverlay(viewModel: viewModel, locationManager: locationManager)
+                        ListModeButtonOverlay(showingListView: $showingListView)
+                        ReportButtonOverlay()
+                    }
+                }
+                .padding(.trailing, 8)
+                .padding(.bottom, 8)
+
+                if showAdCarousel {
+                    AdCarouselView(isVisible: $showAdCarousel, adService: adService, userLocation: locationManager.userLocation, locations: viewModel.locations, previewAds: previewAds)
+                        .padding(.horizontal, 8)
+                        .padding(.bottom, adCarouselBottomPadding)
+                }
+            }
 
             if viewModel.isLoading {
-                ProgressView()
-                    .frame(width: 80, height: 80)
-                    .background(.ultraThinMaterial)
-                    .cornerRadius(20)
+                if #available(iOS 26.0, *) {
+                    ProgressView()
+                        .frame(width: 80, height: 80)
+                        .cornerRadius(20)
+                        .glassEffect(in: RoundedRectangle(cornerRadius: 20))
+                } else {
+                    ProgressView()
+                        .frame(width: 80, height: 80)
+                        .background(.ultraThinMaterial)
+                        .cornerRadius(20)
+                }
             }
         }
         .sheet(isPresented: $showingListView) {
@@ -233,7 +279,7 @@ class MapViewModel: ObservableObject {
             cameraPosition = .region(
                 MKCoordinateRegion(
                     center: coordinate,
-                    span: MKCoordinateSpan(latitudeDelta: 0.005, longitudeDelta: 0.005)
+                    span: MKCoordinateSpan(latitudeDelta: 0.02, longitudeDelta: 0.02)
                 )
             )
             isMapCenteredOnUser = true
@@ -413,42 +459,19 @@ struct Location: Identifiable {
     }
 }
 
-// MARK: - ButtonOverlay
-
-private struct ButtonOverlay: View {
-    @ObservedObject var viewModel: MapViewModel
-    @ObservedObject var locationManager: LocationManager
-    @Binding var isMapCenteredOnUser: Bool
-    @Binding var showingListView: Bool
-
-    var body: some View {
-        VStack {
-            Spacer()
-            HStack {
-                Spacer()
-                VStack(spacing: 5) {
-                    RefreshButtonOverlay(viewModel: viewModel)
-                    LocationButtonOverlay(viewModel: viewModel, locationManager: locationManager)
-                    ListModeButtonOverlay(showingListView: $showingListView)
-                    ReportButtonOverlay()
-                }
-            }
-            .padding(.trailing, 10)
-        }
-        .padding(.bottom, 0)
-    }
-}
-
 // MARK: - RefreshButtonOverlay
 
 private struct RefreshButtonOverlay: View {
     @ObservedObject var viewModel: MapViewModel
-    @State private var isAnimating = false
+    @ObservedObject var adService: AdService
     @Environment(\.colorScheme) private var colorScheme
 
     var body: some View {
         Button(action: {
             viewModel.refreshLocations()
+            Task {
+                await adService.fetchActiveAds()
+            }
         }) {
             if #available(iOS 26.0, *) {
                 Image(systemName: "arrow.clockwise")
@@ -544,12 +567,12 @@ private struct LocationButtonOverlay: View {
     @ObservedObject var viewModel: MapViewModel
     @ObservedObject var locationManager: LocationManager
     @Environment(\.colorScheme) private var colorScheme
-    
+
     var body: some View {
         Button(action: {
             // First request location
             locationManager.requestLocation()
-            
+
             // Then center the map with a delay to allow location to update
             DispatchQueue.main.asyncAfter(deadline: .now() + 0.3) {
                 if let userLocation = locationManager.userLocation {
@@ -591,5 +614,23 @@ private struct LocationButtonOverlay: View {
             }
         }
     }
+}
+
+// MARK: - Preview
+
+#Preview("Map with Ad Carousel") {
+    NavigationView {
+        MapContentView(showAds: true, previewAds: ServerAd.sampleAds)
+            .environmentObject(AppSettings())
+    }
+    .preferredColorScheme(.dark)
+}
+
+#Preview("Map without Ad Carousel") {
+    NavigationView {
+        MapContentView(showAds: false)
+            .environmentObject(AppSettings())
+    }
+    .preferredColorScheme(.dark)
 }
 

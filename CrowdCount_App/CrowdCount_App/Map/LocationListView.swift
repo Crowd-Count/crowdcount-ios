@@ -109,7 +109,7 @@ struct SearchBar: View {
 struct LocationRowView: View {
     let location: Location
     @Environment(\.colorScheme) private var colorScheme
-    
+
     var body: some View {
         HStack(spacing: 12) {
             // Icon with color
@@ -117,19 +117,19 @@ struct LocationRowView: View {
                 Circle()
                     .fill(Color.fromString(location.color).opacity(0.2))
                     .frame(width: 45, height: 45)
-                
+
                 Image(systemName: location.icon)
                     .font(.system(size: 20))
                     .foregroundColor(Color.fromString(location.color))
             }
-            
+
             // Location Info
             VStack(alignment: .leading, spacing: 4) {
                 Text(location.name)
                     .font(.headline)
                     .lineLimit(1)
                     .foregroundColor(.primary)
-                
+
                 HStack(spacing: 12) {
                     // Current Count with trend
                     HStack(spacing: 4) {
@@ -147,7 +147,7 @@ struct LocationRowView: View {
                                 .fontWeight(.bold)
                         }
                     }
-                    
+
                     // Overcrowding if available
                     if let overcrowding = location.overcrowding {
                         Text("Max: \(overcrowding)")

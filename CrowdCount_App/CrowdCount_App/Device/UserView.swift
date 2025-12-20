@@ -2,9 +2,10 @@ import SwiftUI
 
 struct UserView: View {
     @Binding var user: User
+    @Binding var users: [User]
     let serverURL: String
     @Binding var userPasswords: [UUID: String]
-    
+
     @Environment(\.colorScheme) var colorScheme
     
     @State private var showNewCountField: Bool = false
@@ -34,9 +35,10 @@ struct UserView: View {
     @State private var overcrowdingLimit: String? = nil
     
     @EnvironmentObject var appSettings: AppSettings
-    
-    @State private var showDemoAlert: Bool = false // Added state variable for alert
-    
+
+    @State private var showDemoAlert: Bool = false
+    @State private var showDemoAdAlert: Bool = false
+
     var body: some View {
         VStack {
             if user.userId == "Demo"{
@@ -229,7 +231,47 @@ struct UserView: View {
                 .padding(.horizontal, 16)
             }
             .padding(.top, 10)
-            
+
+            // Only show Create an Ad button if device is online
+            if user.userId == "T0000" || !isBluetoothSetupRequired {
+                if user.userId == "Demo" {
+                    Button(action: {
+                        showDemoAdAlert = true
+                    }) {
+                        HStack {
+                            Image(systemName: "megaphone.fill")
+                            Text("Create an Ad")
+                        }
+                        .padding()
+                        .background(Color.orange.opacity(0.75))
+                        .foregroundColor(.primary)
+                        .cornerRadius(20)
+                        .padding(.horizontal, 16)
+                    }
+                    .padding(.top, 10)
+                    .alert(isPresented: $showDemoAdAlert) {
+                        Alert(
+                            title: Text("Demo Mode"),
+                            message: Text("You can't create an ad with the demo.\n\nBut you can still give us money if you want... would be cool... please. Our venmo is @CrowdCount :)"),
+                            dismissButton: .default(Text("Got it!"))
+                        )
+                    }
+                } else {
+                    NavigationLink(destination: AdPayView(users: $users)) {
+                        HStack {
+                            Image(systemName: "megaphone.fill")
+                            Text("Create an Ad")
+                        }
+                        .padding()
+                        .background(Color.orange.opacity(0.75))
+                        .foregroundColor(.primary)
+                        .cornerRadius(20)
+                        .padding(.horizontal, 16)
+                    }
+                    .padding(.top, 10)
+                }
+            }
+
             if isBluetoothSetupRequired && user.userId != "T0000" {
                 NavigationLink(destination: BluetoothSetupView(
                     wifiSSID: $wifiSSID,
@@ -431,13 +473,13 @@ struct UserView: View {
     
     func checkIfOvercrowdingExists(_ user: User) {
         guard let url = URL(string: "\(serverURL)/check_if_overcrowding_exists?device_name=\(user.userId)") else { return }
-        
+
         URLSession.shared.dataTask(with: url) { data, response, error in
             guard let data = data, error == nil else {
                 print("Network error: \(String(describing: error))")
                 return
             }
-            
+
             if let httpResponse = response as? HTTPURLResponse, httpResponse.statusCode == 200,
                let json = try? JSONSerialization.jsonObject(with: data, options: []) as? [String: Any],
                let overcrowdingExists = json["overcrowding_exists"] as? Bool {
@@ -460,3 +502,46 @@ struct UserView: View {
     }
 }
 
+// MARK: - Preview
+
+#Preview("User View") {
+    NavigationView {
+        UserView(
+            user: .constant(User(id: UUID(), userId: "T0000", currentCount: 42)),
+            users: .constant([User(id: UUID(), userId: "T0000", currentCount: 42)]),
+            serverURL: "https://api.example.com",
+            userPasswords: .constant([:]),
+            setCurrentCount: { _, _ in },
+            isBluetoothSetupRequired: .constant(false),
+            bluetoothManager: BluetoothManager(),
+            sendWiFiCredentials: {},
+            deviceStatusMessage: .constant("Connected"),
+            showSettings: .constant(false),
+            updateFrequencies: .constant([:]),
+            logOut: { _ in },
+            showSettingsForUser: {}
+        )
+        .environmentObject(AppSettings())
+    }
+}
+
+#Preview("User View - With Overcrowding") {
+    NavigationView {
+        UserView(
+            user: .constant(User(id: UUID(), userId: "T1234", currentCount: 156)),
+            users: .constant([User(id: UUID(), userId: "T1234", currentCount: 156)]),
+            serverURL: "https://api.example.com",
+            userPasswords: .constant([:]),
+            setCurrentCount: { _, _ in },
+            isBluetoothSetupRequired: .constant(false),
+            bluetoothManager: BluetoothManager(),
+            sendWiFiCredentials: {},
+            deviceStatusMessage: .constant("Connected"),
+            showSettings: .constant(false),
+            updateFrequencies: .constant([:]),
+            logOut: { _ in },
+            showSettingsForUser: {}
+        )
+        .environmentObject(AppSettings())
+    }
+}

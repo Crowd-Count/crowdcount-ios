@@ -15,18 +15,23 @@ struct TotalCountView: View {
                 .font(.title)
                 .padding(.top)
 
-            HStack {
-                Text("\(totalCount)")
-                    .font(.system(size: 75))
-                    .fontWeight(.bold)
+            Group {
                 if totalOvercrowdingCount > 0 {
-                    Text("/ \(totalOvercrowdingCount)")
-                        .font(.system(size: 75))
+                    Text("\(totalCount)")
+                        .fontWeight(.bold)
+                    + Text(" / \(totalOvercrowdingCount)")
                         .fontWeight(.bold)
                         .foregroundColor(.secondary)
+                } else {
+                    Text("\(totalCount)")
+                        .fontWeight(.bold)
                 }
             }
-            .padding(10)
+            .font(.system(size: 75))
+            .lineLimit(1)
+            .minimumScaleFactor(0.4)
+            .padding(.horizontal, 20)
+            .padding(.vertical, 10)
 
             NavigationLink(destination: AggregatedHistoricView(users: users, userPasswords: $userPasswords)) {
                 HStack {

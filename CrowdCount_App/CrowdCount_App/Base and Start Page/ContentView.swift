@@ -233,7 +233,7 @@ struct ContentView: View {
                         .font(.body)
 //                        .padding()
                         .padding(.horizontal,40)
-                    Text("\(Text("[crowdcount.tech](https://www.crowdcount.tech)"))")
+                    Text("\(Text("[crowdcount.tech/status](https://www.crowdcount.tech/status)"))")
                         .font(.body)
                 }
             }
@@ -340,14 +340,19 @@ struct ContentView: View {
 
         var body: some View {
             TabView(selection: $currentUserIndex) {
+                // Total Count view (if multiple users)
                 if users.count > 1 {
                     TotalCountView(totalCount: totalCount, totalOvercrowdingCount: totalOvercrowdingCount, users: users, userPasswords: $userPasswords)
                         .tag(0)
                 }
+
+                // Individual user views
                 ForEach(users.indices, id: \.self) { index in
                     userView(for: index)
                         .tag(users.count > 1 ? index + 1 : index)
                 }
+
+                // Add Device page (rightmost)
                 AddUserPage(
                     users: $users,
                     totalCount: $totalCount,
@@ -373,8 +378,9 @@ struct ContentView: View {
         private func userView(for index: Int) -> some View {
             UserView(
                 user: $users[index],
+                users: $users,
                 serverURL: serverURL,
-                userPasswords: $userPasswords, // Pass userPasswords
+                userPasswords: $userPasswords,
                 setCurrentCount: setCurrentCount,
                 isBluetoothSetupRequired: Binding(
                     get: { isBluetoothSetupRequired[users[index].id] ?? false },
@@ -408,17 +414,16 @@ struct ContentView: View {
                 }
             }) {
                 VStack {
-                    HStack {
-                        Text("CrowdCount")
-                            .font(.headline)
-                        if alertViewModel.alertExists {
-                            Circle()
-                                .fill(Color.red)
-                                .frame(width: 10, height: 10)
-                                .padding(.top, 0)
-                                .padding(.bottom, 0)
+                    Text("CrowdCount")
+                        .font(.headline)
+                        .overlay(alignment: .topTrailing) {
+                            if alertViewModel.alertExists {
+                                Circle()
+                                    .fill(Color.red)
+                                    .frame(width: 10, height: 10)
+                                    .offset(x: 18, y: 5.5)
+                            }
                         }
-                    }
                     Text("CrowdCount App v\(appVersion ?? "ersion undefined")")
                         .font(.subheadline)
                         .foregroundColor(.secondary)
@@ -741,7 +746,6 @@ struct ContentView: View {
                    let overcrowding = json["overcrowding"] as? Int {
                     completion(overcrowding)
                 } else {
-                    print("No overcrowding for, or invalid response format for overcrowding for user: \(user.userId)")
                     completion(0)
                 }
             } catch {

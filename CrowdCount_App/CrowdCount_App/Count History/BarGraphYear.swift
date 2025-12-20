@@ -32,7 +32,7 @@ struct BarGraphYear: View {
                     AxisGridLine().foregroundStyle(Color.gray.opacity(0.5))
                 }
             }
-            .chartYScale(domain: 0...(max(1, yearData.values.max() ?? 1, averageYearData?.values.max() ?? 1)))
+            .chartYScale(domain: 0...(max(1, yearData.values.map { max(0, $0) }.max() ?? 1, averageYearData?.values.map { max(0, $0) }.max() ?? 1)))
             .frame(height: 200)
             .padding(.horizontal)
 
@@ -53,7 +53,7 @@ struct BarGraphYear: View {
             if let count = yearData[month] {
                 BarMark(
                     x: .value("Month", month),
-                    y: .value("Count", count)
+                    y: .value("Count", max(0, count))
                 )
                 .foregroundStyle(.blue)
                 .opacity(index % 2 == 0 ? 0.8 : 0.6)
@@ -70,7 +70,7 @@ struct BarGraphYear: View {
                 if let averageCount = averageYearData[month] {
                     LineMark(
                         x: .value("Month", month),
-                        y: .value("Average Count", averageCount)
+                        y: .value("Average Count", max(0, averageCount))
                     )
                     .foregroundStyle(.orange)
                     .lineStyle(StrokeStyle(lineWidth: 2))

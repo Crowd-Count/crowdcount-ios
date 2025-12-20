@@ -31,7 +31,7 @@ struct BarGraphWeek: View {
                     AxisGridLine().foregroundStyle(Color.gray.opacity(0.5))
                 }
             }
-            .chartYScale(domain: 0...(max(1, weekData.values.max() ?? 1, averageWeekData?.values.max() ?? 1)))
+            .chartYScale(domain: 0...(max(1, weekData.values.map { max(0, $0) }.max() ?? 1, averageWeekData?.values.map { max(0, $0) }.max() ?? 1)))
             .frame(height: 200)
             .padding(.horizontal)
 
@@ -48,7 +48,7 @@ struct BarGraphWeek: View {
             if let count = weekData[day] {
                 BarMark(
                     x: .value("Day", day),
-                    y: .value("Count", count)
+                    y: .value("Count", max(0, count))
                 )
                 .foregroundStyle(.blue)
                 .opacity(index % 2 == 0 ? 0.8 : 0.6)
@@ -65,7 +65,7 @@ struct BarGraphWeek: View {
                 if let averageCount = averageWeekData[day] {
                     LineMark(
                         x: .value("Day", day),
-                        y: .value("Average Count", averageCount)
+                        y: .value("Average Count", max(0, averageCount))
                     )
                     .foregroundStyle(.orange)
                     .lineStyle(StrokeStyle(lineWidth: 2))

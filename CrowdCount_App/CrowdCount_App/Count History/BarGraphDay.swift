@@ -39,7 +39,7 @@ struct BarGraphDay: View {
                     AxisGridLine().foregroundStyle(Color.gray.opacity(0.5))
                 }
             }
-            .chartYScale(domain: 0...(max(1, dayData.values.max() ?? 1, averageDayData?.values.max() ?? 1)))
+            .chartYScale(domain: 0...(max(1, dayData.values.map { max(0, $0) }.max() ?? 1, averageDayData?.values.map { max(0, $0) }.max() ?? 1)))
             .frame(height: 200)
             .padding(.horizontal)
 
@@ -55,7 +55,7 @@ struct BarGraphDay: View {
             if let count = dayData[String(hour)] {
                 BarMark(
                     x: .value("Hour", hour),
-                    y: .value("Count", count)
+                    y: .value("Count", max(0, count))
                 )
                 .foregroundStyle(shouldHighlightBar(for: hour) ? .green : .blue)
                 .opacity(shouldHighlightBar(for: hour) ? 1.0 : (hour % 2 == 0 ? 0.8 : 0.6))
@@ -71,7 +71,7 @@ struct BarGraphDay: View {
                 if let averageCount = averageDayData[String(hour)] {
                     LineMark(
                         x: .value("Hour", hour),
-                        y: .value("Average Count", averageCount)
+                        y: .value("Average Count", max(0, averageCount))
                     )
                     .foregroundStyle(.orange)
                     .lineStyle(StrokeStyle(lineWidth: 2))

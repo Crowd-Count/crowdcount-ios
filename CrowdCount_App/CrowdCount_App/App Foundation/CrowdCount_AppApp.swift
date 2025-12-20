@@ -6,12 +6,17 @@
 //
 
 import SwiftUI
+import Stripe
 
 @main
 struct CrowdCount_AppApp: App {
     @StateObject private var appSettings = AppSettings()
     @UIApplicationDelegateAdaptor(AppDelegate.self) var appDelegate
     @AppStorage("selectedShortcutItem") private var selectedShortcutItem: String?
+
+    init() {
+        StripeConfig.shared.configure()
+    }
 
     var body: some Scene {
         WindowGroup {
