@@ -328,7 +328,7 @@ struct HistoricView: View {
                 .frame(maxWidth: .infinity)
             }
         }
-        .environment(\.colorScheme, appSettings.isDarkMode ? .dark : .light)
+        .preferredColorScheme(appSettings.isDarkMode ? .dark : .light)
         .navigationBarTitle("Count History", displayMode: .inline)
         .onAppear {
             fetchAvailableDates()

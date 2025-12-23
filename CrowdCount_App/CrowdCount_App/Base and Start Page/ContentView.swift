@@ -38,7 +38,7 @@ struct ContentView: View {
     @State private var showLoginScreen: Bool = true
     @State private var path: [String] = []
     @State private var userPasswords: [UUID: String] = [:] // Store passwords per user
-    @ObservedObject private var alertViewModel = AlertViewModel()
+    @StateObject private var alertViewModel = AlertViewModel()
     
     @EnvironmentObject var appSettings: AppSettings
     
@@ -154,7 +154,7 @@ struct ContentView: View {
                 alertViewModel.checkForAlert()
             }
         }
-        .environment(\.colorScheme, appSettings.isDarkMode ? .dark : .light)
+        .preferredColorScheme(appSettings.isDarkMode ? .dark : .light)
     }
 
     private struct MapButtonOverlay: View {

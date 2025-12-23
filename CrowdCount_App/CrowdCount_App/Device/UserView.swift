@@ -33,11 +33,13 @@ struct UserView: View {
     
     @State private var isOvercrowdingEnabled: Bool = false
     @State private var overcrowdingLimit: String? = nil
-    
+
     @EnvironmentObject var appSettings: AppSettings
 
     @State private var showDemoAlert: Bool = false
     @State private var showDemoAdAlert: Bool = false
+    @State private var isDeviceOnMap: Bool = false
+    @State private var devicesOnMap: Set<String> = []
 
     var body: some View {
         VStack {
@@ -46,7 +48,7 @@ struct UserView: View {
                 Text("")
                     .padding(.top, 40)
             }
-            if user.userId == "T0000" || !isBluetoothSetupRequired {
+            if !isBluetoothSetupRequired {
                 Image(systemName: "wifi")
                     .foregroundColor(.green)
                     .font(.system(size: 25))
@@ -57,7 +59,7 @@ struct UserView: View {
                     .symbolRenderingMode(.hierarchical)
             }
             
-            Text((user.userId == "T0000" || !isBluetoothSetupRequired) ? "Live Count for:" : "Last Count for:")
+            Text((!isBluetoothSetupRequired) ? "Live Count for:" : "Last Count for:")
                 .font(.callout)
                 .padding(.top)
             
@@ -232,8 +234,8 @@ struct UserView: View {
             }
             .padding(.top, 10)
 
-            // Only show Create an Ad button if device is online
-            if user.userId == "T0000" || !isBluetoothSetupRequired {
+            // Only show ad-related buttons if device is online
+            if !isBluetoothSetupRequired {
                 if user.userId == "Demo" {
                     Button(action: {
                         showDemoAdAlert = true
@@ -256,8 +258,9 @@ struct UserView: View {
                             dismissButton: .default(Text("Got it!"))
                         )
                     }
-                } else {
-                    NavigationLink(destination: AdPayView(users: $users)) {
+                } else if isDeviceOnMap {
+                    // Device is on the map - show Create an Ad button
+                    NavigationLink(destination: AdPayView(users: $users, devicesOnMap: devicesOnMap)) {
                         HStack {
                             Image(systemName: "megaphone.fill")
                             Text("Create an Ad")
@@ -269,10 +272,24 @@ struct UserView: View {
                         .padding(.horizontal, 16)
                     }
                     .padding(.top, 10)
+                } else {
+                    // Device is online but not on the map - show Get on the Map button
+                    NavigationLink(destination: GetOnMapInfoView()) {
+                        HStack {
+                            Image(systemName: "map.fill")
+                            Text("Get on the Map")
+                        }
+                        .padding()
+                        .background(Color.green.opacity(0.75))
+                        .foregroundColor(.primary)
+                        .cornerRadius(20)
+                        .padding(.horizontal, 16)
+                    }
+                    .padding(.top, 10)
                 }
             }
 
-            if isBluetoothSetupRequired && user.userId != "T0000" {
+            if isBluetoothSetupRequired {
                 NavigationLink(destination: BluetoothSetupView(
                     wifiSSID: $wifiSSID,
                     wifiPassword: $wifiPassword,
@@ -326,6 +343,7 @@ struct UserView: View {
         .onAppear {
             deviceName = loadDeviceName()
             checkIfOvercrowdingExists(user)
+            checkIfDeviceIsOnMap()
         }
         .onChange(of: user.currentCount) { oldValue, newValue in
             temporaryCount = nil // Clear temporary count when user count updates
@@ -497,6 +515,34 @@ struct UserView: View {
                     self.isOvercrowdingEnabled = false
                     self.overcrowdingLimit = nil
                 }
+            }
+        }.resume()
+    }
+
+    // MARK: - Check if Device is on Map
+
+    func checkIfDeviceIsOnMap() {
+        guard let url = URL(string: "\(serverURL)/get_all_location_data_with_extra") else { return }
+
+        URLSession.shared.dataTask(with: url) { data, response, error in
+            guard let data = data, error == nil else {
+                print("Network error checking map locations: \(String(describing: error))")
+                return
+            }
+
+            if let httpResponse = response as? HTTPURLResponse, httpResponse.statusCode == 200,
+               let json = try? JSONSerialization.jsonObject(with: data, options: []) as? [String: Any],
+               let locations = json["locations"] as? [[String: Any]] {
+                // Extract all device IDs that are on the map
+                let deviceIds = locations.compactMap { $0["location_device"] as? String }
+                let deviceIdSet = Set(deviceIds)
+
+                DispatchQueue.main.async {
+                    self.devicesOnMap = deviceIdSet
+                    self.isDeviceOnMap = deviceIdSet.contains(self.user.userId)
+                }
+            } else {
+                print("Failed to fetch map locations")
             }
         }.resume()
     }

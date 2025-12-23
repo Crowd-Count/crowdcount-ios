@@ -103,6 +103,6 @@ struct InfoMapView: View {
             .padding()
         }
         .navigationBarTitle("Map Information", displayMode: .inline)
-        .environment(\.colorScheme, appSettings.isDarkMode ? .dark : .light)
+        .preferredColorScheme(appSettings.isDarkMode ? .dark : .light)
     }
 }

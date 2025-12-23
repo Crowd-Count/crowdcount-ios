@@ -2,6 +2,8 @@ import SwiftUI
 import PhotosUI
 import PassKit
 import Stripe
+import UserNotifications
+import CoreLocation
 
 // MARK: - UserCreatedAd Model
 
@@ -419,12 +421,18 @@ extension PaymentHandler: STPAuthenticationContext {
 
 struct AdPayView: View {
     @Binding var users: [User]
+    var devicesOnMap: Set<String> = []
     @StateObject private var viewModel = AdCreationViewModel()
     @State private var selectedPhotoItem: PhotosPickerItem?
     @State private var paymentHandler = PaymentHandler()
     @State private var showDefaultPagePreview = false
     @Environment(\.colorScheme) private var colorScheme
     @Environment(\.dismiss) private var dismiss
+
+    /// Users filtered to only include devices that are on the map
+    private var usersOnMap: [User] {
+        users.filter { $0.userId != "Demo" && devicesOnMap.contains($0.userId) }
+    }
 
     var canMakePayments: Bool {
         return PKPaymentAuthorizationController.canMakePayments(
@@ -641,10 +649,21 @@ struct AdPayView: View {
         .sheet(isPresented: $showDefaultPagePreview) {
             AdDetailView(
                 ad: previewServerAd,
-                accentColor: .blue,
-                adImage: viewModel.selectedImage
+                accentColor: previewAccentColor,
+                adImage: viewModel.selectedImage?.cropToSquareAndResize(targetSize: 720),
+                coordinate: CLLocationCoordinate2D(latitude: 37.7749, longitude: -122.4194) // Sample coordinate for preview
             )
         }
+    }
+
+    // Accent color extracted from the cropped/processed image (same as ad card)
+    private var previewAccentColor: Color {
+        guard let image = viewModel.selectedImage,
+              let croppedImage = image.cropToSquareAndResize(targetSize: 720),
+              let dominantColor = croppedImage.dominantColor else {
+            return .blue
+        }
+        return Color(uiColor: dominantColor)
     }
 
     // Preview ad for showing what the default page looks like
@@ -749,7 +768,7 @@ struct AdPayView: View {
                 .padding(.leading, 5)
 
             Menu {
-                ForEach(users.filter { $0.userId != "Demo" }, id: \.id) { user in
+                ForEach(usersOnMap, id: \.id) { user in
                     Button(action: {
                         viewModel.selectedDeviceId = user.userId
                     }) {
@@ -902,14 +921,33 @@ struct AdPayView: View {
                     let ad = viewModel.createAd()
                     AdStorageManager.shared.saveAd(ad)
 
-                    // Submit ad for review to server (with payment proof)
-                    submitAdForReview(ad: ad, paymentIntentId: paymentIntentId)
+                    // Request notification permission to notify when ad is live
+                    requestNotificationPermission {
+                        // Submit ad for review to server (with payment proof)
+                        submitAdForReview(ad: ad, paymentIntentId: paymentIntentId)
+                    }
 
                     viewModel.showPaymentSuccess = true
                 } else {
                     viewModel.showPaymentError = true
                 }
             }
+        }
+    }
+
+    // MARK: - Notification Permission
+
+    private func requestNotificationPermission(completion: @escaping () -> Void) {
+        UNUserNotificationCenter.current().requestAuthorization(options: [.alert, .badge, .sound]) { granted, error in
+            if granted {
+                DispatchQueue.main.async {
+                    UIApplication.shared.registerForRemoteNotifications()
+                }
+                print("Notification permission granted")
+            } else if let error = error {
+                print("Notification permission error: \(error.localizedDescription)")
+            }
+            completion()
         }
     }
 
@@ -927,6 +965,9 @@ struct AdPayView: View {
         // Convert image data to base64 for transmission
         let imageBase64 = ad.imageData?.base64EncodedString() ?? ""
 
+        // Get app ID for push notification targeting
+        let appId = UserDefaults.standard.string(forKey: "appId") ?? ""
+
         var body: [String: Any] = [
             "paymentIntentId": paymentIntentId,  // Server verifies this with Stripe
             "id": ad.id.uuidString,
@@ -939,7 +980,8 @@ struct AdPayView: View {
             "ctaText": ad.ctaText,
             "ctaLinkType": ad.ctaLinkType.rawValue,
             "createdAt": ISO8601DateFormatter().string(from: ad.createdAt),
-            "expirationDate": ISO8601DateFormatter().string(from: ad.expirationDate)
+            "expirationDate": ISO8601DateFormatter().string(from: ad.expirationDate),
+            "submitterAppId": appId  // For push notifications when ad is approved
         ]
 
         if let ctaURL = ad.ctaURL {
@@ -1106,18 +1148,24 @@ struct AdPreviewCard: View {
 // MARK: - Previews
 
 #Preview("Light Mode") {
-    AdPayView(users: .constant([
-        User(id: UUID(), userId: "TestDevice1", currentCount: 42),
-        User(id: UUID(), userId: "TestDevice2", currentCount: 15)
-    ]))
+    AdPayView(
+        users: .constant([
+            User(id: UUID(), userId: "TestDevice1", currentCount: 42),
+            User(id: UUID(), userId: "TestDevice2", currentCount: 15)
+        ]),
+        devicesOnMap: ["TestDevice1", "TestDevice2"]
+    )
     .preferredColorScheme(.light)
 }
 
 #Preview("Dark Mode") {
-    AdPayView(users: .constant([
-        User(id: UUID(), userId: "TestDevice1", currentCount: 42),
-        User(id: UUID(), userId: "TestDevice2", currentCount: 15)
-    ]))
+    AdPayView(
+        users: .constant([
+            User(id: UUID(), userId: "TestDevice1", currentCount: 42),
+            User(id: UUID(), userId: "TestDevice2", currentCount: 15)
+        ]),
+        devicesOnMap: ["TestDevice1", "TestDevice2"]
+    )
     .preferredColorScheme(.dark)
 }
 

@@ -22,7 +22,7 @@ struct CrowdCount_AppApp: App {
         WindowGroup {
             ContentView()
                 .environmentObject(appSettings)
-                .environment(\.colorScheme, appSettings.isDarkMode ? .dark : .light)
+                .preferredColorScheme(appSettings.isDarkMode ? .dark : .light)
                 .onAppear {
                     if let shortcut = selectedShortcutItem {
                         handleShortcut(shortcut)

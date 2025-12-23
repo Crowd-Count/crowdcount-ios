@@ -111,7 +111,7 @@ struct InformationView: View {
 
         }
         .navigationBarTitle("Information", displayMode: .inline)
-        .environment(\.colorScheme, appSettings.isDarkMode ? .dark : .light)
+        .preferredColorScheme(appSettings.isDarkMode ? .dark : .light)
     }
 }
 

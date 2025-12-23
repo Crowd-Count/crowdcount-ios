@@ -200,7 +200,7 @@ struct AggregatedHistoricView: View {
                 .padding(.horizontal)
             }
         }
-        .environment(\.colorScheme, appSettings.isDarkMode ? .dark : .light)
+        .preferredColorScheme(appSettings.isDarkMode ? .dark : .light)
         .navigationBarTitle("Aggregated Count History", displayMode: .inline)
         .onAppear {
             fetchAllAvailableDates()

@@ -11,13 +11,18 @@ struct ServerAd: Identifiable, Codable {
     let imagePath: String?
     let deviceId: String
     let durationHours: Int
-    let totalPrice: Double
+    let totalPrice: Double?  // Optional - not returned in public API for security
     let ctaText: String?
     let ctaLinkType: String?
     let ctaURL: String?
     let status: String
     let createdAt: String
     let expirationDate: String
+
+    // Demo-only properties (not from API)
+    var demoIcon: String?
+    var demoColor: String?
+    var demoCoordinate: CLLocationCoordinate2D?
 
     enum CodingKeys: String, CodingKey {
         case id
@@ -36,14 +41,44 @@ struct ServerAd: Identifiable, Codable {
     }
 
     var expirationDateParsed: Date {
+        // Try ISO8601 with timezone and fractional seconds (e.g., 2025-12-20T15:30:00.123456Z)
         let formatter = ISO8601DateFormatter()
         formatter.formatOptions = [.withInternetDateTime, .withFractionalSeconds]
         if let date = formatter.date(from: expirationDate) {
             return date
         }
-        // Try without fractional seconds
+
+        // Try without fractional seconds (e.g., 2025-12-20T15:30:00Z)
         formatter.formatOptions = [.withInternetDateTime]
-        return formatter.date(from: expirationDate) ?? Date()
+        if let date = formatter.date(from: expirationDate) {
+            return date
+        }
+
+        // Try parsing without timezone (server sends UTC without Z suffix)
+        // e.g., 2025-12-20T15:30:00.123456 or 2025-12-20T15:30:00
+        let dateFormatter = DateFormatter()
+        dateFormatter.locale = Locale(identifier: "en_US_POSIX")
+        dateFormatter.timeZone = TimeZone(identifier: "UTC")
+
+        // Try with fractional seconds
+        dateFormatter.dateFormat = "yyyy-MM-dd'T'HH:mm:ss.SSSSSS"
+        if let date = dateFormatter.date(from: expirationDate) {
+            return date
+        }
+
+        // Try with fewer fractional digits
+        dateFormatter.dateFormat = "yyyy-MM-dd'T'HH:mm:ss.SSS"
+        if let date = dateFormatter.date(from: expirationDate) {
+            return date
+        }
+
+        // Try without fractional seconds
+        dateFormatter.dateFormat = "yyyy-MM-dd'T'HH:mm:ss"
+        if let date = dateFormatter.date(from: expirationDate) {
+            return date
+        }
+
+        return Date()
     }
 
     var imageURL: URL? {
@@ -83,7 +118,10 @@ struct ServerAd: Identifiable, Codable {
             ctaURL: nil,
             status: "approved",
             createdAt: ISO8601DateFormatter().string(from: Date()),
-            expirationDate: ISO8601DateFormatter().string(from: Date().addingTimeInterval(2 * 3600 + 34 * 60))
+            expirationDate: ISO8601DateFormatter().string(from: Date().addingTimeInterval(2 * 3600 + 34 * 60)),
+            demoIcon: "cup.and.saucer.fill",
+            demoColor: "brown",
+            demoCoordinate: CLLocationCoordinate2D(latitude: 37.7849, longitude: -122.4094)
         ),
         ServerAd(
             id: "sample-2",
@@ -98,7 +136,10 @@ struct ServerAd: Identifiable, Codable {
             ctaURL: "https://crowdcount.tech",
             status: "approved",
             createdAt: ISO8601DateFormatter().string(from: Date()),
-            expirationDate: ISO8601DateFormatter().string(from: Date().addingTimeInterval(5 * 3600 + 12 * 60))
+            expirationDate: ISO8601DateFormatter().string(from: Date().addingTimeInterval(5 * 3600 + 12 * 60)),
+            demoIcon: "dumbbell.fill",
+            demoColor: "orange",
+            demoCoordinate: CLLocationCoordinate2D(latitude: 37.7749, longitude: -122.4194)
         ),
         ServerAd(
             id: "sample-3",
@@ -113,7 +154,10 @@ struct ServerAd: Identifiable, Codable {
             ctaURL: nil,
             status: "approved",
             createdAt: ISO8601DateFormatter().string(from: Date()),
-            expirationDate: ISO8601DateFormatter().string(from: Date().addingTimeInterval(45 * 60))
+            expirationDate: ISO8601DateFormatter().string(from: Date().addingTimeInterval(45 * 60)),
+            demoIcon: "leaf.fill",
+            demoColor: "green",
+            demoCoordinate: CLLocationCoordinate2D(latitude: 37.7899, longitude: -122.4014)
         ),
         ServerAd(
             id: "sample-4",
@@ -128,7 +172,10 @@ struct ServerAd: Identifiable, Codable {
             ctaURL: "https://booknook.example.com",
             status: "approved",
             createdAt: ISO8601DateFormatter().string(from: Date()),
-            expirationDate: ISO8601DateFormatter().string(from: Date().addingTimeInterval(12 * 3600))
+            expirationDate: ISO8601DateFormatter().string(from: Date().addingTimeInterval(12 * 3600)),
+            demoIcon: "book.fill",
+            demoColor: "purple",
+            demoCoordinate: CLLocationCoordinate2D(latitude: 37.7699, longitude: -122.4294)
         )
     ]
 }
@@ -455,6 +502,7 @@ struct AdCardView: View {
 
 struct ServerAdCardView: View {
     let ad: ServerAd
+    var locations: [Location] = []
     @Environment(\.colorScheme) private var colorScheme
     @State private var timeRemaining: TimeInterval = 0
     @State private var loadedImage: UIImage?
@@ -463,6 +511,36 @@ struct ServerAdCardView: View {
     @State private var showingAdDetail = false
 
     let timer = Timer.publish(every: 1, on: .main, in: .common).autoconnect()
+
+    /// Convert demo color string to SwiftUI Color
+    private var demoAccentColor: Color {
+        guard let colorName = ad.demoColor else { return .blue }
+        switch colorName {
+        case "brown": return .brown
+        case "orange": return .orange
+        case "green": return .green
+        case "purple": return .purple
+        case "red": return .red
+        case "blue": return .blue
+        case "pink": return .pink
+        case "yellow": return .yellow
+        case "teal": return .teal
+        case "indigo": return .indigo
+        default: return .blue
+        }
+    }
+
+    /// Get the coordinate for this ad's associated location
+    private var adCoordinate: CLLocationCoordinate2D? {
+        // Use demo coordinate if available
+        if let demoCoord = ad.demoCoordinate {
+            return demoCoord
+        }
+        guard let location = locations.first(where: { $0.userId == ad.deviceId }) else {
+            return nil
+        }
+        return location.coordinate
+    }
 
     private var countdownText: String {
         if timeRemaining <= 0 {
@@ -488,6 +566,16 @@ struct ServerAdCardView: View {
                     .aspectRatio(contentMode: .fill)
                     .frame(width: 70, height: 70)
                     .clipShape(RoundedRectangle(cornerRadius: 12))
+            } else if let demoIcon = ad.demoIcon {
+                // Demo ad with icon
+                RoundedRectangle(cornerRadius: 12)
+                    .fill(accentColor.opacity(0.15))
+                    .frame(width: 70, height: 70)
+                    .overlay {
+                        Image(systemName: demoIcon)
+                            .font(.system(size: 28))
+                            .foregroundColor(accentColor)
+                    }
             } else {
                 // Placeholder while loading
                 RoundedRectangle(cornerRadius: 12)
@@ -551,7 +639,12 @@ struct ServerAdCardView: View {
         }
         .onAppear {
             timeRemaining = ad.expirationDateParsed.timeIntervalSinceNow
-            loadImage()
+            // Use demo color if available, otherwise load image
+            if ad.demoColor != nil {
+                accentColor = demoAccentColor
+            } else {
+                loadImage()
+            }
         }
         .onReceive(timer) { _ in
             timeRemaining = ad.expirationDateParsed.timeIntervalSinceNow
@@ -576,7 +669,7 @@ struct ServerAdCardView: View {
             }
         }
         .sheet(isPresented: $showingAdDetail) {
-            AdDetailView(ad: ad, accentColor: accentColor, adImage: loadedImage)
+            AdDetailView(ad: ad, accentColor: accentColor, adImage: loadedImage, coordinate: adCoordinate)
         }
     }
 
@@ -707,7 +800,7 @@ struct AdCarouselView: View {
                     ScrollView(.horizontal, showsIndicators: false) {
                         HStack(spacing: 12) {
                             ForEach(displayAds) { ad in
-                                ServerAdCardView(ad: ad)
+                                ServerAdCardView(ad: ad, locations: locations)
                             }
                         }
                         .padding(.horizontal, 16)

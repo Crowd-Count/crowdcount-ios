@@ -14,9 +14,12 @@ struct MapContentView: View {
     @State private var showAdCarousel: Bool
     private var previewAds: [ServerAd]?
 
+    // TEMPORARY: Set to true to show demo ads for screenshots
+    private static let useDemoAds = false
+
     init(showAds: Bool = true, previewAds: [ServerAd]? = nil) {
         _showAdCarousel = State(initialValue: showAds)
-        self.previewAds = previewAds
+        self.previewAds = Self.useDemoAds ? ServerAd.sampleAds : previewAds
     }
 
     // Get the bottom safe area inset

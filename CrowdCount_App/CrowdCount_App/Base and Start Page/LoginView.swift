@@ -16,7 +16,8 @@ struct LoginView: View {
     @State private var animateColor = false
     @State private var isAnimating = false
     @State private var continuousTapping = false
-    
+
+    @StateObject private var loginTextViewModel = LoginTextViewModel()
     @EnvironmentObject var appSettings: AppSettings
     @Environment(\.colorScheme) private var colorScheme
     
@@ -63,17 +64,28 @@ struct LoginView: View {
                         .impact(weight: .heavy, intensity: 0.9),
                         trigger: isTapped
                     )
-                Text("Tap me!")
+                Text(loginTextViewModel.loginText)
                     .font(.caption2)
                     .foregroundColor(.secondary)
                     .padding(5)
                     .italic()
+                    .onAppear {
+                        loginTextViewModel.fetchLoginText()
+                    }
             } else {
                 Image(systemName: "hand.wave.fill")
                     .resizable()
                     .scaledToFit()
                     .frame(width: 50, height: 50)
                     .foregroundColor(.primary)
+                Text(loginTextViewModel.loginText)
+                    .font(.caption2)
+                    .foregroundColor(.secondary)
+                    .padding(5)
+                    .italic()
+                    .onAppear {
+                        loginTextViewModel.fetchLoginText()
+                    }
             }
             Text("Welcome!")
                 .bold()
@@ -212,7 +224,7 @@ struct LoginView: View {
         }
         .padding()
         .padding(.bottom,20)
-        .environment(\.colorScheme, appSettings.isDarkMode ? .dark : .light)
+        .preferredColorScheme(appSettings.isDarkMode ? .dark : .light)
         .navigationBarItems(leading: NavigationLink(destination: InformationView()) {
             if #available(iOS 26.0, *) {
                 Image(systemName: "info")

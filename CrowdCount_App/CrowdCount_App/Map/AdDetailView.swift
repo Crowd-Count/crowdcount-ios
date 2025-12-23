@@ -1,4 +1,6 @@
 import SwiftUI
+import CoreLocation
+import MapKit
 
 // MARK: - Ad Detail View (Default Page)
 
@@ -6,7 +8,9 @@ struct AdDetailView: View {
     let ad: ServerAd
     let accentColor: Color
     let adImage: UIImage?
+    var coordinate: CLLocationCoordinate2D? = nil
     @Environment(\.dismiss) private var dismiss
+    @EnvironmentObject var appSettings: AppSettings
 
     // Generate a unique reference number based on ad ID
     private var referenceNumber: String {
@@ -70,8 +74,8 @@ struct AdDetailView: View {
                                 .fill(accentColor.opacity(0.15))
                                 .frame(width: 150, height: 150)
                                 .overlay {
-                                    Image(systemName: "building.2")
-                                        .font(.system(size: 28))
+                                    Image(systemName: ad.demoIcon ?? "building.2")
+                                        .font(.system(size: 50))
                                         .foregroundColor(accentColor)
                                 }
                         }
@@ -99,8 +103,28 @@ struct AdDetailView: View {
                         .padding(.horizontal, 10)
                 }
 
+                // Open in Maps Button
+                if coordinate != nil {
+                    Spacer()
+                    Button(action: openInMaps) {
+                        HStack {
+                            Image(systemName: "arrow.trianglehead.turn.up.right.diamond.fill")
+                            Text("Get Directions")
+                        }
+                        .padding()
+                        .frame(maxWidth: .infinity)
+                        .background(accentColor.opacity(0.15))
+                        .foregroundColor(accentColor)
+                        .bold()
+                        .cornerRadius(12)
+                    }
+                    .padding(.horizontal)
+                }
+
+                Spacer()
+                
                 Divider()
-                    .padding(.horizontal, 40)
+                    .padding(10)
 
                 // Reference Number
                 VStack(spacing: 8) {
@@ -132,12 +156,24 @@ struct AdDetailView: View {
         }
         .presentationDetents([.large])
         .presentationDragIndicator(.visible)
+        .preferredColorScheme(appSettings.isDarkMode ? .dark : .light)
+    }
+
+    private func openInMaps() {
+        guard let coordinate = coordinate else { return }
+
+        let placemark = MKPlacemark(coordinate: coordinate)
+        let mapItem = MKMapItem(placemark: placemark)
+        mapItem.name = ad.title
+
+        // Open location in Maps - user can then choose to get directions and select transit mode
+        mapItem.openInMaps()
     }
 }
 
 // MARK: - Preview
 
-#Preview {
+#Preview("Light Mode") {
     AdDetailView(
         ad: ServerAd(
             id: "preview-123",
@@ -155,6 +191,34 @@ struct AdDetailView: View {
             expirationDate: "2024-01-02T00:00:00Z"
         ),
         accentColor: .orange,
-        adImage: nil
+        adImage: nil,
+        coordinate: CLLocationCoordinate2D(latitude: 37.7749, longitude: -122.4194)
     )
+    .environmentObject(AppSettings())
+    .preferredColorScheme(.light)
+}
+
+#Preview("Dark Mode") {
+    AdDetailView(
+        ad: ServerAd(
+            id: "preview-123",
+            title: "Joe's Coffee",
+            description: "50% off your first order! Best espresso in town.",
+            imagePath: nil,
+            deviceId: "A1234",
+            durationHours: 24,
+            totalPrice: 120.0,
+            ctaText: "Get Offer",
+            ctaLinkType: "default",
+            ctaURL: nil,
+            status: "approved",
+            createdAt: "2024-01-01T00:00:00Z",
+            expirationDate: "2024-01-02T00:00:00Z"
+        ),
+        accentColor: .orange,
+        adImage: nil,
+        coordinate: CLLocationCoordinate2D(latitude: 37.7749, longitude: -122.4194)
+    )
+    .environmentObject(AppSettings())
+    .preferredColorScheme(.dark)
 }
