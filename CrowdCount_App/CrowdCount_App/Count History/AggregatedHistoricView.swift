@@ -218,18 +218,18 @@ struct AggregatedHistoricView: View {
             guard let password = userPasswords[user.id] else { continue }
             group.enter()
 
-            var urlComponents = URLComponents(string: "\(AppSettings.apiBaseURL)/get_user_days")!
-            urlComponents.queryItems = [
-                URLQueryItem(name: "user_id", value: user.userId),
-                URLQueryItem(name: "password", value: password)
-            ]
-
-            guard let url = urlComponents.url else {
+            guard let url = URL(string: "\(AppSettings.apiBaseURL)/get_user_days") else {
                 group.leave()
                 continue
             }
 
-            URLSession.shared.dataTask(with: url) { data, response, error in
+            var request = URLRequest(url: url)
+            request.httpMethod = "POST"
+            let body: [String: Any] = ["device_id": user.userId, "password": password]
+            request.httpBody = try? JSONSerialization.data(withJSONObject: body)
+            request.setValue("application/json", forHTTPHeaderField: "Content-Type")
+
+            URLSession.shared.dataTask(with: request) { data, response, error in
                 defer { group.leave() }
 
                 guard let data = data, error == nil else { return }
@@ -275,13 +275,18 @@ struct AggregatedHistoricView: View {
             for utcDate in utcDatesToFetch {
                 group.enter()
 
-                let urlString = "\(AppSettings.apiBaseURL)/get_day_data?user_id=\(user.userId)&password=\(password)&date=\(utcDate)"
-                guard let url = URL(string: urlString) else {
+                guard let url = URL(string: "\(AppSettings.apiBaseURL)/get_day_data") else {
                     group.leave()
                     continue
                 }
 
-                URLSession.shared.dataTask(with: url) { data, response, error in
+                var request = URLRequest(url: url)
+                request.httpMethod = "POST"
+                let body: [String: Any] = ["device_id": user.userId, "password": password, "date": utcDate]
+                request.httpBody = try? JSONSerialization.data(withJSONObject: body)
+                request.setValue("application/json", forHTTPHeaderField: "Content-Type")
+
+                URLSession.shared.dataTask(with: request) { data, response, error in
                     defer { group.leave() }
 
                     guard let data = data, error == nil else { return }
@@ -300,13 +305,18 @@ struct AggregatedHistoricView: View {
 
                 // Also fetch average data for this UTC date
                 group.enter()
-                let avgUrlString = "\(AppSettings.apiBaseURL)/get_average_day_data?user_id=\(user.userId)&password=\(password)&date=\(utcDate)"
-                guard let avgUrl = URL(string: avgUrlString) else {
+                guard let avgUrl = URL(string: "\(AppSettings.apiBaseURL)/get_average_day_data") else {
                     group.leave()
                     continue
                 }
 
-                URLSession.shared.dataTask(with: avgUrl) { data, response, error in
+                var avgRequest = URLRequest(url: avgUrl)
+                avgRequest.httpMethod = "POST"
+                let avgBody: [String: Any] = ["device_id": user.userId, "password": password, "date": utcDate]
+                avgRequest.httpBody = try? JSONSerialization.data(withJSONObject: avgBody)
+                avgRequest.setValue("application/json", forHTTPHeaderField: "Content-Type")
+
+                URLSession.shared.dataTask(with: avgRequest) { data, response, error in
                     defer { group.leave() }
 
                     guard let data = data, error == nil else { return }
@@ -349,13 +359,18 @@ struct AggregatedHistoricView: View {
             guard let password = userPasswords[user.id] else { continue }
             group.enter()
 
-            let urlString = "\(AppSettings.apiBaseURL)/get_week_data?user_id=\(user.userId)&password=\(password)&date=\(formattedStartDate)"
-            guard let url = URL(string: urlString) else {
+            guard let url = URL(string: "\(AppSettings.apiBaseURL)/get_week_data") else {
                 group.leave()
                 continue
             }
 
-            URLSession.shared.dataTask(with: url) { data, response, error in
+            var request = URLRequest(url: url)
+            request.httpMethod = "POST"
+            let body: [String: Any] = ["device_id": user.userId, "password": password, "date": formattedStartDate]
+            request.httpBody = try? JSONSerialization.data(withJSONObject: body)
+            request.setValue("application/json", forHTTPHeaderField: "Content-Type")
+
+            URLSession.shared.dataTask(with: request) { data, response, error in
                 defer { group.leave() }
 
                 guard let data = data, error == nil else { return }
@@ -372,13 +387,18 @@ struct AggregatedHistoricView: View {
 
             // Also fetch average week data
             group.enter()
-            let avgUrlString = "\(AppSettings.apiBaseURL)/get_average_week_data?user_id=\(user.userId)&password=\(password)&date=\(formattedStartDate)"
-            guard let avgUrl = URL(string: avgUrlString) else {
+            guard let avgUrl = URL(string: "\(AppSettings.apiBaseURL)/get_average_week_data") else {
                 group.leave()
                 continue
             }
 
-            URLSession.shared.dataTask(with: avgUrl) { data, response, error in
+            var avgRequest = URLRequest(url: avgUrl)
+            avgRequest.httpMethod = "POST"
+            let avgBody: [String: Any] = ["device_id": user.userId, "password": password, "date": formattedStartDate]
+            avgRequest.httpBody = try? JSONSerialization.data(withJSONObject: avgBody)
+            avgRequest.setValue("application/json", forHTTPHeaderField: "Content-Type")
+
+            URLSession.shared.dataTask(with: avgRequest) { data, response, error in
                 defer { group.leave() }
 
                 guard let data = data, error == nil else { return }
@@ -412,13 +432,18 @@ struct AggregatedHistoricView: View {
             guard let password = userPasswords[user.id] else { continue }
             group.enter()
 
-            let urlString = "\(AppSettings.apiBaseURL)/get_year_data?user_id=\(user.userId)&password=\(password)&year=\(year)"
-            guard let url = URL(string: urlString) else {
+            guard let url = URL(string: "\(AppSettings.apiBaseURL)/get_year_data") else {
                 group.leave()
                 continue
             }
 
-            URLSession.shared.dataTask(with: url) { data, response, error in
+            var request = URLRequest(url: url)
+            request.httpMethod = "POST"
+            let body: [String: Any] = ["device_id": user.userId, "password": password, "year": year]
+            request.httpBody = try? JSONSerialization.data(withJSONObject: body)
+            request.setValue("application/json", forHTTPHeaderField: "Content-Type")
+
+            URLSession.shared.dataTask(with: request) { data, response, error in
                 defer { group.leave() }
 
                 guard let data = data, error == nil else { return }
@@ -435,13 +460,18 @@ struct AggregatedHistoricView: View {
 
             // Also fetch average year data
             group.enter()
-            let avgUrlString = "\(AppSettings.apiBaseURL)/get_average_year_data?user_id=\(user.userId)&password=\(password)&year=\(year)"
-            guard let avgUrl = URL(string: avgUrlString) else {
+            guard let avgUrl = URL(string: "\(AppSettings.apiBaseURL)/get_average_year_data") else {
                 group.leave()
                 continue
             }
 
-            URLSession.shared.dataTask(with: avgUrl) { data, response, error in
+            var avgRequest = URLRequest(url: avgUrl)
+            avgRequest.httpMethod = "POST"
+            let avgBody: [String: Any] = ["device_id": user.userId, "password": password, "year": year]
+            avgRequest.httpBody = try? JSONSerialization.data(withJSONObject: avgBody)
+            avgRequest.setValue("application/json", forHTTPHeaderField: "Content-Type")
+
+            URLSession.shared.dataTask(with: avgRequest) { data, response, error in
                 defer { group.leave() }
 
                 guard let data = data, error == nil else { return }

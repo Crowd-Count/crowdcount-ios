@@ -357,20 +357,16 @@ struct HistoricView: View {
             return
         }
 
-        var urlComponents = URLComponents(string: "\(AppSettings.apiBaseURL)/get_user_days")!
-        urlComponents.queryItems = [
-            URLQueryItem(name: "user_id", value: userId),
-            URLQueryItem(name: "password", value: password)
-        ]
-
-        guard let url = urlComponents.url else {
+        guard let url = URL(string: "\(AppSettings.apiBaseURL)/get_user_days") else {
             print("Invalid URL")
             return
         }
 
         var request = URLRequest(url: url)
+        request.httpMethod = "POST"
+        let body: [String: Any] = ["device_id": userId, "password": password]
+        request.httpBody = try? JSONSerialization.data(withJSONObject: body)
         request.setValue("application/json", forHTTPHeaderField: "Content-Type")
-        request.httpMethod = "GET"
 
         URLSession.shared.dataTask(with: request) { data, response, error in
             if let error = error {
@@ -416,11 +412,15 @@ struct HistoricView: View {
             return
         }
 
-        let urlString = "\(AppSettings.apiBaseURL)/get_year_data?user_id=\(userId)&password=\(password)&year=\(year)"
+        guard let url = URL(string: "\(AppSettings.apiBaseURL)/get_year_data") else { return }
 
-        guard let url = URL(string: urlString) else { return }
+        var request = URLRequest(url: url)
+        request.httpMethod = "POST"
+        let body: [String: Any] = ["device_id": userId, "password": password, "year": year]
+        request.httpBody = try? JSONSerialization.data(withJSONObject: body)
+        request.setValue("application/json", forHTTPHeaderField: "Content-Type")
 
-        URLSession.shared.dataTask(with: url) { data, response, error in
+        URLSession.shared.dataTask(with: request) { data, response, error in
             if let error = error {
                 print("Failed to fetch year data: \(error.localizedDescription)")
                 DispatchQueue.main.async {
@@ -461,11 +461,15 @@ struct HistoricView: View {
 
     // NEW: Function to fetch average year data
     func fetchAverageYearData(for year: Int, password: String) {
-        let urlString = "\(AppSettings.apiBaseURL)/get_average_year_data?user_id=\(userId)&password=\(password)&year=\(year)"
+        guard let url = URL(string: "\(AppSettings.apiBaseURL)/get_average_year_data") else { return }
 
-        guard let url = URL(string: urlString) else { return }
+        var request = URLRequest(url: url)
+        request.httpMethod = "POST"
+        let body: [String: Any] = ["device_id": userId, "password": password, "year": year]
+        request.httpBody = try? JSONSerialization.data(withJSONObject: body)
+        request.setValue("application/json", forHTTPHeaderField: "Content-Type")
 
-        URLSession.shared.dataTask(with: url) { data, response, error in
+        URLSession.shared.dataTask(with: request) { data, response, error in
             if let error = error {
                 print("Failed to fetch average year data: \(error.localizedDescription)")
                 DispatchQueue.main.async {
@@ -524,11 +528,15 @@ struct HistoricView: View {
         let utcDates = TZ.utcDatesForLocalDay(localDate)
 
         // Check if we have data for the primary UTC date (we'll fetch secondary regardless if primary has data)
-        let urlString = "\(AppSettings.apiBaseURL)/check_if_user_has_day?user_id=\(userId)&password=\(password)&date=\(utcDates.primary)"
+        guard let url = URL(string: "\(AppSettings.apiBaseURL)/check_if_user_has_day") else { return }
 
-        guard let url = URL(string: urlString) else { return }
+        var request = URLRequest(url: url)
+        request.httpMethod = "POST"
+        let body: [String: Any] = ["device_id": userId, "password": password, "date": utcDates.primary]
+        request.httpBody = try? JSONSerialization.data(withJSONObject: body)
+        request.setValue("application/json", forHTTPHeaderField: "Content-Type")
 
-        URLSession.shared.dataTask(with: url) { data, response, error in
+        URLSession.shared.dataTask(with: request) { data, response, error in
             if let error = error {
                 print("Failed to check data availability: \(error.localizedDescription)")
                 return
@@ -621,14 +629,19 @@ struct HistoricView: View {
 
     /// Helper to fetch a single UTC day's data and filter to the target local day
     private func fetchUTCDayData(utcDate: String, localDate: String, password: String, completion: @escaping ([String: Double]?) -> Void) {
-        let urlString = "\(AppSettings.apiBaseURL)/get_day_data?user_id=\(userId)&password=\(password)&date=\(utcDate)"
-        guard let url = URL(string: urlString) else {
+        guard let url = URL(string: "\(AppSettings.apiBaseURL)/get_day_data") else {
             print("fetchUTCDayData: bad URL")
             completion(nil)
             return
         }
 
-        URLSession.shared.dataTask(with: url) { data, response, error in
+        var request = URLRequest(url: url)
+        request.httpMethod = "POST"
+        let body: [String: Any] = ["device_id": userId, "password": password, "date": utcDate]
+        request.httpBody = try? JSONSerialization.data(withJSONObject: body)
+        request.setValue("application/json", forHTTPHeaderField: "Content-Type")
+
+        URLSession.shared.dataTask(with: request) { data, response, error in
             if let error = error {
                 print("fetchUTCDayData: network error for \(utcDate):", error.localizedDescription)
                 completion(nil)
@@ -722,14 +735,19 @@ struct HistoricView: View {
 
     /// Helper to fetch average data for a single UTC day
     private func fetchUTCAverageDayData(utcDate: String, localDate: String, password: String, completion: @escaping ([String: Double]?) -> Void) {
-        let urlString = "\(AppSettings.apiBaseURL)/get_average_day_data?user_id=\(userId)&password=\(password)&date=\(utcDate)"
-        guard let url = URL(string: urlString) else {
+        guard let url = URL(string: "\(AppSettings.apiBaseURL)/get_average_day_data") else {
             print("fetchUTCAverageDayData: bad URL")
             completion(nil)
             return
         }
 
-        URLSession.shared.dataTask(with: url) { data, response, error in
+        var request = URLRequest(url: url)
+        request.httpMethod = "POST"
+        let body: [String: Any] = ["device_id": userId, "password": password, "date": utcDate]
+        request.httpBody = try? JSONSerialization.data(withJSONObject: body)
+        request.setValue("application/json", forHTTPHeaderField: "Content-Type")
+
+        URLSession.shared.dataTask(with: request) { data, response, error in
             if let error = error {
                 print("fetchUTCAverageDayData: network error for \(utcDate):", error.localizedDescription)
                 completion(nil)
@@ -768,16 +786,20 @@ struct HistoricView: View {
 
         print("Formatted Start Date for week data check: \(formattedStartDate)")
 
-        let urlString = "\(AppSettings.apiBaseURL)/check_if_user_has_week?user_id=\(userId)&password=\(password)&date=\(formattedStartDate)"
-        
-        print("URL String: \(urlString)")
-
-        guard let url = URL(string: urlString) else {
+        guard let url = URL(string: "\(AppSettings.apiBaseURL)/check_if_user_has_week") else {
             print("Invalid URL")
             return
         }
 
-        URLSession.shared.dataTask(with: url) { data, response, error in
+        var request = URLRequest(url: url)
+        request.httpMethod = "POST"
+        let body: [String: Any] = ["device_id": userId, "password": password, "date": formattedStartDate]
+        request.httpBody = try? JSONSerialization.data(withJSONObject: body)
+        request.setValue("application/json", forHTTPHeaderField: "Content-Type")
+
+        print("Request URL: \(url)")
+
+        URLSession.shared.dataTask(with: request) { data, response, error in
             if let error = error {
                 print("Failed to check data availability: \(error.localizedDescription)")
                 return
@@ -826,11 +848,15 @@ struct HistoricView: View {
             return
         }
 
-        let urlString = "\(AppSettings.apiBaseURL)/get_week_data?user_id=\(userId)&password=\(password)&date=\(date)"
+        guard let url = URL(string: "\(AppSettings.apiBaseURL)/get_week_data") else { return }
 
-        guard let url = URL(string: urlString) else { return }
+        var request = URLRequest(url: url)
+        request.httpMethod = "POST"
+        let body: [String: Any] = ["device_id": userId, "password": password, "date": date]
+        request.httpBody = try? JSONSerialization.data(withJSONObject: body)
+        request.setValue("application/json", forHTTPHeaderField: "Content-Type")
 
-        URLSession.shared.dataTask(with: url) { data, response, error in
+        URLSession.shared.dataTask(with: request) { data, response, error in
             if let error = error {
                 print("Failed to fetch week data: \(error.localizedDescription)")
                 return
@@ -861,11 +887,15 @@ struct HistoricView: View {
     }
 
     func fetchAverageWeekData(for date: String, password: String) {
-        let urlString = "\(AppSettings.apiBaseURL)/get_average_week_data?user_id=\(userId)&password=\(password)&date=\(date)"
+        guard let url = URL(string: "\(AppSettings.apiBaseURL)/get_average_week_data") else { return }
 
-        guard let url = URL(string: urlString) else { return }
+        var request = URLRequest(url: url)
+        request.httpMethod = "POST"
+        let body: [String: Any] = ["device_id": userId, "password": password, "date": date]
+        request.httpBody = try? JSONSerialization.data(withJSONObject: body)
+        request.setValue("application/json", forHTTPHeaderField: "Content-Type")
 
-        URLSession.shared.dataTask(with: url) { data, response, error in
+        URLSession.shared.dataTask(with: request) { data, response, error in
             if let error = error {
                 print("Failed to fetch average week data: \(error.localizedDescription)")
                 DispatchQueue.main.async {
@@ -901,9 +931,15 @@ struct HistoricView: View {
     }
 
     func fetchConnectionStatus() {
-        guard let url = URL(string: "\(AppSettings.apiBaseURL)/connection_status?user_id=\(userId)") else { return }
+        guard let url = URL(string: "\(AppSettings.apiBaseURL)/connection_status") else { return }
 
-        URLSession.shared.dataTask(with: url) { data, response, error in
+        var request = URLRequest(url: url)
+        request.httpMethod = "POST"
+        let body: [String: Any] = ["device_id": userId]
+        request.httpBody = try? JSONSerialization.data(withJSONObject: body)
+        request.setValue("application/json", forHTTPHeaderField: "Content-Type")
+
+        URLSession.shared.dataTask(with: request) { data, response, error in
             if let error = error {
                 print("Failed to fetch connection status: \(error.localizedDescription)")
                 return
@@ -1034,10 +1070,15 @@ struct HistoricView: View {
         // Get the UTC dates that cover this local day
         let utcDates = TZ.utcDatesForLocalDay(localDate)
 
-        let urlString = "\(AppSettings.apiBaseURL)/check_if_user_has_day?user_id=\(userId)&password=\(password)&date=\(utcDates.primary)"
-        guard let url = URL(string: urlString) else { return }
+        guard let url = URL(string: "\(AppSettings.apiBaseURL)/check_if_user_has_day") else { return }
 
-        URLSession.shared.dataTask(with: url) { data, response, error in
+        var request = URLRequest(url: url)
+        request.httpMethod = "POST"
+        let body: [String: Any] = ["device_id": userId, "password": password, "date": utcDates.primary]
+        request.httpBody = try? JSONSerialization.data(withJSONObject: body)
+        request.setValue("application/json", forHTTPHeaderField: "Content-Type")
+
+        URLSession.shared.dataTask(with: request) { data, response, error in
             if let error = error {
                 print("Failed to check data availability: \(error.localizedDescription)")
                 return
@@ -1072,12 +1113,11 @@ struct HistoricView: View {
     }
 
     func downloadData(for utcDate: String, localDate: String, period: String, password: String) {
-        let urlString: String
+        guard let url = URL(string: "\(AppSettings.apiBaseURL)/export_csv") else { return }
+
         switch period {
-        case "day":
-            urlString = "\(AppSettings.apiBaseURL)/export_csv?user_id=\(userId)&password=\(password)&date=\(utcDate)"
-        case "week":
-            urlString = "\(AppSettings.apiBaseURL)/export_csv?user_id=\(userId)&password=\(password)&date=\(utcDate)"
+        case "day", "week":
+            break
         case "year":
             print("Year data export is not yet implemented")
             return
@@ -1085,9 +1125,13 @@ struct HistoricView: View {
             return
         }
 
-        guard let url = URL(string: urlString) else { return }
+        var request = URLRequest(url: url)
+        request.httpMethod = "POST"
+        let body: [String: Any] = ["device_id": userId, "password": password, "date": utcDate]
+        request.httpBody = try? JSONSerialization.data(withJSONObject: body)
+        request.setValue("application/json", forHTTPHeaderField: "Content-Type")
 
-        let downloadTask = URLSession.shared.downloadTask(with: url) { tempLocalUrl, response, error in
+        let downloadTask = URLSession.shared.downloadTask(with: request) { tempLocalUrl, response, error in
             if let error = error {
                 print("Failed to download data: \(error.localizedDescription)")
                 return

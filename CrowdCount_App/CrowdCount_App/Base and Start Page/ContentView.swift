@@ -514,13 +514,18 @@ struct ContentView: View {
         }
 
         let user = users[userIndex]
-        let urlString = "\(serverURL)/currentcount?user_id=\(user.userId)"
-        guard let url = URL(string: urlString) else {
+        guard let url = URL(string: "\(serverURL)/currentcount") else {
             print("Invalid URL for user: \(user.userId)")
             return
         }
 
-        URLSession.shared.dataTask(with: url) { data, _, error in
+        var request = URLRequest(url: url)
+        request.httpMethod = "POST"
+        let body: [String: Any] = ["device_id": user.userId]
+        request.httpBody = try? JSONSerialization.data(withJSONObject: body)
+        request.setValue("application/json", forHTTPHeaderField: "Content-Type")
+
+        URLSession.shared.dataTask(with: request) { data, _, error in
             if let error = error {
                 print("Network error: \(error.localizedDescription)")
                 return
@@ -578,11 +583,15 @@ struct ContentView: View {
         var request = URLRequest(url: url)
         request.httpMethod = "POST"
 
-        let bodyData = "user_id=\(currentUserId)&password=\(password)&new_count=\(newCount)"
-        request.httpBody = bodyData.data(using: .utf8)
-        request.setValue("application/x-www-form-urlencoded", forHTTPHeaderField: "Content-Type")
+        let body: [String: Any] = [
+            "device_id": currentUserId,
+            "password": password,
+            "new_count": newCount
+        ]
+        request.httpBody = try? JSONSerialization.data(withJSONObject: body)
+        request.setValue("application/json", forHTTPHeaderField: "Content-Type")
 
-        print("Sending request to \(urlString) with body data: \(bodyData)")
+        print("Sending request to \(urlString) with JSON body")
 
         URLSession.shared.dataTask(with: request) { data, response, error in
             if let error = error {
@@ -628,13 +637,19 @@ struct ContentView: View {
             return
         }
 
-        let urlString = "\(serverURL)/check_password?user_id=\(userId)&password=\(password)"
+        let urlString = "\(serverURL)/check_password"
         guard let url = URL(string: urlString) else {
             errorMessage = "Invalid URL"
             return
         }
 
-        URLSession.shared.dataTask(with: url) { data, response, _ in
+        var request = URLRequest(url: url)
+        request.httpMethod = "POST"
+        let body: [String: Any] = ["device_id": userId, "password": password]
+        request.httpBody = try? JSONSerialization.data(withJSONObject: body)
+        request.setValue("application/json", forHTTPHeaderField: "Content-Type")
+
+        URLSession.shared.dataTask(with: request) { data, response, _ in
             guard let httpResponse = response as? HTTPURLResponse, let data = data else {
                 DispatchQueue.main.async {
                     self.errorMessage = "Invalid user"
@@ -853,8 +868,7 @@ struct ContentView: View {
     }
 
     func checkDeviceStatus(for user: User) {
-        let urlString = "\(serverURL)/connection_status?user_id=\((user.userId))"
-        guard let url = URL(string: urlString) else {
+        guard let url = URL(string: "\(serverURL)/connection_status") else {
             DispatchQueue.main.async {
                 self.deviceStatuses[user.id] = "Invalid URL"
                 self.isBluetoothSetupRequired[user.id] = true
@@ -862,7 +876,13 @@ struct ContentView: View {
             return
         }
 
-        URLSession.shared.dataTask(with: url) { data, response, error in
+        var request = URLRequest(url: url)
+        request.httpMethod = "POST"
+        let body: [String: Any] = ["device_id": user.userId]
+        request.httpBody = try? JSONSerialization.data(withJSONObject: body)
+        request.setValue("application/json", forHTTPHeaderField: "Content-Type")
+
+        URLSession.shared.dataTask(with: request) { data, response, error in
             DispatchQueue.main.async {
                 if let error = error {
                     self.deviceStatuses[user.id] = "Network error: \(error.localizedDescription)"

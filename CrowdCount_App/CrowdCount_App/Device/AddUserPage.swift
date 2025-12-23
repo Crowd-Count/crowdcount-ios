@@ -151,12 +151,18 @@ struct AddUserPage: View {
     }
     
     func checkPassword(userId: String, password: String, completion: @escaping (Bool) -> Void) {
-        guard let url = URL(string: "\(serverURL)/check_password?user_id=\(userId)&password=\(password)") else {
+        guard let url = URL(string: "\(serverURL)/check_password") else {
             completion(false)
             return
         }
 
-        URLSession.shared.dataTask(with: url) { data, response, error in
+        var request = URLRequest(url: url)
+        request.httpMethod = "POST"
+        let body: [String: Any] = ["device_id": userId, "password": password]
+        request.httpBody = try? JSONSerialization.data(withJSONObject: body)
+        request.setValue("application/json", forHTTPHeaderField: "Content-Type")
+
+        URLSession.shared.dataTask(with: request) { data, response, error in
             if let data = data,
                let response = try? JSONDecoder().decode(PasswordCheckResponse.self, from: data) {
                 completion(response.isPasswordCorrect)

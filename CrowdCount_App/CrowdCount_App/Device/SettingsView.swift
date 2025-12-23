@@ -400,11 +400,15 @@ struct SettingsView: View {
         
         var request = URLRequest(url: url)
         request.httpMethod = "POST"
-        
-        let bodyData = "user_id=\(user.userId)&current_password=\(currentPassword)&new_password=\(newPassword)"
-        request.httpBody = bodyData.data(using: .utf8)
-        request.setValue("application/x-www-form-urlencoded", forHTTPHeaderField: "Content-Type")
-        
+
+        let body: [String: Any] = [
+            "device_id": user.userId,
+            "current_password": currentPassword,
+            "new_password": newPassword
+        ]
+        request.httpBody = try? JSONSerialization.data(withJSONObject: body)
+        request.setValue("application/json", forHTTPHeaderField: "Content-Type")
+
         URLSession.shared.dataTask(with: request) { data, response, error in
             if let error = error {
                 print("Error changing password: \(error.localizedDescription)")
@@ -443,15 +447,18 @@ struct SettingsView: View {
             return
         }
         
-        let urlString = "\(serverURL)/reset_device_data?user_id=\(user.userId)&password=\(confirmationPassword)"
+        let urlString = "\(serverURL)/reset_device_data"
         guard let url = URL(string: urlString) else {
             errorMessage = "Invalid URL"
             return
         }
-        
+
         var request = URLRequest(url: url)
         request.httpMethod = "POST"
-        
+        let body: [String: Any] = ["device_id": user.userId, "password": confirmationPassword]
+        request.httpBody = try? JSONSerialization.data(withJSONObject: body)
+        request.setValue("application/json", forHTTPHeaderField: "Content-Type")
+
         URLSession.shared.dataTask(with: request) { data, response, error in
             if let error = error {
                 print("Error resetting data: \(error.localizedDescription)")
@@ -513,7 +520,7 @@ struct SettingsView: View {
             return
         }
 
-        let urlString = "\(serverURL)/get_direction_flipped?user_id=\(user.userId)&password=\(password)"
+        let urlString = "\(serverURL)/get_direction_flipped"
         guard let url = URL(string: urlString) else {
             print("Invalid URL for direction flip")
             DispatchQueue.main.async {
@@ -522,7 +529,13 @@ struct SettingsView: View {
             return
         }
 
-        URLSession.shared.dataTask(with: url) { data, response, error in
+        var request = URLRequest(url: url)
+        request.httpMethod = "POST"
+        let body: [String: Any] = ["device_id": user.userId, "password": password]
+        request.httpBody = try? JSONSerialization.data(withJSONObject: body)
+        request.setValue("application/json", forHTTPHeaderField: "Content-Type")
+
+        URLSession.shared.dataTask(with: request) { data, response, error in
             DispatchQueue.main.async {
                 self.isLoadingDirection = false
             }
@@ -575,9 +588,13 @@ struct SettingsView: View {
         var request = URLRequest(url: url)
         request.httpMethod = "POST"
 
-        let bodyData = "user_id=\(user.userId)&password=\(password)&direction_flipped=\(newValue ? "true" : "false")"
-        request.httpBody = bodyData.data(using: .utf8)
-        request.setValue("application/x-www-form-urlencoded", forHTTPHeaderField: "Content-Type")
+        let body: [String: Any] = [
+            "device_id": user.userId,
+            "password": password,
+            "direction_flipped": newValue
+        ]
+        request.httpBody = try? JSONSerialization.data(withJSONObject: body)
+        request.setValue("application/json", forHTTPHeaderField: "Content-Type")
 
         URLSession.shared.dataTask(with: request) { data, response, error in
             if let error = error {

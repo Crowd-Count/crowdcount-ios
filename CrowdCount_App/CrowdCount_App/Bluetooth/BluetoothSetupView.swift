@@ -471,8 +471,7 @@ struct BluetoothSetupView: View {
     }
 
     func checkDeviceStatus() {
-        let urlString = "\(AppSettings.apiBaseURL)/connection_status?user_id=\(scannedDeviceId)"
-        guard let url = URL(string: urlString) else {
+        guard let url = URL(string: "\(AppSettings.apiBaseURL)/connection_status") else {
             self.message = "Server error, please try again later"
             self.messageColor = .red
             self.showMessage = true
@@ -480,7 +479,13 @@ struct BluetoothSetupView: View {
             return
         }
 
-        URLSession.shared.dataTask(with: url) { data, response, error in
+        var request = URLRequest(url: url)
+        request.httpMethod = "POST"
+        let body: [String: Any] = ["device_id": scannedDeviceId]
+        request.httpBody = try? JSONSerialization.data(withJSONObject: body)
+        request.setValue("application/json", forHTTPHeaderField: "Content-Type")
+
+        URLSession.shared.dataTask(with: request) { data, response, error in
             DispatchQueue.main.async {
                 if let error = error {
                     self.message = "Network error: \(error.localizedDescription)"
