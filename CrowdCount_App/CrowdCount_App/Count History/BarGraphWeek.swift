@@ -6,6 +6,9 @@ struct BarGraphWeek: View {
     var averageWeekData: [String: Double]?
     var selectedDate: String
 
+    // All days of the week in order
+    private let allDays = ["Monday", "Tuesday", "Wednesday", "Thursday", "Friday", "Saturday", "Sunday"]
+
     var body: some View {
         VStack {
             Chart {
@@ -13,7 +16,7 @@ struct BarGraphWeek: View {
                 lineMarks()
             }
             .chartXAxis {
-                AxisMarks(values: weekData.keys.sorted(by: { getWeekdayIndex(day: $0) < getWeekdayIndex(day: $1) })) { value in
+                AxisMarks(values: allDays) { value in
                     AxisValueLabel {
                         Text(getAbbreviatedDayName(from: value.as(String.self) ?? ""))
                             .font(.caption)
@@ -40,28 +43,37 @@ struct BarGraphWeek: View {
         }
         .padding([.top, .bottom]) // Add padding to top and bottom of the view
     }
-    
+
     @ChartContentBuilder
     private func barMarks() -> some ChartContent {
-        let sortedWeekDataKeys = weekData.keys.sorted(by: { getWeekdayIndex(day: $0) < getWeekdayIndex(day: $1) })
-        ForEach(Array(sortedWeekDataKeys.enumerated()), id: \.element) { index, day in
-            if let count = weekData[day] {
+        // Show bars for all days - visible ones for days with data, invisible placeholders for days without
+        ForEach(Array(allDays.enumerated()), id: \.element) { index, day in
+            let count = weekData[day] ?? 0
+            if count > 0 {
+                // Actual bar for days with data
                 BarMark(
                     x: .value("Day", day),
-                    y: .value("Count", max(0, count))
+                    y: .value("Count", count)
                 )
                 .foregroundStyle(.blue)
                 .opacity(index % 2 == 0 ? 0.8 : 0.6)
                 .cornerRadius(3)
+            } else {
+                // Invisible placeholder to ensure day appears on X-axis
+                BarMark(
+                    x: .value("Day", day),
+                    y: .value("Count", 0)
+                )
+                .foregroundStyle(.clear)
             }
         }
     }
-    
+
     @ChartContentBuilder
     private func lineMarks() -> some ChartContent {
-        let sortedWeekDataKeys = weekData.keys.sorted(by: { getWeekdayIndex(day: $0) < getWeekdayIndex(day: $1) })
+        // Show average line for all days that have average data
         if let averageWeekData = averageWeekData {
-            ForEach(sortedWeekDataKeys, id: \.self) { day in
+            ForEach(allDays, id: \.self) { day in
                 if let averageCount = averageWeekData[day] {
                     LineMark(
                         x: .value("Day", day),
