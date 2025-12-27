@@ -33,6 +33,7 @@ struct ContentView: View {
     @State private var updateFrequencies: [UUID: Double] = [:]
     @State private var liveCountUpdateTimers: [UUID: Timer] = [:]
     @State private var deviceStatusCheckTimers: [UUID: Timer] = [:]
+    @State private var overcrowdingUpdateTimer: Timer?
     @State private var deviceStatuses: [UUID: String] = [:]
     @State private var isBluetoothSetupRequired: [UUID: Bool] = [:]
     @State private var showLoginScreen: Bool = true
@@ -453,13 +454,32 @@ struct ContentView: View {
             timer.invalidate()
         }
         liveCountUpdateTimers.removeAll()
-        
+
         for user in users {
             let frequency = updateFrequencies[user.id, default: 1.0]
             liveCountUpdateTimers[user.id] = Timer.scheduledTimer(withTimeInterval: frequency, repeats: true) { _ in
                 fetchCurrentCount(for: user.id)
             }
         }
+
+        // Start overcrowding update timer (every 5 seconds)
+        startOvercrowdingUpdateTimer()
+    }
+
+    func startOvercrowdingUpdateTimer() {
+        overcrowdingUpdateTimer?.invalidate()
+
+        // Fetch immediately, then every 5 seconds
+        refreshAllOvercrowdingLimits()
+
+        overcrowdingUpdateTimer = Timer.scheduledTimer(withTimeInterval: 5.0, repeats: true) { _ in
+            self.refreshAllOvercrowdingLimits()
+        }
+    }
+
+    func stopOvercrowdingUpdateTimer() {
+        overcrowdingUpdateTimer?.invalidate()
+        overcrowdingUpdateTimer = nil
     }
 
     func checkServerStatus() {
@@ -543,7 +563,6 @@ struct ContentView: View {
                         if let updatedIndex = self.users.firstIndex(where: { $0.id == userId }) {
                             self.users[updatedIndex].currentCount = count
                             self.calculateTotalCount()
-                            self.calculateTotalOvercrowdingCount()
                         }
                     }
                 } else {
@@ -728,10 +747,9 @@ struct ContentView: View {
         totalCount = users.reduce(0) { $0 + $1.currentCount }
     }
 
-    func fetchOvercrowdingCount(for userId: UUID, completion: @escaping (Int) -> Void) {
+    func fetchOvercrowdingLimit(for userId: UUID) {
         guard let userIndex = users.firstIndex(where: { $0.id == userId }) else {
             print("User not found for ID: \(userId)")
-            completion(0)
             return
         }
 
@@ -739,51 +757,52 @@ struct ContentView: View {
         let urlString = "\(serverURL)/get_overcrowding?device_name=\(user.userId)"
         guard let url = URL(string: urlString) else {
             print("Invalid URL for user: \(user.userId)")
-            completion(0)
             return
         }
 
         URLSession.shared.dataTask(with: url) { data, _, error in
             if let error = error {
                 print("Network error fetching overcrowding: \(error.localizedDescription)")
-                completion(0)
                 return
             }
 
             guard let data = data else {
                 print("No data received for overcrowding for user: \(user.userId)")
-                completion(0)
                 return
             }
 
             do {
                 if let json = try JSONSerialization.jsonObject(with: data, options: []) as? [String: Any],
                    let overcrowding = json["overcrowding"] as? Int {
-                    completion(overcrowding)
+                    DispatchQueue.main.async {
+                        if let updatedIndex = self.users.firstIndex(where: { $0.id == userId }) {
+                            self.users[updatedIndex].overcrowdingLimit = overcrowding
+                            self.calculateTotalOvercrowdingCount()
+                        }
+                    }
                 } else {
-                    completion(0)
+                    DispatchQueue.main.async {
+                        if let updatedIndex = self.users.firstIndex(where: { $0.id == userId }) {
+                            self.users[updatedIndex].overcrowdingLimit = nil
+                            self.calculateTotalOvercrowdingCount()
+                        }
+                    }
                 }
             } catch {
                 print("Error parsing overcrowding response for user: \(user.userId)")
-                completion(0)
             }
         }.resume()
     }
 
     func calculateTotalOvercrowdingCount() {
-        var total = 0
-        let group = DispatchGroup()
+        // Calculate from stored values - no API calls needed
+        totalOvercrowdingCount = users.compactMap { $0.overcrowdingLimit }.reduce(0, +)
+    }
 
+    func refreshAllOvercrowdingLimits() {
+        // Fetch overcrowding limits for all users
         for user in users {
-            group.enter()
-            fetchOvercrowdingCount(for: user.id) { overcrowdingCount in
-                total += overcrowdingCount
-                group.leave()
-            }
-        }
-
-        group.notify(queue: .main) {
-            self.totalOvercrowdingCount = total
+            fetchOvercrowdingLimit(for: user.id)
         }
     }
 
@@ -806,6 +825,7 @@ struct ContentView: View {
             if self.users.isEmpty {
                 self.showLoginScreen = true
                 self.currentUserIndex = 0
+                self.stopOvercrowdingUpdateTimer()
             } else {
                 self.currentUserIndex = min(index, self.users.count - 1)
             }
