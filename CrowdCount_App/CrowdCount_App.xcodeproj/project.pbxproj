@@ -41,6 +41,7 @@
 		7CBAF1782C19F8CE000E80E9 /* BluetoothSetupView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 7CBAF1772C19F8C2000E80E9 /* BluetoothSetupView.swift */; };
 		7CBDF77E2C4003D50046C7FB /* ShareSheetHelper.swift in Sources */ = {isa = PBXBuildFile; fileRef = 7CBDF77D2C4003D20046C7FB /* ShareSheetHelper.swift */; };
 		7CC3810B2EF9FA67001C3A41 /* LoginTextViewModel.swift in Sources */ = {isa = PBXBuildFile; fileRef = 7CC3810A2EF9FA67001C3A41 /* LoginTextViewModel.swift */; };
+		7CC3810D2F0126A5001C3A41 /* APIService.swift in Sources */ = {isa = PBXBuildFile; fileRef = 7CC3810C2F0126A5001C3A41 /* APIService.swift */; };
 		7CC3BE372C3C1BF400C5DEFC /* HistoricView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 7CC3BE362C3C1BF200C5DEFC /* HistoricView.swift */; };
 		7CD02E952C2CF693000EAFC5 /* LoginView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 7CD02E942C2CF690000EAFC5 /* LoginView.swift */; };
 		7CD02E972C2DFB15000EAFC5 /* UserView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 7CD02E962C2DFB12000EAFC5 /* UserView.swift */; };
@@ -107,6 +108,7 @@
 		7CBAF1772C19F8C2000E80E9 /* BluetoothSetupView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = BluetoothSetupView.swift; sourceTree = "<group>"; };
 		7CBDF77D2C4003D20046C7FB /* ShareSheetHelper.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ShareSheetHelper.swift; sourceTree = "<group>"; };
 		7CC3810A2EF9FA67001C3A41 /* LoginTextViewModel.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = LoginTextViewModel.swift; sourceTree = "<group>"; };
+		7CC3810C2F0126A5001C3A41 /* APIService.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = APIService.swift; sourceTree = "<group>"; };
 		7CC3BE362C3C1BF200C5DEFC /* HistoricView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = HistoricView.swift; sourceTree = "<group>"; };
 		7CD02E942C2CF690000EAFC5 /* LoginView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = LoginView.swift; sourceTree = "<group>"; };
 		7CD02E962C2DFB12000EAFC5 /* UserView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = UserView.swift; sourceTree = "<group>"; };
@@ -148,6 +150,7 @@
 		7C52D5F32C5D1B5600336BF3 /* App Foundation */ = {
 			isa = PBXGroup;
 			children = (
+				7CC3810C2F0126A5001C3A41 /* APIService.swift */,
 				7C5A120B2C18D0BB0050C4D8 /* CrowdCount_AppApp.swift */,
 				7CA9C98D2C7E2B1800356DB5 /* AppDelegate.swift */,
 				7C54AF992C5BD1F800D9226B /* AppSettings.swift */,
@@ -426,6 +429,7 @@
 			isa = PBXSourcesBuildPhase;
 			buildActionMask = 2147483647;
 			files = (
+				7CC3810D2F0126A5001C3A41 /* APIService.swift in Sources */,
 				7C8FF56B2C3EAAC0008D039F /* BarGraphWeek.swift in Sources */,
 				7C8FF5692C3D47B8008D039F /* BarGraphDay.swift in Sources */,
 				7CD02E9B2C2DFD69000EAFC5 /* AddUserPage.swift in Sources */,
@@ -630,7 +634,7 @@
 				ASSETCATALOG_COMPILER_INCLUDE_ALL_APPICON_ASSETS = YES;
 				CODE_SIGN_ENTITLEMENTS = CrowdCount_App/CrowdCount_App.entitlements;
 				CODE_SIGN_STYLE = Automatic;
-				CURRENT_PROJECT_VERSION = 29;
+				CURRENT_PROJECT_VERSION = 31;
 				DEVELOPMENT_ASSET_PATHS = "\"CrowdCount_App/Preview Content\"";
 				ENABLE_PREVIEWS = YES;
 				GENERATE_INFOPLIST_FILE = YES;
@@ -673,7 +677,7 @@
 				ASSETCATALOG_COMPILER_INCLUDE_ALL_APPICON_ASSETS = YES;
 				CODE_SIGN_ENTITLEMENTS = CrowdCount_App/CrowdCount_App.entitlements;
 				CODE_SIGN_STYLE = Automatic;
-				CURRENT_PROJECT_VERSION = 29;
+				CURRENT_PROJECT_VERSION = 31;
 				DEVELOPMENT_ASSET_PATHS = "\"CrowdCount_App/Preview Content\"";
 				ENABLE_PREVIEWS = YES;
 				GENERATE_INFOPLIST_FILE = YES;

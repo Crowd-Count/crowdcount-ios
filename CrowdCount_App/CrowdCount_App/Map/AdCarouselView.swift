@@ -10,6 +10,7 @@ struct ServerAd: Identifiable, Codable {
     let description: String
     let imagePath: String?
     let deviceId: String
+    var primaryDevice: String? = nil  // The primary device for grouped locations (used for map matching)
     let durationHours: Int
     let totalPrice: Double?  // Optional - not returned in public API for security
     let ctaText: String?
@@ -20,9 +21,14 @@ struct ServerAd: Identifiable, Codable {
     let expirationDate: String
 
     // Demo-only properties (not from API)
-    var demoIcon: String?
-    var demoColor: String?
-    var demoCoordinate: CLLocationCoordinate2D?
+    var demoIcon: String? = nil
+    var demoColor: String? = nil
+    var demoCoordinate: CLLocationCoordinate2D? = nil
+
+    /// The device ID to use for map location matching (uses primaryDevice if available, falls back to deviceId)
+    var locationDeviceId: String {
+        primaryDevice ?? deviceId
+    }
 
     enum CodingKeys: String, CodingKey {
         case id
@@ -30,6 +36,7 @@ struct ServerAd: Identifiable, Codable {
         case description
         case imagePath = "image_path"
         case deviceId = "device_id"
+        case primaryDevice = "primary_device"
         case durationHours = "duration_hours"
         case totalPrice = "total_price"
         case ctaText = "cta_text"
@@ -536,7 +543,8 @@ struct ServerAdCardView: View {
         if let demoCoord = ad.demoCoordinate {
             return demoCoord
         }
-        guard let location = locations.first(where: { $0.userId == ad.deviceId }) else {
+        // Use locationDeviceId which prefers primaryDevice for grouped locations
+        guard let location = locations.first(where: { $0.userId == ad.locationDeviceId }) else {
             return nil
         }
         return location.coordinate
@@ -747,8 +755,8 @@ struct AdCarouselView: View {
 
     /// Returns distance from user to the ad's associated location, or .infinity if not found
     private func distanceToAd(_ ad: ServerAd, from userCLLocation: CLLocation) -> CLLocationDistance {
-        // Find the location matching this ad's deviceId
-        guard let location = locations.first(where: { $0.userId == ad.deviceId }) else {
+        // Use locationDeviceId which prefers primaryDevice for grouped locations
+        guard let location = locations.first(where: { $0.userId == ad.locationDeviceId }) else {
             return .infinity // No matching location, sort to end
         }
 

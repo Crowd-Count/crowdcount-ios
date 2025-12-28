@@ -34,7 +34,12 @@ struct ContentView: View {
     @State private var liveCountUpdateTimers: [UUID: Timer] = [:]
     @State private var deviceStatusCheckTimers: [UUID: Timer] = [:]
     @State private var overcrowdingUpdateTimer: Timer?
+    @State private var serverStatusTimer: Timer?
+    @State private var heartbeatTimer: Timer?
     @State private var deviceStatuses: [UUID: String] = [:]
+
+    // API Service for optimized networking
+    private let apiService = APIService.shared
     @State private var isBluetoothSetupRequired: [UUID: Bool] = [:]
     @State private var showLoginScreen: Bool = true
     @State private var path: [String] = []
@@ -444,9 +449,25 @@ struct ContentView: View {
     }
 
     func startServerStatusCheck() {
-        Timer.scheduledTimer(withTimeInterval: 3.0, repeats: true) { _ in
-            checkServerStatus()
+        // Invalidate existing timer if any
+        serverStatusTimer?.invalidate()
+
+        // Check immediately
+        Task {
+            await checkServerStatusAsync()
         }
+
+        // Then check every 3 seconds
+        serverStatusTimer = Timer.scheduledTimer(withTimeInterval: 3.0, repeats: true) { _ in
+            Task { @MainActor in
+                await self.checkServerStatusAsync()
+            }
+        }
+    }
+
+    func stopServerStatusCheck() {
+        serverStatusTimer?.invalidate()
+        serverStatusTimer = nil
     }
 
     func startLiveCountUpdate() {
@@ -483,35 +504,46 @@ struct ContentView: View {
     }
 
     func checkServerStatus() {
-        let urlString = "\(serverURL)/healthcheck"
-        guard let url = URL(string: urlString) else {
-            DispatchQueue.main.async {
-                self.serverStatus = "Invalid server URL"
-                self.serverStatusColor = .red
-                self.isServerRunning = false
-            }
-            return
+        Task {
+            await checkServerStatusAsync()
         }
+    }
 
-        URLSession.shared.dataTask(with: url) { _, response, _ in
-            DispatchQueue.main.async {
-                if let httpResponse = response as? HTTPURLResponse, httpResponse.statusCode == 200 {
-                    self.serverStatus = "Server is running"
-                    self.serverStatusColor = .gray
-                    self.isServerRunning = true
-                } else {
-                    self.serverStatus = "Server is not running"
-                    self.serverStatusColor = .red
-                    self.isServerRunning = false
-                }
-            }
-        }.resume()
+    @MainActor
+    func checkServerStatusAsync() async {
+        let isRunning = await apiService.checkServerStatus()
+
+        if isRunning {
+            self.serverStatus = "Server is running"
+            self.serverStatusColor = .gray
+            self.isServerRunning = true
+        } else {
+            self.serverStatus = "Server is not running"
+            self.serverStatusColor = .red
+            self.isServerRunning = false
+        }
     }
 
     func startHeartbeat() {
-        Timer.scheduledTimer(withTimeInterval: 30.0, repeats: true) { _ in
-            self.sendHeartbeat()
+        // Invalidate existing timer if any
+        heartbeatTimer?.invalidate()
+
+        // Send immediately
+        Task {
+            await apiService.sendHeartbeat(appId: getAppId())
         }
+
+        // Then send every 30 seconds
+        heartbeatTimer = Timer.scheduledTimer(withTimeInterval: 30.0, repeats: true) { _ in
+            Task { @MainActor in
+                await self.apiService.sendHeartbeat(appId: self.getAppId())
+            }
+        }
+    }
+
+    func stopHeartbeat() {
+        heartbeatTimer?.invalidate()
+        heartbeatTimer = nil
     }
 
     func sendWiFiCredentials() {
@@ -528,53 +560,64 @@ struct ContentView: View {
     }
 
     func fetchCurrentCount(for userId: UUID) {
+        Task {
+            await fetchCurrentCountAsync(for: userId)
+        }
+    }
+
+    @MainActor
+    func fetchCurrentCountAsync(for userId: UUID) async {
         guard let userIndex = users.firstIndex(where: { $0.id == userId }) else {
             print("User not found for ID: \(userId)")
             return
         }
 
         let user = users[userIndex]
-        guard let url = URL(string: "\(serverURL)/currentcount") else {
-            print("Invalid URL for user: \(user.userId)")
-            return
+
+        do {
+            let result = try await apiService.fetchCurrentCount(deviceId: user.userId)
+
+            // Only update UI if the value actually changed
+            if result.changed {
+                if let updatedIndex = self.users.firstIndex(where: { $0.id == userId }) {
+                    self.users[updatedIndex].currentCount = result.count
+                    self.calculateTotalCount()
+                }
+            }
+        } catch {
+            print("Error fetching current count for user: \(user.userId): \(error)")
+        }
+    }
+
+    /// Fetch all current counts in parallel - more efficient for multiple users
+    @MainActor
+    func fetchAllCurrentCounts() async {
+        let userList = users.map { (id: $0.id, deviceId: $0.userId) }
+        let results = await apiService.fetchAllCurrentCounts(users: userList)
+
+        var changed = false
+        for (id, count) in results {
+            if let index = users.firstIndex(where: { $0.id == id }) {
+                if users[index].currentCount != count {
+                    users[index].currentCount = count
+                    changed = true
+                }
+            }
         }
 
-        var request = URLRequest(url: url)
-        request.httpMethod = "POST"
-        let body: [String: Any] = ["device_id": user.userId]
-        request.httpBody = try? JSONSerialization.data(withJSONObject: body)
-        request.setValue("application/json", forHTTPHeaderField: "Content-Type")
-
-        URLSession.shared.dataTask(with: request) { data, _, error in
-            if let error = error {
-                print("Network error: \(error.localizedDescription)")
-                return
-            }
-
-            guard let data = data else {
-                print("No data received for user: \(user.userId)")
-                return
-            }
-
-            do {
-                if let json = try JSONSerialization.jsonObject(with: data, options: []) as? [String: Any],
-                   let count = json["current_count"] as? Int {
-                    DispatchQueue.main.async {
-                        if let updatedIndex = self.users.firstIndex(where: { $0.id == userId }) {
-                            self.users[updatedIndex].currentCount = count
-                            self.calculateTotalCount()
-                        }
-                    }
-                } else {
-                    print("Invalid response format for user: \(user.userId)")
-                }
-            } catch {
-                print("Error parsing response for user: \(user.userId)")
-            }
-        }.resume()
+        if changed {
+            calculateTotalCount()
+        }
     }
 
     func setCurrentCount(user: User, count: String) {
+        Task {
+            await setCurrentCountAsync(user: user, count: count)
+        }
+    }
+
+    @MainActor
+    func setCurrentCountAsync(user: User, count: String) async {
         print("setCurrentCount called for user: \(user.userId) with count: \(count)")
 
         guard !count.isEmpty, let newCount = Int(count) else {
@@ -583,69 +626,34 @@ struct ContentView: View {
             return
         }
 
-        let currentUserId = user.userId
         guard let password = userPasswords[user.id] else {
             errorMessage = "Password not found for user"
             print("Error: Password not found for user \(user.userId)")
             return
         }
 
-        print("Setting current count for user: \(currentUserId) to \(newCount) with password: \(password)")
+        do {
+            try await apiService.setCurrentCount(deviceId: user.userId, password: password, newCount: newCount)
+            self.errorMessage = nil
+            self.showNewCountField = false
+            print("Successfully updated count for user: \(user.userId)")
 
-        let urlString = "\(serverURL)/currentcount"
-        guard let url = URL(string: urlString) else {
-            errorMessage = "Invalid URL"
-            print("Error: Invalid URL")
-            return
+            // Fetch updated count
+            await fetchCurrentCountAsync(for: user.id)
+        } catch {
+            self.errorMessage = "Failed to update count"
+            print("Failed to update count: \(error)")
         }
-
-        var request = URLRequest(url: url)
-        request.httpMethod = "POST"
-
-        let body: [String: Any] = [
-            "device_id": currentUserId,
-            "password": password,
-            "new_count": newCount
-        ]
-        request.httpBody = try? JSONSerialization.data(withJSONObject: body)
-        request.setValue("application/json", forHTTPHeaderField: "Content-Type")
-
-        print("Sending request to \(urlString) with JSON body")
-
-        URLSession.shared.dataTask(with: request) { data, response, error in
-            if let error = error {
-                DispatchQueue.main.async {
-                    self.errorMessage = "Network error: \(error.localizedDescription)"
-                }
-                print("Network error: \(error.localizedDescription)")
-                return
-            }
-
-            guard let httpResponse = response as? HTTPURLResponse else {
-                DispatchQueue.main.async {
-                    self.errorMessage = "Unexpected server response"
-                }
-                print("Unexpected server response")
-                return
-            }
-
-            if httpResponse.statusCode == 200 {
-                DispatchQueue.main.async {
-                    self.errorMessage = nil
-                    self.fetchCurrentCount(for: user.id)
-                    self.showNewCountField = false
-                    print("Successfully updated count for user: \(currentUserId)")
-                }
-            } else {
-                DispatchQueue.main.async {
-                    self.errorMessage = "Failed to update count"
-                }
-                print("Failed to update count, status code: \(httpResponse.statusCode)")
-            }
-        }.resume()
     }
 
     func setUser() {
+        Task {
+            await setUserAsync()
+        }
+    }
+
+    @MainActor
+    func setUserAsync() async {
         guard !userId.isEmpty else {
             errorMessage = "Please enter a Device ID"
             return
@@ -656,63 +664,33 @@ struct ContentView: View {
             return
         }
 
-        let urlString = "\(serverURL)/check_password"
-        guard let url = URL(string: urlString) else {
-            errorMessage = "Invalid URL"
-            return
-        }
+        do {
+            let isPasswordCorrect = try await apiService.checkPassword(deviceId: userId, password: password)
 
-        var request = URLRequest(url: url)
-        request.httpMethod = "POST"
-        let body: [String: Any] = ["device_id": userId, "password": password]
-        request.httpBody = try? JSONSerialization.data(withJSONObject: body)
-        request.setValue("application/json", forHTTPHeaderField: "Content-Type")
-
-        URLSession.shared.dataTask(with: request) { data, response, _ in
-            guard let httpResponse = response as? HTTPURLResponse, let data = data else {
-                DispatchQueue.main.async {
-                    self.errorMessage = "Invalid user"
-                }
-                return
-            }
-
-            if httpResponse.statusCode == 404 {
-                DispatchQueue.main.async {
-                    self.errorMessage = "Device ID does not exist"
-                }
-            } else if httpResponse.statusCode == 200 {
-                if let json = try? JSONSerialization.jsonObject(with: data, options: []) as? [String: Any],
-                   let isPasswordCorrect = json["is_password_correct"] as? Bool, isPasswordCorrect {
-                    DispatchQueue.main.async {
-                        self.errorMessage = nil
-                        if !self.users.contains(where: { $0.userId == self.userId }) {
-                            let newUser = User(id: UUID(), userId: self.userId, currentCount: 0)
-                            self.users.append(newUser)
-                            self.userPasswords[newUser.id] = self.password
-                            self.calculateTotalCount()
-                            self.calculateTotalOvercrowdingCount()
-                            self.showLoginScreen = false
-                            self.startDeviceStatusCheck(for: newUser)
-                            self.fetchCurrentCount(for: newUser.id)
-                            DispatchQueue.main.async {
-                                self.startLiveCountUpdate()
-                            }
-                            saveUsers()
-                        } else {
-                            self.errorMessage = "Device already added"
-                        }
-                    }
+            if isPasswordCorrect {
+                self.errorMessage = nil
+                if !self.users.contains(where: { $0.userId == self.userId }) {
+                    let newUser = User(id: UUID(), userId: self.userId, currentCount: 0)
+                    self.users.append(newUser)
+                    self.userPasswords[newUser.id] = self.password
+                    self.calculateTotalCount()
+                    self.calculateTotalOvercrowdingCount()
+                    self.showLoginScreen = false
+                    self.startDeviceStatusCheck(for: newUser)
+                    await self.fetchCurrentCountAsync(for: newUser.id)
+                    self.startLiveCountUpdate()
+                    saveUsers()
                 } else {
-                    DispatchQueue.main.async {
-                        self.errorMessage = "Incorrect password"
-                    }
+                    self.errorMessage = "Device already added"
                 }
             } else {
-                DispatchQueue.main.async {
-                    self.errorMessage = "Unexpected response from server"
-                }
+                self.errorMessage = "Incorrect password"
             }
-        }.resume()
+        } catch APIError.httpError(404) {
+            self.errorMessage = "Device ID does not exist"
+        } catch {
+            self.errorMessage = "Unexpected response from server"
+        }
     }
 
     func checkStoredUsers() {
@@ -748,50 +726,33 @@ struct ContentView: View {
     }
 
     func fetchOvercrowdingLimit(for userId: UUID) {
+        Task {
+            await fetchOvercrowdingLimitAsync(for: userId)
+        }
+    }
+
+    @MainActor
+    func fetchOvercrowdingLimitAsync(for userId: UUID) async {
         guard let userIndex = users.firstIndex(where: { $0.id == userId }) else {
             print("User not found for ID: \(userId)")
             return
         }
 
         let user = users[userIndex]
-        let urlString = "\(serverURL)/get_overcrowding?device_name=\(user.userId)"
-        guard let url = URL(string: urlString) else {
-            print("Invalid URL for user: \(user.userId)")
-            return
-        }
 
-        URLSession.shared.dataTask(with: url) { data, _, error in
-            if let error = error {
-                print("Network error fetching overcrowding: \(error.localizedDescription)")
-                return
-            }
+        do {
+            let result = try await apiService.fetchOvercrowdingLimit(deviceId: user.userId)
 
-            guard let data = data else {
-                print("No data received for overcrowding for user: \(user.userId)")
-                return
-            }
-
-            do {
-                if let json = try JSONSerialization.jsonObject(with: data, options: []) as? [String: Any],
-                   let overcrowding = json["overcrowding"] as? Int {
-                    DispatchQueue.main.async {
-                        if let updatedIndex = self.users.firstIndex(where: { $0.id == userId }) {
-                            self.users[updatedIndex].overcrowdingLimit = overcrowding
-                            self.calculateTotalOvercrowdingCount()
-                        }
-                    }
-                } else {
-                    DispatchQueue.main.async {
-                        if let updatedIndex = self.users.firstIndex(where: { $0.id == userId }) {
-                            self.users[updatedIndex].overcrowdingLimit = nil
-                            self.calculateTotalOvercrowdingCount()
-                        }
-                    }
+            // Only update UI if the value actually changed
+            if result.changed {
+                if let updatedIndex = self.users.firstIndex(where: { $0.id == userId }) {
+                    self.users[updatedIndex].overcrowdingLimit = result.limit
+                    self.calculateTotalOvercrowdingCount()
                 }
-            } catch {
-                print("Error parsing overcrowding response for user: \(user.userId)")
             }
-        }.resume()
+        } catch {
+            print("Error fetching overcrowding for user: \(user.userId): \(error)")
+        }
     }
 
     func calculateTotalOvercrowdingCount() {
@@ -800,9 +761,29 @@ struct ContentView: View {
     }
 
     func refreshAllOvercrowdingLimits() {
-        // Fetch overcrowding limits for all users
-        for user in users {
-            fetchOvercrowdingLimit(for: user.id)
+        Task {
+            await refreshAllOvercrowdingLimitsAsync()
+        }
+    }
+
+    /// Fetch all overcrowding limits in parallel - more efficient for multiple users
+    @MainActor
+    func refreshAllOvercrowdingLimitsAsync() async {
+        let userList = users.map { (id: $0.id, deviceId: $0.userId) }
+        let results = await apiService.fetchAllOvercrowdingLimits(users: userList)
+
+        var changed = false
+        for (id, limit) in results {
+            if let index = users.firstIndex(where: { $0.id == id }) {
+                if users[index].overcrowdingLimit != limit {
+                    users[index].overcrowdingLimit = limit
+                    changed = true
+                }
+            }
+        }
+
+        if changed {
+            calculateTotalOvercrowdingCount()
         }
     }
 
@@ -888,104 +869,60 @@ struct ContentView: View {
     }
 
     func checkDeviceStatus(for user: User) {
-        guard let url = URL(string: "\(serverURL)/connection_status") else {
-            DispatchQueue.main.async {
-                self.deviceStatuses[user.id] = "Invalid URL"
+        Task {
+            await checkDeviceStatusAsync(for: user)
+        }
+    }
+
+    @MainActor
+    func checkDeviceStatusAsync(for user: User) async {
+        do {
+            let status = try await apiService.checkConnectionStatus(deviceId: user.userId)
+
+            if status == "online" {
+                self.deviceStatuses[user.id] = "Device is connected"
+                self.isBluetoothSetupRequired[user.id] = false
+            } else {
+                self.deviceStatuses[user.id] = "Device cannot connect to the server"
                 self.isBluetoothSetupRequired[user.id] = true
             }
-            return
+        } catch {
+            self.deviceStatuses[user.id] = "Device cannot connect to the server"
+            self.isBluetoothSetupRequired[user.id] = true
         }
+    }
 
-        var request = URLRequest(url: url)
-        request.httpMethod = "POST"
-        let body: [String: Any] = ["device_id": user.userId]
-        request.httpBody = try? JSONSerialization.data(withJSONObject: body)
-        request.setValue("application/json", forHTTPHeaderField: "Content-Type")
+    /// Fetch all device statuses in parallel
+    @MainActor
+    func checkAllDeviceStatuses() async {
+        let userList = users.map { (id: $0.id, deviceId: $0.userId) }
+        let results = await apiService.fetchAllConnectionStatuses(users: userList)
 
-        URLSession.shared.dataTask(with: request) { data, response, error in
-            DispatchQueue.main.async {
-                if let error = error {
-                    self.deviceStatuses[user.id] = "Network error: \(error.localizedDescription)"
-                    self.isBluetoothSetupRequired[user.id] = true
-                } else if let httpResponse = response as? HTTPURLResponse, httpResponse.statusCode == 200 {
-                    if let data = data,
-                       let json = try? JSONSerialization.jsonObject(with: data, options: []) as? [String: Any],
-                       let status = json["status"] as? String {
-                        if status == "online" {
-                            self.deviceStatuses[user.id] = "Device is connected"
-                            self.isBluetoothSetupRequired[user.id] = false
-                        } else {
-                            self.deviceStatuses[user.id] = "Device cannot connect to the server"
-                            self.isBluetoothSetupRequired[user.id] = true
-                        }
-                    } else {
-                        self.deviceStatuses[user.id] = "Unexpected response format"
-                        self.isBluetoothSetupRequired[user.id] = true
-                    }
-                } else {
-                    self.deviceStatuses[user.id] = "Device cannot connect to the server"
-                    self.isBluetoothSetupRequired[user.id] = true
-                }
+        for (id, status) in results {
+            if status == "online" {
+                self.deviceStatuses[id] = "Device is connected"
+                self.isBluetoothSetupRequired[id] = false
+            } else {
+                self.deviceStatuses[id] = "Device cannot connect to the server"
+                self.isBluetoothSetupRequired[id] = true
             }
-        }.resume()
+        }
     }
 
     // Register the app with the server
     func registerApp() {
-        let appId = getAppId()
-        let urlString = "\(serverURL)/register"
-        guard let url = URL(string: urlString) else {
-            print("Invalid URL")
-            return
+        Task {
+            await apiService.registerApp(appId: getAppId())
+            print("App registered successfully")
         }
-
-        var request = URLRequest(url: url)
-        request.httpMethod = "POST"
-        let body: [String: Any] = ["app_id": appId]
-        let bodyData = try? JSONSerialization.data(withJSONObject: body)
-        request.httpBody = bodyData
-        request.setValue("application/json", forHTTPHeaderField: "Content-Type")
-
-        URLSession.shared.dataTask(with: request) { data, response, error in
-            if let error = error {
-                print("Register app error: \(error.localizedDescription)")
-                return
-            }
-            if let httpResponse = response as? HTTPURLResponse, httpResponse.statusCode == 200 {
-                print("App registered successfully with appId: \(appId)")
-            } else {
-                print("Failed to register app")
-            }
-        }.resume()
     }
 
     // Send a heartbeat signal to the server
     func sendHeartbeat() {
-        let appId = getAppId()
-        let urlString = "\(serverURL)/heartbeat"
-        guard let url = URL(string: urlString) else {
-            print("Invalid URL")
-            return
+        Task {
+            await apiService.sendHeartbeat(appId: getAppId())
+            print("Heartbeat sent successfully")
         }
-
-        var request = URLRequest(url: url)
-        request.httpMethod = "POST"
-        let body: [String: Any] = ["app_id": appId]
-        let bodyData = try? JSONSerialization.data(withJSONObject: body)
-        request.httpBody = bodyData
-        request.setValue("application/json", forHTTPHeaderField: "Content-Type")
-
-        URLSession.shared.dataTask(with: request) { data, response, error in
-            if let error = error {
-                print("Heartbeat error: \(error.localizedDescription)")
-                return
-            }
-            if let httpResponse = response as? HTTPURLResponse, httpResponse.statusCode == 200 {
-                print("Heartbeat sent successfully")
-            } else {
-                print("Failed to send heartbeat")
-            }
-        }.resume()
     }
 
     // Generate a unique app ID and store it in UserDefaults

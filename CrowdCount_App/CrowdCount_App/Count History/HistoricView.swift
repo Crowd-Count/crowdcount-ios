@@ -85,17 +85,21 @@ struct HistoricView: View {
     @State private var averageDayData: [String: Double]?
     @State private var weekData: [String: Double] = [:]
     @State private var averageWeekData: [String: Double]?
-    @State private var yearData: [String: Double] = [:] // NEW
-    @State private var averageYearData: [String: Double]? // NEW
-    @State private var hasInsufficientYearData: Bool = false // NEW
+    @State private var yearData: [String: Double] = [:]
+    @State private var averageYearData: [String: Double]?
+    @State private var hasInsufficientYearData: Bool = false
     @State private var isDeviceOnline: Bool = false
     @State private var hasDataForSelectedDay: Bool = true
     @State private var hasDataForSelectedWeek: Bool = true
-    @State private var hasDataForSelectedYear: Bool = true // NEW
+    @State private var hasDataForSelectedYear: Bool = true
     @State private var mostRecentDataTime: String? = nil
     @State private var mostRecentWeekDay: String? = nil
-    
+    @State private var isLoading: Bool = false
+
     @EnvironmentObject var appSettings: AppSettings
+
+    // Use the shared APIService for optimized networking with caching
+    private let apiService = APIService.shared
 
     var body: some View {
         ScrollView {
@@ -331,12 +335,30 @@ struct HistoricView: View {
         .preferredColorScheme(appSettings.isDarkMode ? .dark : .light)
         .navigationBarTitle("Count History", displayMode: .inline)
         .onAppear {
-            fetchAvailableDates()
-            checkAndFetchDayData(for: getCurrentDate())
-            fetchConnectionStatus()
-            // NEW: Fetch current year data on appear
-            fetchYearData(for: getCurrentYearInt())
+            Task {
+                await loadInitialData()
+            }
         }
+    }
+
+    /// Load all initial data in parallel for faster loading
+    @MainActor
+    private func loadInitialData() async {
+        isLoading = true
+
+        // Fetch available dates first
+        await fetchAvailableDatesAsync()
+
+        // Then fetch day data, year data, and connection status in parallel
+        async let dayTask: () = checkAndFetchDayDataAsync(for: getCurrentDate())
+        async let yearTask: () = fetchYearDataAsync(for: getCurrentYearInt())
+        async let statusTask: () = fetchConnectionStatusAsync()
+
+        await dayTask
+        await yearTask
+        await statusTask
+
+        isLoading = false
     }
 
     private func viewContainer<Content: View>(title: String, @ViewBuilder content: () -> Content) -> some View {
@@ -352,170 +374,78 @@ struct HistoricView: View {
     }
 
     func fetchAvailableDates() {
+        Task {
+            await fetchAvailableDatesAsync()
+        }
+    }
+
+    @MainActor
+    func fetchAvailableDatesAsync() async {
         guard let password = userPasswords[userUUID] else {
             print("Password not found for user \(userUUID)")
             return
         }
 
-        guard let url = URL(string: "\(AppSettings.apiBaseURL)/get_user_days") else {
-            print("Invalid URL")
-            return
+        do {
+            let dates = try await apiService.fetchAvailableDates(deviceId: userId, password: password)
+
+            // Convert UTC dates from server to local dates for display
+            let localDates = TZHelper.utcDatesToLocalDates(dates)
+            self.availableDates = localDates.sorted(by: >)
+            self.availableYears = Array(Set(localDates.map { self.formattedYear(from: $0) })).sorted(by: >)
+            self.availableWeeks = self.generateAvailableWeeks(from: localDates)
+
+            if let firstWeek = self.availableWeeks.first {
+                self.selectedWeek = firstWeek
+                await checkAndFetchWeekDataAsync(for: firstWeek.startDate)
+            }
+        } catch {
+            print("Failed to fetch available dates: \(error)")
         }
-
-        var request = URLRequest(url: url)
-        request.httpMethod = "POST"
-        let body: [String: Any] = ["device_id": userId, "password": password]
-        request.httpBody = try? JSONSerialization.data(withJSONObject: body)
-        request.setValue("application/json", forHTTPHeaderField: "Content-Type")
-
-        URLSession.shared.dataTask(with: request) { data, response, error in
-            if let error = error {
-                print("Failed to fetch available dates: \(error.localizedDescription)")
-                return
-            }
-
-            guard let data = data else {
-                print("No data received")
-                return
-            }
-
-            if let rawString = String(data: data, encoding: .utf8) {
-                print("Raw response data: \(rawString)")
-            }
-
-            do {
-                let decodedResponse = try JSONDecoder().decode(AvailableDatesResponse.self, from: data)
-                DispatchQueue.main.async {
-                    // Convert UTC dates from server to local dates for display
-                    let localDates = TZ.utcDatesToLocalDates(decodedResponse.dates)
-                    self.availableDates = localDates.sorted(by: >)
-                    self.availableYears = Array(Set(localDates.map { self.formattedYear(from: $0) })).sorted(by: >)
-                    self.availableWeeks = self.generateAvailableWeeks(from: localDates)
-                    if let firstWeek = self.availableWeeks.first {
-                        self.selectedWeek = firstWeek
-                        self.checkAndFetchWeekData(for: firstWeek.startDate)
-                    }
-                }
-            } catch {
-                print("Failed to decode available dates: \(error.localizedDescription)")
-                if let errorResponse = try? JSONSerialization.jsonObject(with: data, options: []) {
-                    print("Error response: \(errorResponse)")
-                }
-            }
-        }.resume()
     }
 
-    // NEW: Function to fetch year data
+    // Function to fetch year data
     func fetchYearData(for year: Int) {
+        Task {
+            await fetchYearDataAsync(for: year)
+        }
+    }
+
+    @MainActor
+    func fetchYearDataAsync(for year: Int) async {
         guard let password = userPasswords[userUUID] else {
             print("Password not found for user \(userUUID)")
             return
         }
 
-        guard let url = URL(string: "\(AppSettings.apiBaseURL)/get_year_data") else { return }
+        do {
+            // Fetch year data and average data in parallel
+            async let yearTask = apiService.fetchYearData(deviceId: userId, password: password, year: year)
+            async let avgTask = apiService.fetchAverageYearData(deviceId: userId, password: password, year: year)
 
-        var request = URLRequest(url: url)
-        request.httpMethod = "POST"
-        let body: [String: Any] = ["device_id": userId, "password": password, "year": year]
-        request.httpBody = try? JSONSerialization.data(withJSONObject: body)
-        request.setValue("application/json", forHTTPHeaderField: "Content-Type")
+            let yearDataResult = try await yearTask
+            let avgDataResult = try? await avgTask
 
-        URLSession.shared.dataTask(with: request) { data, response, error in
-            if let error = error {
-                print("Failed to fetch year data: \(error.localizedDescription)")
-                DispatchQueue.main.async {
-                    self.hasDataForSelectedYear = false
-                }
-                return
-            }
-
-            guard let data = data else {
-                print("No data received")
-                DispatchQueue.main.async {
-                    self.hasDataForSelectedYear = false
-                }
-                return
-            }
-
-            do {
-                let decodedResponse = try JSONDecoder().decode(YearDataResponse.self, from: data)
-                DispatchQueue.main.async {
-                    self.yearData = decodedResponse.year_data
-                    self.hasDataForSelectedYear = !decodedResponse.year_data.isEmpty
-                    print("Parsed yearData: \(self.yearData)")
-                }
-                
-                // Fetch average year data
-                self.fetchAverageYearData(for: year, password: password)
-            } catch {
-                print("Failed to decode year data: \(error.localizedDescription)")
-                if let errorResponse = try? JSONSerialization.jsonObject(with: data, options: []) {
-                    print("Error response: \(errorResponse)")
-                }
-                DispatchQueue.main.async {
-                    self.hasDataForSelectedYear = false
-                }
-            }
-        }.resume()
-    }
-
-    // NEW: Function to fetch average year data
-    func fetchAverageYearData(for year: Int, password: String) {
-        guard let url = URL(string: "\(AppSettings.apiBaseURL)/get_average_year_data") else { return }
-
-        var request = URLRequest(url: url)
-        request.httpMethod = "POST"
-        let body: [String: Any] = ["device_id": userId, "password": password, "year": year]
-        request.httpBody = try? JSONSerialization.data(withJSONObject: body)
-        request.setValue("application/json", forHTTPHeaderField: "Content-Type")
-
-        URLSession.shared.dataTask(with: request) { data, response, error in
-            if let error = error {
-                print("Failed to fetch average year data: \(error.localizedDescription)")
-                DispatchQueue.main.async {
-                    self.averageYearData = nil
-                    self.hasInsufficientYearData = true
-                }
-                return
-            }
-
-            guard let data = data else {
-                print("No data received")
-                DispatchQueue.main.async {
-                    self.averageYearData = nil
-                    self.hasInsufficientYearData = true
-                }
-                return
-            }
-
-            do {
-                let decodedResponse = try JSONDecoder().decode(AverageYearDataResponse.self, from: data)
-                DispatchQueue.main.async {
-                    switch decodedResponse.average_year_data {
-                    case .data(let yearDict):
-                        self.averageYearData = yearDict
-                        self.hasInsufficientYearData = false
-                        print("Parsed averageYearData: \(yearDict)")
-                    case .notAvailable(let message):
-                        self.averageYearData = nil
-                        self.hasInsufficientYearData = true
-                        print("Insufficient year data: \(message)")
-                    }
-                }
-            } catch {
-                print("Failed to decode average year data: \(error.localizedDescription)")
-                if let errorResponse = try? JSONSerialization.jsonObject(with: data, options: []) {
-                    print("Error response: \(errorResponse)")
-                }
-                DispatchQueue.main.async {
-                    self.averageYearData = nil
-                    self.hasInsufficientYearData = true
-                }
-            }
-        }.resume()
+            self.yearData = yearDataResult
+            self.hasDataForSelectedYear = !yearDataResult.isEmpty
+            self.averageYearData = avgDataResult
+            self.hasInsufficientYearData = avgDataResult == nil
+        } catch {
+            print("Failed to fetch year data: \(error)")
+            self.hasDataForSelectedYear = false
+            self.averageYearData = nil
+            self.hasInsufficientYearData = true
+        }
     }
 
     func checkAndFetchDayData(for date: String) {
+        Task {
+            await checkAndFetchDayDataAsync(for: date)
+        }
+    }
+
+    @MainActor
+    func checkAndFetchDayDataAsync(for date: String) async {
         guard let password = userPasswords[userUUID] else {
             print("Password not found for user \(userUUID)")
             return
@@ -525,50 +455,21 @@ struct HistoricView: View {
         let localDate = (date == "Today") ? getCurrentDate() : formattedDateshort(from: date)
 
         // Get the UTC dates that cover this local day
-        let utcDates = TZ.utcDatesForLocalDay(localDate)
+        let utcDates = TZHelper.utcDatesForLocalDay(localDate)
+        let utcDatesToFetch = [utcDates.primary] + (utcDates.secondary.map { [$0] } ?? [])
 
-        // Check if we have data for the primary UTC date (we'll fetch secondary regardless if primary has data)
-        guard let url = URL(string: "\(AppSettings.apiBaseURL)/check_if_user_has_day") else { return }
+        // Use the APIService batch operation to fetch all data in parallel
+        let userList = [(deviceId: userId, password: password)]
+        let (aggregatedData, aggregatedAverageData) = await apiService.fetchAggregatedDayData(
+            users: userList,
+            utcDates: utcDatesToFetch,
+            targetLocalDate: localDate
+        )
 
-        var request = URLRequest(url: url)
-        request.httpMethod = "POST"
-        let body: [String: Any] = ["device_id": userId, "password": password, "date": utcDates.primary]
-        request.httpBody = try? JSONSerialization.data(withJSONObject: body)
-        request.setValue("application/json", forHTTPHeaderField: "Content-Type")
-
-        URLSession.shared.dataTask(with: request) { data, response, error in
-            if let error = error {
-                print("Failed to check data availability: \(error.localizedDescription)")
-                return
-            }
-
-            guard let data = data else {
-                print("No data received")
-                return
-            }
-
-            do {
-                if let jsonResponse = try JSONSerialization.jsonObject(with: data, options: []) as? [String: Any],
-                   let hasDay = jsonResponse["has_day"] as? Bool {
-                    DispatchQueue.main.async {
-                        // Note: Even if primary doesn't have data, secondary might
-                        // For now, we proceed to fetch if primary has data, but ideally we'd check secondary too
-                        self.hasDataForSelectedDay = hasDay || (utcDates.secondary != nil)
-                        if hasDay || utcDates.secondary != nil {
-                            self.fetchDayData(forLocalDate: localDate)
-                        } else {
-                            self.dayData = [:]
-                            self.averageDayData = nil
-                            self.mostRecentDataTime = nil
-                        }
-                    }
-                } else {
-                    print("Failed to parse JSON response")
-                }
-            } catch {
-                print("Failed to parse response: \(error.localizedDescription)")
-            }
-        }.resume()
+        self.hasDataForSelectedDay = !aggregatedData.isEmpty
+        self.dayData = aggregatedData
+        self.averageDayData = aggregatedAverageData.isEmpty ? nil : aggregatedAverageData
+        self.mostRecentDataTime = self.findMostRecentDataTime(in: aggregatedData)
     }
 
     /// Fetch data for a LOCAL day by fetching from the UTC days that cover it and combining the results
@@ -579,7 +480,7 @@ struct HistoricView: View {
         }
 
         // Get the UTC dates that cover this local day
-        let utcDates = TZ.utcDatesForLocalDay(localDate)
+        let utcDates = TZHelper.utcDatesForLocalDay(localDate)
 
         let group = DispatchGroup()
         var combinedBins: [String: Double] = [:]
@@ -656,7 +557,7 @@ struct HistoricView: View {
             do {
                 let decoded = try JSONDecoder().decode(DayDataResponse.self, from: data)
                 // Filter and shift bins to only include hours that fall within the target local day
-                let localBins = TZ.shiftHourlyBinsUTCtoLocal(forUTCDate: utcDate, bins: decoded.day_data, targetLocalDate: localDate)
+                let localBins = TZHelper.shiftHourlyBinsUTCtoLocal(forUTCDate: utcDate, bins: decoded.day_data, targetLocalDate: localDate)
                 completion(localBins)
             } catch {
                 print("fetchUTCDayData: decode error for \(utcDate):", error)
@@ -694,7 +595,7 @@ struct HistoricView: View {
     /// Fetch average day bins for a LOCAL date by fetching from the UTC days that cover it
     func fetchAverageDayData(forLocalDate localDate: String, password: String) {
         // Get the UTC dates that cover this local day
-        let utcDates = TZ.utcDatesForLocalDay(localDate)
+        let utcDates = TZHelper.utcDatesForLocalDay(localDate)
 
         let group = DispatchGroup()
         var combinedBins: [String: Double] = [:]
@@ -761,7 +662,7 @@ struct HistoricView: View {
 
             do {
                 let decoded = try JSONDecoder().decode(AverageDayDataResponse.self, from: data)
-                let localBins = TZ.shiftHourlyBinsUTCtoLocal(forUTCDate: utcDate, bins: decoded.average_day_data, targetLocalDate: localDate)
+                let localBins = TZHelper.shiftHourlyBinsUTCtoLocal(forUTCDate: utcDate, bins: decoded.average_day_data, targetLocalDate: localDate)
                 completion(localBins)
             } catch {
                 print("fetchUTCAverageDayData: decode error for \(utcDate):", error)
@@ -772,6 +673,13 @@ struct HistoricView: View {
 
 
     func checkAndFetchWeekData(for startDate: String) {
+        Task {
+            await checkAndFetchWeekDataAsync(for: startDate)
+        }
+    }
+
+    @MainActor
+    func checkAndFetchWeekDataAsync(for startDate: String) async {
         guard let password = userPasswords[userUUID] else {
             print("Password not found for user \(userUUID)")
             return
@@ -784,53 +692,17 @@ struct HistoricView: View {
             formattedStartDate = formattedDateshort(from: startDate)
         }
 
-        print("Formatted Start Date for week data check: \(formattedStartDate)")
+        // Use the APIService batch operation to fetch all data in parallel
+        let userList = [(deviceId: userId, password: password)]
+        let (aggregatedData, aggregatedAverageData) = await apiService.fetchAggregatedWeekData(
+            users: userList,
+            date: formattedStartDate
+        )
 
-        guard let url = URL(string: "\(AppSettings.apiBaseURL)/check_if_user_has_week") else {
-            print("Invalid URL")
-            return
-        }
-
-        var request = URLRequest(url: url)
-        request.httpMethod = "POST"
-        let body: [String: Any] = ["device_id": userId, "password": password, "date": formattedStartDate]
-        request.httpBody = try? JSONSerialization.data(withJSONObject: body)
-        request.setValue("application/json", forHTTPHeaderField: "Content-Type")
-
-        print("Request URL: \(url)")
-
-        URLSession.shared.dataTask(with: request) { data, response, error in
-            if let error = error {
-                print("Failed to check data availability: \(error.localizedDescription)")
-                return
-            }
-
-            guard let data = data else {
-                print("No data received")
-                return
-            }
-
-            do {
-                if let jsonResponse = try JSONSerialization.jsonObject(with: data, options: []) as? [String: Any],
-                   let hasWeek = jsonResponse["has_week"] as? Bool {
-                    print("Has Week: \(hasWeek)")
-                    DispatchQueue.main.async {
-                        self.hasDataForSelectedWeek = hasWeek
-                        if hasWeek {
-                            self.fetchWeekData(for: formattedStartDate)
-                        } else {
-                            self.weekData = [:]
-                            self.averageWeekData = nil
-                            self.mostRecentWeekDay = nil
-                        }
-                    }
-                } else {
-                    print("Failed to parse JSON response")
-                }
-            } catch {
-                print("Failed to parse response: \(error.localizedDescription)")
-            }
-        }.resume()
+        self.hasDataForSelectedWeek = !aggregatedData.isEmpty
+        self.weekData = aggregatedData
+        self.averageWeekData = aggregatedAverageData.isEmpty ? nil : aggregatedAverageData
+        self.mostRecentWeekDay = self.findMostRecentWeekDay(in: aggregatedData)
     }
 
     func getCurrentWeekStartDate() -> String {
@@ -931,52 +803,45 @@ struct HistoricView: View {
     }
 
     func fetchConnectionStatus() {
-        guard let url = URL(string: "\(AppSettings.apiBaseURL)/connection_status") else { return }
+        Task {
+            await fetchConnectionStatusAsync()
+        }
+    }
 
-        var request = URLRequest(url: url)
-        request.httpMethod = "POST"
-        let body: [String: Any] = ["device_id": userId]
-        request.httpBody = try? JSONSerialization.data(withJSONObject: body)
-        request.setValue("application/json", forHTTPHeaderField: "Content-Type")
-
-        URLSession.shared.dataTask(with: request) { data, response, error in
-            if let error = error {
-                print("Failed to fetch connection status: \(error.localizedDescription)")
-                return
-            }
-
-            guard let data = data else {
-                print("No data received")
-                return
-            }
-
-            do {
-                let decodedResponse = try JSONDecoder().decode(ConnectionStatusResponse.self, from: data)
-                DispatchQueue.main.async {
-                    self.isDeviceOnline = decodedResponse.status == "online"
-                }
-            } catch {
-                print("Failed to decode connection status: \(error.localizedDescription)")
-                if let errorResponse = try? JSONSerialization.jsonObject(with: data, options: []) {
-                    print("Error response: \(errorResponse)")
-                }
-            }
-        }.resume()
+    @MainActor
+    func fetchConnectionStatusAsync() async {
+        do {
+            let status = try await apiService.checkConnectionStatus(deviceId: userId)
+            self.isDeviceOnline = status == "online"
+        } catch {
+            print("Failed to fetch connection status: \(error)")
+            self.isDeviceOnline = false
+        }
     }
 
     // Display: LOCAL "yyyy-MM-dd" → show as local long date (e.g., "January 14, 2024")
     func formattedDatelong(from date: String) -> String {
-        TZ.longLocal(fromLocalyyyyMMdd: date)
+        guard let d = TZHelper.localDate(from: date) else { return date }
+        let f = DateFormatter()
+        f.timeZone = .current
+        f.locale = .current
+        f.dateStyle = .long
+        return f.string(from: d)
     }
 
     // Convert long local label → "yyyy-MM-dd" LOCAL format
     func formattedDateshort(from longDate: String) -> String {
-        return TZ.yyyyMMddLocal(fromLongLocal: longDate) ?? longDate
+        let fIn = DateFormatter()
+        fIn.timeZone = .current
+        fIn.locale = .current
+        fIn.dateStyle = .long
+        guard let d = fIn.date(from: longDate) else { return longDate }
+        return TZHelper.yyyyMMddLocal(from: d)
     }
 
     // Year extraction from LOCAL date string
     func formattedYear(from date: String) -> String {
-        guard let d = TZ.localDate(from: date) else { return date }
+        guard let d = TZHelper.localDate(from: date) else { return date }
         let f = DateFormatter()
         f.timeZone = .current
         f.dateFormat = "yyyy"
@@ -1055,7 +920,7 @@ struct HistoricView: View {
 
     // Get today's LOCAL date as "yyyy-MM-dd"
     func getCurrentDate() -> String {
-        TZ.yyyyMMddLocal(from: Date())
+        TZHelper.yyyyMMddLocal(from: Date())
     }
 
     func checkAndDownloadData(for date: String, period: String) {
@@ -1068,7 +933,7 @@ struct HistoricView: View {
         let localDate = (date == "Today") ? getCurrentDate() : formattedDateshort(from: date)
 
         // Get the UTC dates that cover this local day
-        let utcDates = TZ.utcDatesForLocalDay(localDate)
+        let utcDates = TZHelper.utcDatesForLocalDay(localDate)
 
         guard let url = URL(string: "\(AppSettings.apiBaseURL)/check_if_user_has_day") else { return }
 
@@ -1259,206 +1124,7 @@ extension UIApplication {
     }
 }
 
-// MARK: - Time zone & bin-shifting helpers
-private enum TZ {
-    static let utc = TimeZone(secondsFromGMT: 0)!
-
-    /// Parse a "yyyy-MM-dd" string as a UTC date (midnight UTC on that day)
-    static func utcDate(from yyyyMMdd: String) -> Date? {
-        let f = DateFormatter()
-        f.calendar = Calendar(identifier: .iso8601)
-        f.timeZone = utc
-        f.dateFormat = "yyyy-MM-dd"
-        return f.date(from: yyyyMMdd)
-    }
-
-    /// Parse a "yyyy-MM-dd" string as a LOCAL date (midnight local on that day)
-    static func localDate(from yyyyMMdd: String) -> Date? {
-        let f = DateFormatter()
-        f.calendar = Calendar(identifier: .iso8601)
-        f.timeZone = .current
-        f.dateFormat = "yyyy-MM-dd"
-        return f.date(from: yyyyMMdd)
-    }
-
-    /// Format a Date as "yyyy-MM-dd" in UTC timezone
-    static func yyyyMMddUTC(from date: Date) -> String {
-        let f = DateFormatter()
-        f.calendar = Calendar(identifier: .iso8601)
-        f.timeZone = utc
-        f.dateFormat = "yyyy-MM-dd"
-        return f.string(from: date)
-    }
-
-    /// Format a Date as "yyyy-MM-dd" in LOCAL timezone
-    static func yyyyMMddLocal(from date: Date) -> String {
-        let f = DateFormatter()
-        f.calendar = Calendar(identifier: .iso8601)
-        f.timeZone = .current
-        f.dateFormat = "yyyy-MM-dd"
-        return f.string(from: date)
-    }
-
-    /// Display a LOCAL "yyyy-MM-dd" as a long local date string (e.g., "January 14, 2024")
-    static func longLocal(fromLocalyyyyMMdd s: String) -> String {
-        guard let d = localDate(from: s) else { return s }
-        let f = DateFormatter()
-        f.timeZone = .current
-        f.locale = .current
-        f.dateStyle = .long
-        return f.string(from: d)
-    }
-
-    /// Parse a long local date string back to "yyyy-MM-dd" LOCAL format
-    static func yyyyMMddLocal(fromLongLocal longDate: String) -> String? {
-        let fIn = DateFormatter()
-        fIn.timeZone = .current
-        fIn.locale = .current
-        fIn.dateStyle = .long
-        guard let d = fIn.date(from: longDate) else { return nil }
-        return yyyyMMddLocal(from: d)
-    }
-
-    /// Given a LOCAL date "yyyy-MM-dd", return the two UTC dates that cover this local day
-    /// For timezones behind UTC (negative offset like Mountain Time UTC-7):
-    ///   - Local day starts at local midnight = UTC day + some hours
-    ///   - Local hours 0 to (24-offset) come from the same UTC date
-    ///   - Local hours (24-offset) to 23 come from the NEXT UTC date
-    /// For timezones ahead of UTC (positive offset):
-    ///   - Local hours 0 to offset come from the PREVIOUS UTC date
-    ///   - Local hours offset to 23 come from the same UTC date
-    static func utcDatesForLocalDay(_ localYYYYMMDD: String) -> (primary: String, secondary: String?) {
-        guard let localMidnight = localDate(from: localYYYYMMDD) else {
-            return (localYYYYMMDD, nil)
-        }
-
-        // Get the UTC date at local midnight
-        let utcAtLocalMidnight = yyyyMMddUTC(from: localMidnight)
-
-        // Get offset in hours (positive = ahead of UTC, negative = behind UTC)
-        let offsetSeconds = TimeZone.current.secondsFromGMT(for: localMidnight)
-        let offsetHours = offsetSeconds / 3600
-
-        if offsetHours == 0 {
-            // No offset, local and UTC are the same
-            return (utcAtLocalMidnight, nil)
-        } else if offsetHours < 0 {
-            // Behind UTC (e.g., Mountain Time is UTC-7)
-            // Local midnight = UTC (midnight + |offset| hours) = same UTC day but later
-            // Local 11pm = UTC (11pm + |offset| hours) = next UTC day early morning
-            // So we need: same UTC day + next UTC day
-            let calendar = Calendar(identifier: .iso8601)
-            if let nextDay = calendar.date(byAdding: .day, value: 1, to: localMidnight) {
-                let nextUTCDate = yyyyMMddUTC(from: nextDay)
-                return (utcAtLocalMidnight, nextUTCDate)
-            }
-            return (utcAtLocalMidnight, nil)
-        } else {
-            // Ahead of UTC (e.g., Tokyo is UTC+9)
-            // Local midnight = UTC (midnight - offset hours) = previous UTC day late evening
-            // Local 11pm = UTC (11pm - offset hours) = same UTC day
-            // So we need: previous UTC day + same UTC day
-            let calendar = Calendar(identifier: .iso8601)
-            if let prevDay = calendar.date(byAdding: .day, value: -1, to: localMidnight) {
-                let prevUTCDate = yyyyMMddUTC(from: prevDay)
-                return (utcAtLocalMidnight, prevUTCDate)
-            }
-            return (utcAtLocalMidnight, nil)
-        }
-    }
-
-    /// Shift UTC hour bins to local hours, filtering to only include hours that fall within the target local day
-    /// Returns bins keyed by local hour (0-23)
-    static func shiftHourlyBinsUTCtoLocal(
-        forUTCDate utcYYYYMMDD: String,
-        bins: [String: Double],
-        targetLocalDate: String
-    ) -> [String: Double] {
-        guard let utcMidnight = utcDate(from: utcYYYYMMDD),
-              let targetLocalMidnight = localDate(from: targetLocalDate) else {
-            return [:]
-        }
-
-        // IMPORTANT: Use UTC calendar for setting UTC hours
-        var utcCalendar = Calendar(identifier: .iso8601)
-        utcCalendar.timeZone = utc
-
-        // Use local calendar for converting to local time
-        var localCalendar = Calendar(identifier: .iso8601)
-        localCalendar.timeZone = .current
-
-        var out: [String: Double] = [:]
-
-        for (hourKey, value) in bins {
-            guard let utcHour = Int(hourKey), utcHour >= 0, utcHour < 24 else { continue }
-
-            // Create the actual UTC timestamp for this hour (using UTC calendar!)
-            guard let utcTimestamp = utcCalendar.date(bySettingHour: utcHour, minute: 0, second: 0, of: utcMidnight) else {
-                continue
-            }
-
-            // Convert to local time components
-            let localComponents = localCalendar.dateComponents([.year, .month, .day, .hour], from: utcTimestamp)
-
-            // Check if this timestamp falls on our target local day
-            let targetComponents = localCalendar.dateComponents([.year, .month, .day], from: targetLocalMidnight)
-
-            if localComponents.year == targetComponents.year &&
-               localComponents.month == targetComponents.month &&
-               localComponents.day == targetComponents.day {
-                // This hour belongs to our target local day
-                if let localHour = localComponents.hour {
-                    out[String(localHour), default: 0] += value
-                }
-            }
-        }
-
-        return out
-    }
-
-    /// Convert a list of UTC dates to the set of local dates they contribute to.
-    /// Each UTC date's hours span potentially two local days.
-    /// Filters out any local dates that are in the future (after today).
-    static func utcDatesToLocalDates(_ utcDates: [String]) -> [String] {
-        var localDatesSet = Set<String>()
-
-        // Get today's local date for filtering
-        let todayLocal = yyyyMMddLocal(from: Date())
-
-        for utcDate in utcDates {
-            guard let utcMidnight = self.utcDate(from: utcDate) else { continue }
-
-            var localCalendar = Calendar(identifier: .iso8601)
-            localCalendar.timeZone = .current
-
-            // UTC hour 0 of this date → what local date?
-            let localAtUTCMidnight = localCalendar.dateComponents([.year, .month, .day], from: utcMidnight)
-            if let y = localAtUTCMidnight.year, let m = localAtUTCMidnight.month, let d = localAtUTCMidnight.day {
-                let localDateStr = String(format: "%04d-%02d-%02d", y, m, d)
-                // Only add if not in the future
-                if localDateStr <= todayLocal {
-                    localDatesSet.insert(localDateStr)
-                }
-            }
-
-            // UTC hour 23 of this date → what local date?
-            var utcCalendar = Calendar(identifier: .iso8601)
-            utcCalendar.timeZone = utc
-            if let utcEndOfDay = utcCalendar.date(bySettingHour: 23, minute: 59, second: 0, of: utcMidnight) {
-                let localAtUTCEnd = localCalendar.dateComponents([.year, .month, .day], from: utcEndOfDay)
-                if let y = localAtUTCEnd.year, let m = localAtUTCEnd.month, let d = localAtUTCEnd.day {
-                    let localDateStr = String(format: "%04d-%02d-%02d", y, m, d)
-                    // Only add if not in the future
-                    if localDateStr <= todayLocal {
-                        localDatesSet.insert(localDateStr)
-                    }
-                }
-            }
-        }
-
-        return Array(localDatesSet)
-    }
-}
+// Note: TZ helper functions are now shared via TZHelper in APIService.swift
 
 // MARK: - Preview
 

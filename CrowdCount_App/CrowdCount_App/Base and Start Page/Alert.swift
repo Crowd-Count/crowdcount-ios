@@ -1,114 +1,72 @@
 import SwiftUI
 
+@MainActor
 class AlertViewModel: ObservableObject {
     @Published var showAlert: Bool = false
     @Published var alertExists: Bool = false
     @Published var alertInfo: (type: String, title: String, body: String, alert_id: String) = ("", "", "", "")
     @Published var isLoading: Bool = false
-    
+
+    private let apiService = APIService.shared
+
     func checkForAlert() {
-        guard let url = URL(string: "\(AppSettings.apiBaseURL)/check_if_alert") else { return }
-        
+        Task {
+            await checkForAlertAsync()
+        }
+    }
+
+    func checkForAlertAsync() async {
         isLoading = true
-        URLSession.shared.dataTask(with: url) { data, response, error in
-            if let error = error {
-                print("Error fetching alert status: \(error)")
-                DispatchQueue.main.async {
-                    self.isLoading = false
-                }
-                return
+
+        do {
+            let hasAlert = try await apiService.checkForAlert()
+
+            if hasAlert {
+                await fetchAlertInfoAsync()
+            } else {
+                print("No alert present")
+                self.isLoading = false
+                self.alertExists = false
             }
-            guard let data = data else {
-                print("No data received")
-                DispatchQueue.main.async {
-                    self.isLoading = false
-                }
-                return
-            }
-            do {
-                if let json = try JSONSerialization.jsonObject(with: data, options: []) as? [String: Any] {
-                    print("Received JSON: \(json)")
-                    if let isAlert = json["is_alert"] as? Bool, isAlert {
-                        self.fetchAlertInfo()
-                    } else {
-                        print("No alert present")
-                        DispatchQueue.main.async {
-                            self.isLoading = false
-                            self.alertExists = false
-                        }
-                    }
-                }
-            } catch {
-                print("Error parsing JSON: \(error)")
-                DispatchQueue.main.async {
-                    self.isLoading = false
-                }
-            }
-        }.resume()
+        } catch {
+            print("Error fetching alert status: \(error)")
+            self.isLoading = false
+        }
     }
-    
+
     func fetchAlertInfo() {
-        guard let url = URL(string: "\(AppSettings.apiBaseURL)/get_active_alert") else { return }
-        
-        URLSession.shared.dataTask(with: url) { data, response, error in
-            if let error = error {
-                print("Error fetching alert info: \(error)")
-                DispatchQueue.main.async {
-                    self.isLoading = false
-                }
-                return
-            }
-            guard let data = data else {
-                print("No data received")
-                DispatchQueue.main.async {
-                    self.isLoading = false
-                }
-                return
-            }
-            do {
-                if let json = try JSONSerialization.jsonObject(with: data, options: []) as? [String: Any] {
-                    print("Received alert JSON: \(json)")
-                    if let alertArray = json["alert_info"] as? [[String: String]],
-                       let alert = alertArray.first {
-                        DispatchQueue.main.async {
-                            if let type = alert["alert_type"],
-                               let title = alert["title"],
-                               let body = alert["body"],
-                               let alert_id = alert["alert_id"] {
-                                print("Fetched alert - Type: \(type), Title: \(title), Body: \(body), ID: \(alert_id)")
-                                self.alertInfo = (type: type, title: title, body: body, alert_id: alert_id)
-                                self.alertExists = true
-                                if !self.hasSeenAlert(alert_id: alert_id) {
-                                    self.showAlert = true
-                                    self.markAlertAsSeen(alert_id: alert_id)
-                                }
-                            } else {
-                                print("Error: Missing keys in alert info")
-                            }
-                            self.isLoading = false
-                        }
-                    } else {
-                        print("Error parsing alert_info JSON structure")
-                        DispatchQueue.main.async {
-                            self.isLoading = false
-                        }
-                    }
-                }
-            } catch {
-                print("Error parsing JSON: \(error)")
-                DispatchQueue.main.async {
-                    self.isLoading = false
-                }
-            }
-        }.resume()
+        Task {
+            await fetchAlertInfoAsync()
+        }
     }
-    
+
+    func fetchAlertInfoAsync() async {
+        do {
+            if let alert = try await apiService.fetchAlertInfo() {
+                print("Fetched alert - Type: \(alert.type), Title: \(alert.title), Body: \(alert.body), ID: \(alert.alertId)")
+                self.alertInfo = (type: alert.type, title: alert.title, body: alert.body, alert_id: alert.alertId)
+                self.alertExists = true
+
+                if !self.hasSeenAlert(alert_id: alert.alertId) {
+                    self.showAlert = true
+                    self.markAlertAsSeen(alert_id: alert.alertId)
+                }
+            } else {
+                print("Error parsing alert_info JSON structure")
+            }
+            self.isLoading = false
+        } catch {
+            print("Error fetching alert info: \(error)")
+            self.isLoading = false
+        }
+    }
+
     func hasSeenAlert(alert_id: String) -> Bool {
         let seen = UserDefaults.standard.bool(forKey: "hasSeenAlert_\(alert_id)")
         print("Checking if alert \(alert_id) has been seen: \(seen)")
         return seen
     }
-    
+
     func markAlertAsSeen(alert_id: String) {
         UserDefaults.standard.set(true, forKey: "hasSeenAlert_\(alert_id)")
         print("Marked as seen: \(alert_id)")
