@@ -82,7 +82,8 @@ struct UserView: View {
     @State private var showDemoAlert: Bool = false
     @State private var showDemoAdAlert: Bool = false
     @State private var isDeviceOnMap: Bool = false
-    @State private var devicesOnMap: Set<String> = []
+    @State private var deviceLocationNames: [String: String] = [:]  // Maps device ID to location name
+    @State private var devicePrimaryDevices: [String: String] = [:]  // Maps device ID to its primary device
 
     var body: some View {
         VStack {
@@ -340,7 +341,7 @@ struct UserView: View {
                     }
                 } else if isDeviceOnMap {
                     // Device is on the map - show Create an Ad button
-                    NavigationLink(destination: AdPayView(users: $users, devicesOnMap: devicesOnMap)) {
+                    NavigationLink(destination: AdPayView(users: $users, deviceLocationNames: deviceLocationNames, devicePrimaryDevices: devicePrimaryDevices)) {
                         HStack {
                             Image(systemName: "megaphone.fill")
                             Text("Create an Ad")
@@ -727,13 +728,35 @@ struct UserView: View {
             if let httpResponse = response as? HTTPURLResponse, httpResponse.statusCode == 200,
                let json = try? JSONSerialization.jsonObject(with: data, options: []) as? [String: Any],
                let locations = json["locations"] as? [[String: Any]] {
-                // Extract all device IDs that are on the map
-                let deviceIds = locations.compactMap { $0["location_device"] as? String }
-                let deviceIdSet = Set(deviceIds)
+                // Extract device IDs and their location names (including secondary devices)
+                var locationNames: [String: String] = [:]
+                var primaryDevices: [String: String] = [:]
+
+                for location in locations {
+                    guard let primaryDeviceId = location["location_device"] as? String,
+                          let locationName = location["location_name"] as? String else {
+                        continue
+                    }
+
+                    // Map the primary device
+                    locationNames[primaryDeviceId] = locationName
+                    primaryDevices[primaryDeviceId] = primaryDeviceId
+
+                    // Also map any secondary devices from device_breakdown
+                    if let deviceBreakdown = location["device_breakdown"] as? [[String: Any]] {
+                        for device in deviceBreakdown {
+                            if let deviceId = device["device_id"] as? String {
+                                locationNames[deviceId] = locationName
+                                primaryDevices[deviceId] = primaryDeviceId
+                            }
+                        }
+                    }
+                }
 
                 DispatchQueue.main.async {
-                    self.devicesOnMap = deviceIdSet
-                    self.isDeviceOnMap = deviceIdSet.contains(self.user.userId)
+                    self.deviceLocationNames = locationNames
+                    self.devicePrimaryDevices = primaryDevices
+                    self.isDeviceOnMap = locationNames.keys.contains(self.user.userId)
                 }
             } else {
                 print("Failed to fetch map locations")

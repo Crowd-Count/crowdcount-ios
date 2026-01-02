@@ -421,7 +421,8 @@ extension PaymentHandler: STPAuthenticationContext {
 
 struct AdPayView: View {
     @Binding var users: [User]
-    var devicesOnMap: Set<String> = []
+    var deviceLocationNames: [String: String] = [:]  // Maps device ID to location name
+    var devicePrimaryDevices: [String: String] = [:]  // Maps device ID to its primary device
     @StateObject private var viewModel = AdCreationViewModel()
     @State private var selectedPhotoItem: PhotosPickerItem?
     @State private var paymentHandler = PaymentHandler()
@@ -431,7 +432,19 @@ struct AdPayView: View {
 
     /// Users filtered to only include devices that are on the map
     private var usersOnMap: [User] {
-        users.filter { $0.userId != "Demo" && devicesOnMap.contains($0.userId) }
+        users.filter { $0.userId != "Demo" && deviceLocationNames.keys.contains($0.userId) }
+    }
+
+    /// The location name for the currently selected device
+    private var selectedLocationName: String {
+        guard !viewModel.selectedDeviceId.isEmpty else { return "" }
+        return deviceLocationNames[viewModel.selectedDeviceId] ?? viewModel.selectedDeviceId
+    }
+
+    /// The primary device for the currently selected device (for grouped locations)
+    private var selectedPrimaryDevice: String {
+        guard !viewModel.selectedDeviceId.isEmpty else { return "" }
+        return devicePrimaryDevices[viewModel.selectedDeviceId] ?? viewModel.selectedDeviceId
     }
 
     var canMakePayments: Bool {
@@ -518,23 +531,26 @@ struct AdPayView: View {
                     .font(.caption)
                     .foregroundColor(.secondary)
                 Spacer()
-                Text("\(viewModel.title.count)/\(titleCharLimit)")
-                    .font(.caption2)
-                    .foregroundColor(viewModel.title.count >= titleCharLimit ? .orange : .secondary)
+                if !selectedLocationName.isEmpty {
+                    Text("From location")
+                        .font(.caption2)
+                        .foregroundColor(.secondary)
+                }
             }
             .padding(.horizontal, 5)
 
-            TextField("Enter your business name", text: $viewModel.title)
+            Text(selectedLocationName.isEmpty ? "Select a location first" : selectedLocationName)
+                .frame(maxWidth: .infinity, alignment: .leading)
                 .padding()
-                .background(Color.secondary.opacity(0.25))
+                .foregroundColor(selectedLocationName.isEmpty ? .secondary : .primary)
+                .background(Color.secondary.opacity(0.15))
                 .cornerRadius(15)
-                .onChange(of: viewModel.title) { _, newValue in
-                    if newValue.count > titleCharLimit {
-                        viewModel.title = String(newValue.prefix(titleCharLimit))
-                    }
-                }
         }
         .padding(.horizontal, 20)
+        .onChange(of: viewModel.selectedDeviceId) { _, _ in
+            // Update the title in the viewModel when device changes
+            viewModel.title = selectedLocationName
+        }
     }
 
     // MARK: - Description Field
@@ -762,18 +778,19 @@ struct AdPayView: View {
 
     private var deviceSelector: some View {
         VStack(alignment: .leading, spacing: 6) {
-            Text("Select Counter")
+            Text("Select Location")
                 .font(.caption)
                 .foregroundColor(.secondary)
                 .padding(.leading, 5)
 
             Menu {
                 ForEach(usersOnMap, id: \.id) { user in
+                    let locationName = deviceLocationNames[user.userId] ?? user.userId
                     Button(action: {
                         viewModel.selectedDeviceId = user.userId
                     }) {
                         HStack {
-                            Text(user.userId)
+                            Text(locationName)
                             if viewModel.selectedDeviceId == user.userId {
                                 Image(systemName: "checkmark")
                             }
@@ -782,7 +799,7 @@ struct AdPayView: View {
                 }
             } label: {
                 HStack {
-                    Text(viewModel.selectedDeviceId.isEmpty ? "Select a device" : viewModel.selectedDeviceId)
+                    Text(viewModel.selectedDeviceId.isEmpty ? "Select a location" : selectedLocationName)
                         .foregroundColor(viewModel.selectedDeviceId.isEmpty ? .secondary : .primary)
                     Spacer()
                     Image(systemName: "chevron.down")
@@ -869,8 +886,8 @@ struct AdPayView: View {
 
     private var paymentSection: some View {
         VStack(spacing: 12) {
-            // Content warning
-            Text("By submitting, you agree that inappropriate or offensive content will not be approved and payments are non-refundable.")
+            // Content warning and refund policy
+            Text("Ads are subject to review. Reasons for rejection include inappropriate, misleading, or offensive content. If rejected, you'll be refunded minus processing fees (3% + $0.30). Approved ads later removed for violations are not eligible for refunds.")
                 .font(.caption2)
                 .foregroundColor(.secondary)
                 .multilineTextAlignment(.center)
@@ -1151,9 +1168,19 @@ struct AdPreviewCard: View {
     AdPayView(
         users: .constant([
             User(id: UUID(), userId: "TestDevice1", currentCount: 42),
-            User(id: UUID(), userId: "TestDevice2", currentCount: 15)
+            User(id: UUID(), userId: "TestDevice2", currentCount: 15),
+            User(id: UUID(), userId: "TestDevice3", currentCount: 8)
         ]),
-        devicesOnMap: ["TestDevice1", "TestDevice2"]
+        deviceLocationNames: [
+            "TestDevice1": "Joe's Coffee Shop",
+            "TestDevice2": "Main Street Bakery",
+            "TestDevice3": "Joe's Coffee Shop"  // Secondary device at same location
+        ],
+        devicePrimaryDevices: [
+            "TestDevice1": "TestDevice1",  // Primary device
+            "TestDevice2": "TestDevice2",  // Primary device
+            "TestDevice3": "TestDevice1"   // Secondary device -> maps to TestDevice1
+        ]
     )
     .preferredColorScheme(.light)
 }
@@ -1162,9 +1189,19 @@ struct AdPreviewCard: View {
     AdPayView(
         users: .constant([
             User(id: UUID(), userId: "TestDevice1", currentCount: 42),
-            User(id: UUID(), userId: "TestDevice2", currentCount: 15)
+            User(id: UUID(), userId: "TestDevice2", currentCount: 15),
+            User(id: UUID(), userId: "TestDevice3", currentCount: 8)
         ]),
-        devicesOnMap: ["TestDevice1", "TestDevice2"]
+        deviceLocationNames: [
+            "TestDevice1": "Joe's Coffee Shop",
+            "TestDevice2": "Main Street Bakery",
+            "TestDevice3": "Joe's Coffee Shop"  // Secondary device at same location
+        ],
+        devicePrimaryDevices: [
+            "TestDevice1": "TestDevice1",  // Primary device
+            "TestDevice2": "TestDevice2",  // Primary device
+            "TestDevice3": "TestDevice1"   // Secondary device -> maps to TestDevice1
+        ]
     )
     .preferredColorScheme(.dark)
 }

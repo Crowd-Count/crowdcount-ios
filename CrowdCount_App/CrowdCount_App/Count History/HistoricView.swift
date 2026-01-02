@@ -95,6 +95,9 @@ struct HistoricView: View {
     @State private var mostRecentDataTime: String? = nil
     @State private var mostRecentWeekDay: String? = nil
     @State private var isLoading: Bool = false
+    @State private var isDayLoading: Bool = false
+    @State private var isWeekLoading: Bool = false
+    @State private var isYearLoading: Bool = false
 
     @EnvironmentObject var appSettings: AppSettings
 
@@ -144,30 +147,42 @@ struct HistoricView: View {
                         .padding()
                     }
 
-                    if hasDataForSelectedDay {
-                        BarGraphDay(
-                            dayData: dayData,
-                            averageDayData: averageDayData,
-                            isTodayView: selectedDay == "Today",
-                            selectedDate: selectedDay,
-                            isDeviceOnline: isDeviceOnline,
-                            mostRecentDataTime: mostRecentDataTime
-                        )
-                            .frame(height: 250)
-                    } else {
-                        Rectangle()
-                            .fill(Color.secondary.opacity(0.1))
-                            .cornerRadius(25)
-                            .frame(height: 250)
-                            .overlay(
-                                VStack {
-                                    Text("No data for today")
-                                        .foregroundColor(.primary)
-                                        .bold()
-                                    Text("Please select another day")
-                                        .foregroundColor(.secondary)
-                                }
+                    ZStack {
+                        if hasDataForSelectedDay {
+                            BarGraphDay(
+                                dayData: dayData,
+                                averageDayData: averageDayData,
+                                isTodayView: selectedDay == "Today",
+                                selectedDate: selectedDay,
+                                isDeviceOnline: isDeviceOnline,
+                                mostRecentDataTime: mostRecentDataTime
                             )
+                                .frame(height: 250)
+                        } else {
+                            Rectangle()
+                                .fill(Color.secondary.opacity(0.1))
+                                .cornerRadius(25)
+                                .frame(height: 250)
+                                .overlay(
+                                    VStack {
+                                        Text("No data for today")
+                                            .foregroundColor(.primary)
+                                            .bold()
+                                        Text("Please select another day")
+                                            .foregroundColor(.secondary)
+                                    }
+                                )
+                        }
+
+                        if isDayLoading {
+                            RoundedRectangle(cornerRadius: 10)
+                                .fill(Color(UIColor.secondarySystemBackground).opacity(0.9))
+                                .frame(height: 250)
+                                .overlay(
+                                    ProgressView()
+                                        .scaleEffect(1.2)
+                                )
+                        }
                     }
                 }
                 .padding()
@@ -211,27 +226,39 @@ struct HistoricView: View {
                         .padding()
                     }
 
-                    if hasDataForSelectedWeek {
-                        BarGraphWeek(
-                            weekData: weekData,
-                            averageWeekData: averageWeekData ?? [:],
-                            selectedDate: selectedWeek?.label ?? ""
-                        )
-                            .frame(height: 250)
-                    } else {
-                        Rectangle()
-                            .fill(Color.secondary.opacity(0.1))
-                            .cornerRadius(25)
-                            .frame(height: 250)
-                            .overlay(
-                                VStack {
-                                    Text("No data for this week")
-                                        .foregroundColor(.primary)
-                                        .bold()
-                                    Text("Please select another week")
-                                        .foregroundColor(.secondary)
-                                }
+                    ZStack {
+                        if hasDataForSelectedWeek {
+                            BarGraphWeek(
+                                weekData: weekData,
+                                averageWeekData: averageWeekData ?? [:],
+                                selectedDate: selectedWeek?.label ?? ""
                             )
+                                .frame(height: 250)
+                        } else {
+                            Rectangle()
+                                .fill(Color.secondary.opacity(0.1))
+                                .cornerRadius(25)
+                                .frame(height: 250)
+                                .overlay(
+                                    VStack {
+                                        Text("No data for this week")
+                                            .foregroundColor(.primary)
+                                            .bold()
+                                        Text("Please select another week")
+                                            .foregroundColor(.secondary)
+                                    }
+                                )
+                        }
+
+                        if isWeekLoading {
+                            RoundedRectangle(cornerRadius: 10)
+                                .fill(Color(UIColor.secondarySystemBackground).opacity(0.9))
+                                .frame(height: 250)
+                                .overlay(
+                                    ProgressView()
+                                        .scaleEffect(1.2)
+                                )
+                        }
                     }
                 }
                 .padding()
@@ -277,28 +304,40 @@ struct HistoricView: View {
                         .padding()
                     }
 
-                    if hasDataForSelectedYear {
-                        BarGraphYear(
-                            yearData: yearData,
-                            averageYearData: averageYearData,
-                            selectedYear: selectedYear,
-                            hasInsufficientData: hasInsufficientYearData
-                        )
-                        .frame(height: 250)
-                    } else {
-                        Rectangle()
-                            .fill(Color.secondary.opacity(0.1))
-                            .cornerRadius(25)
-                            .frame(height: 250)
-                            .overlay(
-                                VStack {
-                                    Text("No data for this year")
-                                        .foregroundColor(.primary)
-                                        .bold()
-                                    Text("Please select another year")
-                                        .foregroundColor(.secondary)
-                                }
+                    ZStack {
+                        if hasDataForSelectedYear {
+                            BarGraphYear(
+                                yearData: yearData,
+                                averageYearData: averageYearData,
+                                selectedYear: selectedYear,
+                                hasInsufficientData: hasInsufficientYearData
                             )
+                            .frame(height: 250)
+                        } else {
+                            Rectangle()
+                                .fill(Color.secondary.opacity(0.1))
+                                .cornerRadius(25)
+                                .frame(height: 250)
+                                .overlay(
+                                    VStack {
+                                        Text("No data for this year")
+                                            .foregroundColor(.primary)
+                                            .bold()
+                                        Text("Please select another year")
+                                            .foregroundColor(.secondary)
+                                    }
+                                )
+                        }
+
+                        if isYearLoading {
+                            RoundedRectangle(cornerRadius: 10)
+                                .fill(Color(UIColor.secondarySystemBackground).opacity(0.9))
+                                .frame(height: 250)
+                                .overlay(
+                                    ProgressView()
+                                        .scaleEffect(1.2)
+                                )
+                        }
                     }
                 }
                 .padding()
@@ -306,30 +345,30 @@ struct HistoricView: View {
                 .cornerRadius(30)
                 .padding(.horizontal)
                 .id("yearView")
-
-                VStack {
-                    Text("Issues with this page?")
-                        .bold()
-                        .foregroundColor(.primary)
-                        .padding(10)
-                    Text("We're still working on this, so feel free to report anything by sending us a message!")
-                        .foregroundColor(.secondary)
-                        .multilineTextAlignment(.center)
-                    Text("help@crowdcount.tech")
-                        .font(.body)
-                        .padding()
-                        .onTapGesture {
-                            if let url = URL(string: "mailto:help@crowdcount.tech") {
-                                UIApplication.shared.open(url)
-                            }
-                        }
-
-                }
-                .padding()
-                .background(Color.primary.opacity(0.1))
-                .cornerRadius(30)
-                .padding(.horizontal)
-                .frame(maxWidth: .infinity)
+// Removed entirely for now, not needed, keeping here though in case I want to bring it back
+//                VStack {
+//                    Text("Issues with this page?")
+//                        .bold()
+//                        .foregroundColor(.primary)
+//                        .padding(10)
+//                    Text("We're still working on this, so feel free to report anything by sending us a message!")
+//                        .foregroundColor(.secondary)
+//                        .multilineTextAlignment(.center)
+//                    Text("help@crowdcount.tech")
+//                        .font(.body)
+//                        .padding()
+//                        .onTapGesture {
+//                            if let url = URL(string: "mailto:help@crowdcount.tech") {
+//                                UIApplication.shared.open(url)
+//                            }
+//                        }
+//
+//                }
+//                .padding()
+//                .background(Color.primary.opacity(0.1))
+//                .cornerRadius(30)
+//                .padding(.horizontal)
+//                .frame(maxWidth: .infinity)
             }
         }
         .preferredColorScheme(appSettings.isDarkMode ? .dark : .light)
@@ -345,6 +384,8 @@ struct HistoricView: View {
     @MainActor
     private func loadInitialData() async {
         isLoading = true
+        isDayLoading = true
+        isYearLoading = true
 
         // Fetch available dates first
         await fetchAvailableDatesAsync()
@@ -413,6 +454,9 @@ struct HistoricView: View {
 
     @MainActor
     func fetchYearDataAsync(for year: Int) async {
+        isYearLoading = true
+        defer { isYearLoading = false }
+
         guard let password = userPasswords[userUUID] else {
             print("Password not found for user \(userUUID)")
             return
@@ -446,6 +490,9 @@ struct HistoricView: View {
 
     @MainActor
     func checkAndFetchDayDataAsync(for date: String) async {
+        isDayLoading = true
+        defer { isDayLoading = false }
+
         guard let password = userPasswords[userUUID] else {
             print("Password not found for user \(userUUID)")
             return
@@ -680,6 +727,9 @@ struct HistoricView: View {
 
     @MainActor
     func checkAndFetchWeekDataAsync(for startDate: String) async {
+        isWeekLoading = true
+        defer { isWeekLoading = false }
+
         guard let password = userPasswords[userUUID] else {
             print("Password not found for user \(userUUID)")
             return

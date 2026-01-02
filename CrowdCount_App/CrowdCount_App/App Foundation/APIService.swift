@@ -35,6 +35,20 @@ private actor InFlightRequests {
             throw error
         }
     }
+
+    func cancel(key: String) {
+        if let task = requests[key] {
+            task.cancel()
+            requests.removeValue(forKey: key)
+        }
+    }
+
+    func cancelPrefix(_ prefix: String) {
+        for (key, task) in requests where key.hasPrefix(prefix) {
+            task.cancel()
+            requests.removeValue(forKey: key)
+        }
+    }
 }
 
 // MARK: - Cache Manager
@@ -174,15 +188,24 @@ class APIService: ObservableObject {
     }
 
     func fetchCurrentCount(deviceId: String) async throws -> CurrentCountResult {
-        let cacheKey = "currentcount:\(deviceId)"
+        // No caching or deduplication for current count - it needs to be truly live data
+        // Every call makes a fresh request to the server
+        guard let url = URL(string: "\(AppSettings.apiBaseURL)/currentcount") else {
+            throw APIError.invalidURL
+        }
 
-        let data = try await request(
-            endpoint: "currentcount",
-            method: "POST",
-            body: ["device_id": deviceId],
-            cacheKey: cacheKey,
-            cacheTTL: CacheManager.TTL.currentCount
-        )
+        var request = URLRequest(url: url)
+        request.httpMethod = "POST"
+        request.httpBody = try? JSONSerialization.data(withJSONObject: ["device_id": deviceId])
+        request.setValue("application/json", forHTTPHeaderField: "Content-Type")
+        request.cachePolicy = .reloadIgnoringLocalAndRemoteCacheData
+
+        let (data, response) = try await session.data(for: request)
+
+        guard let httpResponse = response as? HTTPURLResponse,
+              (200...299).contains(httpResponse.statusCode) else {
+            throw APIError.invalidResponse
+        }
 
         guard let json = try? JSONSerialization.jsonObject(with: data) as? [String: Any],
               let count = json["current_count"] as? Int else {
@@ -204,8 +227,8 @@ class APIService: ObservableObject {
             body: ["device_id": deviceId, "password": password, "new_count": newCount]
         )
 
-        // Invalidate cache so next fetch gets fresh data
-        await cache.invalidate("currentcount:\(deviceId)")
+        // Clear the last known count so next fetch sees it as "changed"
+        lastCounts.removeValue(forKey: deviceId)
     }
 
     // MARK: - Overcrowding Limit

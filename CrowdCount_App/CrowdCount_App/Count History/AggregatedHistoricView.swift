@@ -26,6 +26,9 @@ struct AggregatedHistoricView: View {
     @State private var mostRecentDataTime: String? = nil
     @State private var mostRecentWeekDay: String? = nil
     @State private var isLoading: Bool = false
+    @State private var isDayLoading: Bool = false
+    @State private var isWeekLoading: Bool = false
+    @State private var isYearLoading: Bool = false
 
     @EnvironmentObject var appSettings: AppSettings
 
@@ -61,32 +64,54 @@ struct AggregatedHistoricView: View {
                         .padding()
 
                         Spacer()
+
+                        Button(action: {
+                            downloadAggregatedDayDataAsCSV()
+                        }) {
+                            Image(systemName: "square.and.arrow.down")
+                                .font(.title2)
+                                .foregroundColor(.primary)
+                                .offset(y: -3)
+                        }
+                        .padding()
                     }
 
-                    if hasDataForSelectedDay {
-                        BarGraphDay(
-                            dayData: dayData,
-                            averageDayData: averageDayData,
-                            isTodayView: selectedDay == "Today",
-                            selectedDate: selectedDay,
-                            isDeviceOnline: false, // Aggregated view doesn't show online status
-                            mostRecentDataTime: mostRecentDataTime
-                        )
-                            .frame(height: 250)
-                    } else {
-                        Rectangle()
-                            .fill(Color.secondary.opacity(0.1))
-                            .cornerRadius(25)
-                            .frame(height: 250)
-                            .overlay(
-                                VStack {
-                                    Text("No data for today")
-                                        .foregroundColor(.primary)
-                                        .bold()
-                                    Text("Please select another day")
-                                        .foregroundColor(.secondary)
-                                }
+                    ZStack {
+                        if hasDataForSelectedDay {
+                            BarGraphDay(
+                                dayData: dayData,
+                                averageDayData: averageDayData,
+                                isTodayView: selectedDay == "Today",
+                                selectedDate: selectedDay,
+                                isDeviceOnline: false, // Aggregated view doesn't show online status
+                                mostRecentDataTime: mostRecentDataTime
                             )
+                                .frame(height: 250)
+                        } else {
+                            Rectangle()
+                                .fill(Color.secondary.opacity(0.1))
+                                .cornerRadius(25)
+                                .frame(height: 250)
+                                .overlay(
+                                    VStack {
+                                        Text("No data for today")
+                                            .foregroundColor(.primary)
+                                            .bold()
+                                        Text("Please select another day")
+                                            .foregroundColor(.secondary)
+                                    }
+                                )
+                        }
+
+                        if isDayLoading {
+                            RoundedRectangle(cornerRadius: 25)
+                                .fill(Color(UIColor.secondarySystemBackground).opacity(0.9))
+                                .frame(height: 250)
+                                .overlay(
+                                    ProgressView()
+                                        .scaleEffect(1.2)
+                                )
+                        }
                     }
                 }
                 .padding()
@@ -117,29 +142,51 @@ struct AggregatedHistoricView: View {
                         .padding()
 
                         Spacer()
+
+                        Button(action: {
+                            downloadAggregatedWeekDataAsCSV()
+                        }) {
+                            Image(systemName: "square.and.arrow.down")
+                                .font(.title2)
+                                .foregroundColor(.primary)
+                                .offset(y: -3)
+                        }
+                        .padding()
                     }
 
-                    if hasDataForSelectedWeek {
-                        BarGraphWeek(
-                            weekData: weekData,
-                            averageWeekData: averageWeekData ?? [:],
-                            selectedDate: selectedWeek?.label ?? ""
-                        )
-                            .frame(height: 250)
-                    } else {
-                        Rectangle()
-                            .fill(Color.secondary.opacity(0.1))
-                            .cornerRadius(25)
-                            .frame(height: 250)
-                            .overlay(
-                                VStack {
-                                    Text("No data for this week")
-                                        .foregroundColor(.primary)
-                                        .bold()
-                                    Text("Please select another week")
-                                        .foregroundColor(.secondary)
-                                }
+                    ZStack {
+                        if hasDataForSelectedWeek {
+                            BarGraphWeek(
+                                weekData: weekData,
+                                averageWeekData: averageWeekData ?? [:],
+                                selectedDate: selectedWeek?.label ?? ""
                             )
+                                .frame(height: 250)
+                        } else {
+                            Rectangle()
+                                .fill(Color.secondary.opacity(0.1))
+                                .cornerRadius(25)
+                                .frame(height: 250)
+                                .overlay(
+                                    VStack {
+                                        Text("No data for this week")
+                                            .foregroundColor(.primary)
+                                            .bold()
+                                        Text("Please select another week")
+                                            .foregroundColor(.secondary)
+                                    }
+                                )
+                        }
+
+                        if isWeekLoading {
+                            RoundedRectangle(cornerRadius: 25)
+                                .fill(Color(UIColor.secondarySystemBackground).opacity(0.9))
+                                .frame(height: 250)
+                                .overlay(
+                                    ProgressView()
+                                        .scaleEffect(1.2)
+                                )
+                        }
                     }
                 }
                 .padding()
@@ -172,30 +219,52 @@ struct AggregatedHistoricView: View {
                         .padding()
 
                         Spacer()
+
+                        Button(action: {
+                            downloadAggregatedYearDataAsCSV()
+                        }) {
+                            Image(systemName: "square.and.arrow.down")
+                                .font(.title2)
+                                .foregroundColor(.primary)
+                                .offset(y: -3)
+                        }
+                        .padding()
                     }
 
-                    if hasDataForSelectedYear {
-                        BarGraphYear(
-                            yearData: yearData,
-                            averageYearData: averageYearData,
-                            selectedYear: selectedYear,
-                            hasInsufficientData: hasInsufficientYearData
-                        )
-                        .frame(height: 250)
-                    } else {
-                        Rectangle()
-                            .fill(Color.secondary.opacity(0.1))
-                            .cornerRadius(25)
-                            .frame(height: 250)
-                            .overlay(
-                                VStack {
-                                    Text("No data for this year")
-                                        .foregroundColor(.primary)
-                                        .bold()
-                                    Text("Please select another year")
-                                        .foregroundColor(.secondary)
-                                }
+                    ZStack {
+                        if hasDataForSelectedYear {
+                            BarGraphYear(
+                                yearData: yearData,
+                                averageYearData: averageYearData,
+                                selectedYear: selectedYear,
+                                hasInsufficientData: hasInsufficientYearData
                             )
+                            .frame(height: 250)
+                        } else {
+                            Rectangle()
+                                .fill(Color.secondary.opacity(0.1))
+                                .cornerRadius(25)
+                                .frame(height: 250)
+                                .overlay(
+                                    VStack {
+                                        Text("No data for this year")
+                                            .foregroundColor(.primary)
+                                            .bold()
+                                        Text("Please select another year")
+                                            .foregroundColor(.secondary)
+                                    }
+                                )
+                        }
+
+                        if isYearLoading {
+                            RoundedRectangle(cornerRadius: 25)
+                                .fill(Color(UIColor.secondarySystemBackground).opacity(0.9))
+                                .frame(height: 250)
+                                .overlay(
+                                    ProgressView()
+                                        .scaleEffect(1.2)
+                                )
+                        }
                     }
                 }
                 .padding()
@@ -217,6 +286,8 @@ struct AggregatedHistoricView: View {
     @MainActor
     private func loadInitialData() async {
         isLoading = true
+        isDayLoading = true
+        isYearLoading = true
 
         // Fetch all available dates first
         await fetchAllAvailableDatesAsync()
@@ -271,6 +342,9 @@ struct AggregatedHistoricView: View {
 
     @MainActor
     func fetchAggregatedDayDataAsync(for localDate: String) async {
+        isDayLoading = true
+        defer { isDayLoading = false }
+
         // Get the UTC dates that cover this local day
         let utcDates = TZHelper.utcDatesForLocalDay(localDate)
         let utcDatesToFetch = [utcDates.primary] + (utcDates.secondary.map { [$0] } ?? [])
@@ -303,6 +377,9 @@ struct AggregatedHistoricView: View {
 
     @MainActor
     func fetchAggregatedWeekDataAsync(for startDate: String) async {
+        isWeekLoading = true
+        defer { isWeekLoading = false }
+
         let formattedStartDate: String
         if startDate.isEmpty || startDate == "This Week" {
             formattedStartDate = getCurrentWeekStartDate()
@@ -337,6 +414,9 @@ struct AggregatedHistoricView: View {
 
     @MainActor
     func fetchAggregatedYearDataAsync(for year: Int) async {
+        isYearLoading = true
+        defer { isYearLoading = false }
+
         // Build user list with passwords
         let userList = users.compactMap { user -> (deviceId: String, password: String)? in
             guard let password = userPasswords[user.id] else { return nil }
@@ -481,6 +561,100 @@ struct AggregatedHistoricView: View {
         let startOfWeek = dateFormatter.string(from: date)
         let endOfWeek = dateFormatter.string(from: Calendar.current.date(byAdding: .day, value: 6, to: date)!)
         return "\(startOfWeek) - \(endOfWeek)"
+    }
+
+    // MARK: - Download Functions
+
+    func downloadAggregatedDayDataAsCSV() {
+        guard !dayData.isEmpty else {
+            print("No day data available to download")
+            return
+        }
+
+        var csvContent = "Hour,Aggregated Total,Aggregated Average\n"
+
+        // Hours 0-23
+        for hour in 0..<24 {
+            let hourKey = String(hour)
+            let aggregatedCount = dayData[hourKey] ?? 0
+            let average = averageDayData?[hourKey]
+            let averageString = average != nil ? String(format: "%.1f", average!) : ""
+            csvContent += "\(hour),\(String(format: "%.1f", aggregatedCount)),\(averageString)\n"
+        }
+
+        guard let csvData = csvContent.data(using: .utf8) else {
+            print("Failed to convert CSV to data")
+            return
+        }
+
+        let dateValue = selectedDay == "Today" ? getCurrentDate() : formattedDateshort(from: selectedDay)
+        let fileName = "aggregated_day_\(dateValue)_\(users.count)_counters.csv"
+
+        if let topController = UIApplication.shared.topViewController() {
+            presentShareSheet(data: csvData, fileName: fileName, from: topController)
+        }
+    }
+
+    func downloadAggregatedWeekDataAsCSV() {
+        guard !weekData.isEmpty else {
+            print("No week data available to download")
+            return
+        }
+
+        let weekdayOrder = ["Monday", "Tuesday", "Wednesday", "Thursday", "Friday", "Saturday", "Sunday"]
+
+        var csvContent = "Day,Aggregated Total,Aggregated Average\n"
+
+        for day in weekdayOrder {
+            let count = weekData[day] ?? 0
+            let average = averageWeekData?[day]
+            let averageString = average != nil ? String(format: "%.1f", average!) : ""
+            csvContent += "\(day),\(String(format: "%.1f", count)),\(averageString)\n"
+        }
+
+        guard let csvData = csvContent.data(using: .utf8) else {
+            print("Failed to convert CSV to data")
+            return
+        }
+
+        let weekLabel = selectedWeek?.startDate ?? "unknown"
+        let fileName = "aggregated_week_\(weekLabel)_\(users.count)_counters.csv"
+
+        if let topController = UIApplication.shared.topViewController() {
+            presentShareSheet(data: csvData, fileName: fileName, from: topController)
+        }
+    }
+
+    func downloadAggregatedYearDataAsCSV() {
+        guard !yearData.isEmpty else {
+            print("No year data available to download")
+            return
+        }
+
+        let monthOrder = ["January", "February", "March", "April", "May", "June",
+                          "July", "August", "September", "October", "November", "December"]
+
+        var csvContent = "Month,Aggregated Total,Aggregated Average\n"
+
+        for month in monthOrder {
+            if let count = yearData[month] {
+                let average = averageYearData?[month]
+                let averageString = average != nil ? String(format: "%.1f", average!) : ""
+                csvContent += "\(month),\(String(format: "%.1f", count)),\(averageString)\n"
+            }
+        }
+
+        guard let csvData = csvContent.data(using: .utf8) else {
+            print("Failed to convert CSV to data")
+            return
+        }
+
+        let yearValue = selectedYear == "This Year" ? getCurrentYear() : selectedYear
+        let fileName = "aggregated_year_\(yearValue)_\(users.count)_counters.csv"
+
+        if let topController = UIApplication.shared.topViewController() {
+            presentShareSheet(data: csvData, fileName: fileName, from: topController)
+        }
     }
 }
 

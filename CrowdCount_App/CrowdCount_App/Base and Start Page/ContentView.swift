@@ -577,9 +577,9 @@ struct ContentView: View {
         do {
             let result = try await apiService.fetchCurrentCount(deviceId: user.userId)
 
-            // Only update UI if the value actually changed
-            if result.changed {
-                if let updatedIndex = self.users.firstIndex(where: { $0.id == userId }) {
+            // Always update UI with the fetched count to ensure consistency
+            if let updatedIndex = self.users.firstIndex(where: { $0.id == userId }) {
+                if self.users[updatedIndex].currentCount != result.count {
                     self.users[updatedIndex].currentCount = result.count
                     self.calculateTotalCount()
                 }
@@ -638,7 +638,7 @@ struct ContentView: View {
             self.showNewCountField = false
             print("Successfully updated count for user: \(user.userId)")
 
-            // Fetch updated count
+            // Fetch updated count - always makes a fresh request now
             await fetchCurrentCountAsync(for: user.id)
         } catch {
             self.errorMessage = "Failed to update count"
