@@ -40,9 +40,16 @@ struct ContentView: View {
 
     // API Service for optimized networking
     private let apiService = APIService.shared
+
+    // MARK: - Location-Centric Model State
+    @State private var locations: [CrowdCountLocation] = []
+    @State private var counterPasswords: [String: String] = [:]
+    private let migrationManager = MigrationManager.shared
+    @State private var locationUpdateTimer: Timer?
     @State private var isBluetoothSetupRequired: [UUID: Bool] = [:]
     @State private var showLoginScreen: Bool = true
-    @State private var path: [String] = []
+    @State private var path = NavigationPath()
+    @State private var isAddingCounter: Bool = false
     @State private var userPasswords: [UUID: String] = [:] // Store passwords per user
     @StateObject private var alertViewModel = AlertViewModel()
     
@@ -83,32 +90,60 @@ struct ContentView: View {
                             serverStatusColor: serverStatusColor
                         )
                     } else {
-                        if users.isEmpty {
-                            NoDevicesView(showLoginScreen: $showLoginScreen)
+                        // Conditional rendering based on feature flag
+                        if appSettings.useLocationCentricUI {
+                            // New location-centric UI
+                            if locations.isEmpty {
+                                NoLocationsView(onAddDevice: { showLoginScreen = true })
+                            } else {
+                                LocationsTabView(
+                                    locations: $locations,
+                                    counterPasswords: $counterPasswords,
+                                    serverURL: serverURL,
+                                    onAddDevice: { showLoginScreen = true },
+                                    onModifyCount: { counter in
+                                        // Handle modify count for counter
+                                        handleModifyCount(for: counter)
+                                    },
+                                    onViewHistory: { counter in
+                                        // Handle view history for counter
+                                        handleViewHistory(for: counter)
+                                    },
+                                    onViewAggregatedHistory: { location in
+                                        // Handle view aggregated history for location
+                                        handleViewAggregatedHistory(for: location)
+                                    }
+                                )
+                            }
                         } else {
-                            UsersTabView(
-                                users: $users,
-                                currentUserIndex: $currentUserIndex,
-                                totalCount: $totalCount,
-                                totalOvercrowdingCount: $totalOvercrowdingCount,
-                                userPasswords: $userPasswords,
-                                showNewCountField: $showNewCountField,
-                                newCount: $newCount,
-                                setCurrentCount: setCurrentCount,
-                                isBluetoothSetupRequired: $isBluetoothSetupRequired,
-                                bluetoothManager: bluetoothManager,
-                                wifiSSID: $wifiSSID,
-                                wifiPassword: $wifiPassword,
-                                sendWiFiCredentials: sendWiFiCredentials,
-                                deviceStatuses: $deviceStatuses,
-                                serverURL: serverURL,
-                                startDeviceStatusCheck: startDeviceStatusCheck,
-                                updateFrequencies: $updateFrequencies,
-                                showSettings: $showSettings,
-                                selectedUserForSettings: $selectedUserForSettings,
-                                logOut: logOut,
-                                startLiveCountUpdate: startLiveCountUpdate
-                            )
+                            // Legacy counter-centric UI
+                            if users.isEmpty {
+                                NoDevicesView(showLoginScreen: $showLoginScreen)
+                            } else {
+                                UsersTabView(
+                                    users: $users,
+                                    currentUserIndex: $currentUserIndex,
+                                    totalCount: $totalCount,
+                                    totalOvercrowdingCount: $totalOvercrowdingCount,
+                                    userPasswords: $userPasswords,
+                                    showNewCountField: $showNewCountField,
+                                    newCount: $newCount,
+                                    setCurrentCount: setCurrentCount,
+                                    isBluetoothSetupRequired: $isBluetoothSetupRequired,
+                                    bluetoothManager: bluetoothManager,
+                                    wifiSSID: $wifiSSID,
+                                    wifiPassword: $wifiPassword,
+                                    sendWiFiCredentials: sendWiFiCredentials,
+                                    deviceStatuses: $deviceStatuses,
+                                    serverURL: serverURL,
+                                    startDeviceStatusCheck: startDeviceStatusCheck,
+                                    updateFrequencies: $updateFrequencies,
+                                    showSettings: $showSettings,
+                                    selectedUserForSettings: $selectedUserForSettings,
+                                    logOut: logOut,
+                                    startLiveCountUpdate: startLiveCountUpdate
+                                )
+                            }
                         }
                     }
                 }
@@ -125,11 +160,22 @@ struct ContentView: View {
                     registerApp()
                     startHeartbeat()  // Start sending heartbeats
                     alertViewModel.checkForAlert()
+
+                    // Location-centric UI initialization
+                    if appSettings.useLocationCentricUI {
+                        Task {
+                            await loadLocations()
+                        }
+                    }
                 }
                 .onChange(of: updateFrequencies) {
                     DispatchQueue.main.async {
                         startLiveCountUpdate()
                     }
+                }
+                .onChange(of: locations) { _, newValue in
+                    // Auto-save locations whenever they change
+                    migrationManager.saveLocations(newValue)
                 }
                 .navigationDestination(for: String.self) { value in
                     if value == "BluetoothSetupView" {
@@ -654,6 +700,11 @@ struct ContentView: View {
 
     @MainActor
     func setUserAsync() async {
+        // Prevent multiple concurrent calls
+        guard !isAddingCounter else { return }
+        isAddingCounter = true
+        defer { isAddingCounter = false }
+
         guard !userId.isEmpty else {
             errorMessage = "Please enter a Device ID"
             return
@@ -669,19 +720,51 @@ struct ContentView: View {
 
             if isPasswordCorrect {
                 self.errorMessage = nil
-                if !self.users.contains(where: { $0.userId == self.userId }) {
-                    let newUser = User(id: UUID(), userId: self.userId, currentCount: 0)
-                    self.users.append(newUser)
-                    self.userPasswords[newUser.id] = self.password
-                    self.calculateTotalCount()
-                    self.calculateTotalOvercrowdingCount()
-                    self.showLoginScreen = false
-                    self.startDeviceStatusCheck(for: newUser)
-                    await self.fetchCurrentCountAsync(for: newUser.id)
-                    self.startLiveCountUpdate()
-                    saveUsers()
+
+                // Check if device already added (only check relevant model based on mode)
+                let alreadyAdded: Bool
+                if appSettings.useLocationCentricUI {
+                    // In location-centric mode, only check locations
+                    alreadyAdded = self.locations.flatMap { $0.counters }.contains(where: { $0.deviceId == self.userId })
                 } else {
+                    // In legacy mode, only check users
+                    alreadyAdded = self.users.contains(where: { $0.userId == self.userId })
+                }
+
+                if alreadyAdded {
                     self.errorMessage = "Device already added"
+                } else {
+                    // Capture values before async operations
+                    let deviceId = self.userId
+                    let devicePassword = self.password
+
+                    if appSettings.useLocationCentricUI {
+                        // Location-centric mode: add to locations only
+                        if let newLocation = await migrationManager.addCounter(deviceId: deviceId, password: devicePassword) {
+                            if let existingIndex = self.locations.firstIndex(where: { $0.id == newLocation.id }) {
+                                self.locations[existingIndex] = newLocation
+                            } else {
+                                self.locations.append(newLocation)
+                            }
+                            self.counterPasswords[deviceId] = devicePassword
+                            self.showLoginScreen = false
+                            startLocationUpdates()
+                        } else {
+                            self.errorMessage = "Failed to add counter. Please try again."
+                        }
+                    } else {
+                        // Legacy mode: add to users array
+                        let newUser = User(id: UUID(), userId: deviceId, currentCount: 0)
+                        self.users.append(newUser)
+                        self.userPasswords[newUser.id] = devicePassword
+                        self.calculateTotalCount()
+                        self.calculateTotalOvercrowdingCount()
+                        self.showLoginScreen = false
+                        self.startDeviceStatusCheck(for: newUser)
+                        await self.fetchCurrentCountAsync(for: newUser.id)
+                        self.startLiveCountUpdate()
+                        saveUsers()
+                    }
                 }
             } else {
                 self.errorMessage = "Incorrect password"
@@ -714,10 +797,14 @@ struct ContentView: View {
                 userPasswords = decodedPasswords
             }
         }
-        if users.isEmpty {
-            showLoginScreen = true
-        } else {
-            showLoginScreen = false
+        // Only set showLoginScreen based on users in legacy mode
+        // In location-centric mode, loadLocations() handles this
+        if !appSettings.useLocationCentricUI {
+            if users.isEmpty {
+                showLoginScreen = true
+            } else {
+                showLoginScreen = false
+            }
         }
     }
 
@@ -859,6 +946,102 @@ struct ContentView: View {
                 userPasswords = decodedPasswords
             }
         }
+    }
+
+    // MARK: - Location-Centric UI Methods
+
+    /// Load locations from migration manager (performs migration if needed)
+    @MainActor
+    func loadLocations() async {
+        locations = await migrationManager.performMigrationIfNeeded()
+        counterPasswords = migrationManager.loadCounterPasswords()
+
+        // Start periodic updates if we have locations
+        if !locations.isEmpty {
+            showLoginScreen = false
+            startLocationUpdates()
+        }
+    }
+
+    /// Start periodic location data updates
+    func startLocationUpdates() {
+        locationUpdateTimer?.invalidate()
+        locationUpdateTimer = Timer.scheduledTimer(withTimeInterval: 5.0, repeats: true) { _ in
+            Task { @MainActor in
+                await self.refreshLocationData()
+            }
+        }
+    }
+
+    /// Refresh location data from server
+    @MainActor
+    func refreshLocationData() async {
+        guard !locations.isEmpty else { return }
+
+        do {
+            let serverData = try await apiService.fetchAllLocationData()
+
+            // Update existing locations with fresh data from server
+            for i in locations.indices {
+                if let serverLocation = serverData.first(where: { $0.location_device == locations[i].id }) {
+                    // Update aggregated data
+                    locations[i].comparison = serverLocation.location_comparison
+
+                    // Update counter data if breakdown available
+                    if let breakdown = serverLocation.device_breakdown, !breakdown.isEmpty {
+                        for j in locations[i].counters.indices {
+                            if let deviceData = breakdown.first(where: { $0.device_id == locations[i].counters[j].deviceId }) {
+                                locations[i].counters[j].currentCount = deviceData.count
+                                locations[i].counters[j].overcrowdingLimit = deviceData.overcrowding.intValue
+                            }
+                        }
+                    } else {
+                        // Single counter location - update from aggregated count
+                        if locations[i].counters.count == 1 {
+                            locations[i].counters[0].currentCount = serverLocation.location_current_count
+                            locations[i].counters[0].overcrowdingLimit = serverLocation.location_overcrowding_count.intValue
+                        }
+                    }
+                }
+            }
+
+            // Save updated locations
+            migrationManager.saveLocations(locations)
+        } catch {
+            // Silently handle error - will retry on next interval
+        }
+    }
+
+    /// Handle modify count action for a counter (placeholder - integrate with existing modify count flow)
+    func handleModifyCount(for counter: Counter) {
+        // Find the legacy user if exists, or create temporary user for the modify count sheet
+        if let password = counterPasswords[counter.deviceId] {
+            // Check if we already have a User for this device
+            if let existingUser = users.first(where: { $0.userId == counter.deviceId }) {
+                // Use existing user
+                userPasswords[existingUser.id] = password
+                selectedUserForSettings = existingUser
+            } else {
+                // Create a temporary User for the existing modify count flow
+                let tempUser = User(id: UUID(), userId: counter.deviceId, currentCount: counter.currentCount, overcrowdingLimit: counter.overcrowdingLimit)
+                userPasswords[tempUser.id] = password
+                users.append(tempUser)
+                selectedUserForSettings = tempUser
+            }
+            showSettings = true
+        }
+    }
+
+    /// Handle view history action for a counter (placeholder - integrate with existing history flow)
+    func handleViewHistory(for counter: Counter) {
+        // Navigate to HistoricView for this counter
+        // This would need integration with the existing navigation flow
+    }
+
+    /// Handle view aggregated history for a location (placeholder - integrate with aggregated history view)
+    func handleViewAggregatedHistory(for location: CrowdCountLocation) {
+        // Navigate to AggregatedHistoricView for all counters in this location
+        // This would need integration with the existing navigation flow
     }
 
     func startDeviceStatusCheck(for user: User) {

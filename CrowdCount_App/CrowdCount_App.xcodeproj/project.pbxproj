@@ -42,6 +42,13 @@
 		7CBDF77E2C4003D50046C7FB /* ShareSheetHelper.swift in Sources */ = {isa = PBXBuildFile; fileRef = 7CBDF77D2C4003D20046C7FB /* ShareSheetHelper.swift */; };
 		7CC3810B2EF9FA67001C3A41 /* LoginTextViewModel.swift in Sources */ = {isa = PBXBuildFile; fileRef = 7CC3810A2EF9FA67001C3A41 /* LoginTextViewModel.swift */; };
 		7CC3810D2F0126A5001C3A41 /* APIService.swift in Sources */ = {isa = PBXBuildFile; fileRef = 7CC3810C2F0126A5001C3A41 /* APIService.swift */; };
+		7CC381172F0890FB001C3A41 /* LocationCardView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 7CC3810F2F0890FB001C3A41 /* LocationCardView.swift */; };
+		7CC381182F0890FB001C3A41 /* Counter.swift in Sources */ = {isa = PBXBuildFile; fileRef = 7CC381132F0890FB001C3A41 /* Counter.swift */; };
+		7CC381192F0890FB001C3A41 /* MigrationManager.swift in Sources */ = {isa = PBXBuildFile; fileRef = 7CC381152F0890FB001C3A41 /* MigrationManager.swift */; };
+		7CC3811A2F0890FB001C3A41 /* CounterRowView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 7CC3810E2F0890FB001C3A41 /* CounterRowView.swift */; };
+		7CC3811B2F0890FB001C3A41 /* CrowdCountLocation.swift in Sources */ = {isa = PBXBuildFile; fileRef = 7CC381142F0890FB001C3A41 /* CrowdCountLocation.swift */; };
+		7CC3811C2F0890FB001C3A41 /* LocationDetailView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 7CC381102F0890FB001C3A41 /* LocationDetailView.swift */; };
+		7CC3811D2F0890FB001C3A41 /* LocationsTabView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 7CC381112F0890FB001C3A41 /* LocationsTabView.swift */; };
 		7CC3BE372C3C1BF400C5DEFC /* HistoricView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 7CC3BE362C3C1BF200C5DEFC /* HistoricView.swift */; };
 		7CD02E952C2CF693000EAFC5 /* LoginView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 7CD02E942C2CF690000EAFC5 /* LoginView.swift */; };
 		7CD02E972C2DFB15000EAFC5 /* UserView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 7CD02E962C2DFB12000EAFC5 /* UserView.swift */; };
@@ -109,6 +116,13 @@
 		7CBDF77D2C4003D20046C7FB /* ShareSheetHelper.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ShareSheetHelper.swift; sourceTree = "<group>"; };
 		7CC3810A2EF9FA67001C3A41 /* LoginTextViewModel.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = LoginTextViewModel.swift; sourceTree = "<group>"; };
 		7CC3810C2F0126A5001C3A41 /* APIService.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = APIService.swift; sourceTree = "<group>"; };
+		7CC3810E2F0890FB001C3A41 /* CounterRowView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = CounterRowView.swift; sourceTree = "<group>"; };
+		7CC3810F2F0890FB001C3A41 /* LocationCardView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = LocationCardView.swift; sourceTree = "<group>"; };
+		7CC381102F0890FB001C3A41 /* LocationDetailView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = LocationDetailView.swift; sourceTree = "<group>"; };
+		7CC381112F0890FB001C3A41 /* LocationsTabView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = LocationsTabView.swift; sourceTree = "<group>"; };
+		7CC381132F0890FB001C3A41 /* Counter.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = Counter.swift; sourceTree = "<group>"; };
+		7CC381142F0890FB001C3A41 /* CrowdCountLocation.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = CrowdCountLocation.swift; sourceTree = "<group>"; };
+		7CC381152F0890FB001C3A41 /* MigrationManager.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = MigrationManager.swift; sourceTree = "<group>"; };
 		7CC3BE362C3C1BF200C5DEFC /* HistoricView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = HistoricView.swift; sourceTree = "<group>"; };
 		7CD02E942C2CF690000EAFC5 /* LoginView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = LoginView.swift; sourceTree = "<group>"; };
 		7CD02E962C2DFB12000EAFC5 /* UserView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = UserView.swift; sourceTree = "<group>"; };
@@ -190,6 +204,8 @@
 				7C7F1B182C4D2F2E005A5D18 /* Map */,
 				7C7F1B192C4D2F43005A5D18 /* Bluetooth */,
 				7C7F1B1A2C4D2F5B005A5D18 /* Device */,
+				7CC381122F0890FB001C3A41 /* Location */,
+				7CC381162F0890FB001C3A41 /* Models */,
 				7C7F1B1B2C4D2F82005A5D18 /* Count History */,
 				7C5A120F2C18D0BC0050C4D8 /* Assets.xcassets */,
 				7C464AF62E0B0F6F005EDE4B /* AppIcon.icon */,
@@ -292,6 +308,27 @@
 				7C7F1B202C4F9F9E005A5D18 /* Alert.swift */,
 			);
 			path = "Base and Start Page";
+			sourceTree = "<group>";
+		};
+		7CC381122F0890FB001C3A41 /* Location */ = {
+			isa = PBXGroup;
+			children = (
+				7CC3810E2F0890FB001C3A41 /* CounterRowView.swift */,
+				7CC3810F2F0890FB001C3A41 /* LocationCardView.swift */,
+				7CC381102F0890FB001C3A41 /* LocationDetailView.swift */,
+				7CC381112F0890FB001C3A41 /* LocationsTabView.swift */,
+			);
+			path = Location;
+			sourceTree = "<group>";
+		};
+		7CC381162F0890FB001C3A41 /* Models */ = {
+			isa = PBXGroup;
+			children = (
+				7CC381132F0890FB001C3A41 /* Counter.swift */,
+				7CC381142F0890FB001C3A41 /* CrowdCountLocation.swift */,
+				7CC381152F0890FB001C3A41 /* MigrationManager.swift */,
+			);
+			path = Models;
 			sourceTree = "<group>";
 		};
 /* End PBXGroup section */
@@ -455,6 +492,13 @@
 				7C362EFA2C358DBA00F02FDA /* InformationView.swift in Sources */,
 				7CD02E992C2DFD59000EAFC5 /* TotalCountView.swift in Sources */,
 				7C54AF9A2C5BD1FE00D9226B /* AppSettings.swift in Sources */,
+				7CC381172F0890FB001C3A41 /* LocationCardView.swift in Sources */,
+				7CC381182F0890FB001C3A41 /* Counter.swift in Sources */,
+				7CC381192F0890FB001C3A41 /* MigrationManager.swift in Sources */,
+				7CC3811A2F0890FB001C3A41 /* CounterRowView.swift in Sources */,
+				7CC3811B2F0890FB001C3A41 /* CrowdCountLocation.swift in Sources */,
+				7CC3811C2F0890FB001C3A41 /* LocationDetailView.swift in Sources */,
+				7CC3811D2F0890FB001C3A41 /* LocationsTabView.swift in Sources */,
 				7C2469DD2E09E05200409394 /* BarGraphYear.swift in Sources */,
 				7CF6F7E72EDF9C9400622E57 /* AggregatedHistoricView.swift in Sources */,
 				7CF6F7E42EDE6CA900622E57 /* QRScannerView.swift in Sources */,
@@ -634,7 +678,7 @@
 				ASSETCATALOG_COMPILER_INCLUDE_ALL_APPICON_ASSETS = YES;
 				CODE_SIGN_ENTITLEMENTS = CrowdCount_App/CrowdCount_App.entitlements;
 				CODE_SIGN_STYLE = Automatic;
-				CURRENT_PROJECT_VERSION = 39;
+				CURRENT_PROJECT_VERSION = 49;
 				DEVELOPMENT_ASSET_PATHS = "\"CrowdCount_App/Preview Content\"";
 				ENABLE_PREVIEWS = YES;
 				GENERATE_INFOPLIST_FILE = YES;
@@ -677,7 +721,7 @@
 				ASSETCATALOG_COMPILER_INCLUDE_ALL_APPICON_ASSETS = YES;
 				CODE_SIGN_ENTITLEMENTS = CrowdCount_App/CrowdCount_App.entitlements;
 				CODE_SIGN_STYLE = Automatic;
-				CURRENT_PROJECT_VERSION = 39;
+				CURRENT_PROJECT_VERSION = 49;
 				DEVELOPMENT_ASSET_PATHS = "\"CrowdCount_App/Preview Content\"";
 				ENABLE_PREVIEWS = YES;
 				GENERATE_INFOPLIST_FILE = YES;
