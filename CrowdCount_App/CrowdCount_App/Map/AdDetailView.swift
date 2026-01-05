@@ -100,6 +100,7 @@ struct AdDetailView: View {
                         .font(.title)
                         .foregroundColor(.secondary)
                         .multilineTextAlignment(.center)
+                        .fixedSize(horizontal: false, vertical: true)
                         .padding(.horizontal, 10)
                 }
 

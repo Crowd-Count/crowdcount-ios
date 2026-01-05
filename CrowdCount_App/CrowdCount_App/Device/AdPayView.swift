@@ -320,7 +320,7 @@ class PaymentHandler: NSObject, PKPaymentAuthorizationControllerDelegate {
 
         let hourLabel = hours == 1 ? "1 Hour" : "\(hours) Hours"
         let adPurchase = PKPaymentSummaryItem(
-            label: "Ad Placement (\(hourLabel))",
+            label: "Promotion Placement (\(hourLabel))",
             amount: NSDecimalNumber(value: amount)
         )
         let total = PKPaymentSummaryItem(
@@ -427,6 +427,7 @@ struct AdPayView: View {
     @State private var selectedPhotoItem: PhotosPickerItem?
     @State private var paymentHandler = PaymentHandler()
     @State private var showDefaultPagePreview = false
+    @State private var showPreviewSafari = false
     @Environment(\.colorScheme) private var colorScheme
     @Environment(\.dismiss) private var dismiss
 
@@ -486,7 +487,7 @@ struct AdPayView: View {
                 dismiss()
             }
         } message: {
-            Text("All good! Our team will review your ad and it should appear on the map within the next few minutes.")
+            Text("All good! Our team will review your promotion and it should appear on the map within the next few minutes.")
         }
         .alert("Payment Failed", isPresented: $viewModel.showPaymentError) {
             Button("OK", role: .cancel) {}
@@ -503,7 +504,7 @@ struct AdPayView: View {
                 .font(.system(size: 40))
                 .foregroundColor(.blue)
 
-            Text("Create an Ad")
+            Text("Create a Promotion")
                 .font(.title2)
                 .fontWeight(.bold)
 
@@ -527,7 +528,7 @@ struct AdPayView: View {
     private var titleField: some View {
         VStack(alignment: .leading, spacing: 6) {
             HStack {
-                Text("Ad Title")
+                Text("Promotion Title")
                     .font(.caption)
                     .foregroundColor(.secondary)
                 Spacer()
@@ -558,7 +559,7 @@ struct AdPayView: View {
     private var descriptionField: some View {
         VStack(alignment: .leading, spacing: 6) {
             HStack {
-                Text("Ad Description")
+                Text("Promotion Description")
                     .font(.caption)
                     .foregroundColor(.secondary)
                 Spacer()
@@ -687,7 +688,7 @@ struct AdPayView: View {
         ServerAd(
             id: "preview",
             title: viewModel.title.isEmpty ? "Your Business" : viewModel.title,
-            description: viewModel.description.isEmpty ? "Your ad description will appear here" : viewModel.description,
+            description: viewModel.description.isEmpty ? "Your promotion description will appear here" : viewModel.description,
             imagePath: nil,
             deviceId: viewModel.selectedDeviceId,
             durationHours: viewModel.hoursSelected,
@@ -723,7 +724,7 @@ struct AdPayView: View {
     private var imagePickerSection: some View {
         VStack(alignment: .leading, spacing: 6) {
             HStack {
-                Text("Ad Image")
+                Text("Promotion Image")
                     .font(.caption)
                     .foregroundColor(.secondary)
                 Spacer()
@@ -823,7 +824,7 @@ struct AdPayView: View {
                 .padding(.leading, 5)
 
             HStack {
-                Text("Ad will run for:")
+                Text("Promotion will run for:")
                     .foregroundColor(.secondary)
                 Spacer()
                 Stepper("\(viewModel.hoursSelected) hour\(viewModel.hoursSelected == 1 ? "" : "s")",
@@ -865,7 +866,7 @@ struct AdPayView: View {
 
     private var adPreviewSection: some View {
         VStack(alignment: .leading, spacing: 6) {
-            Text("Ad Preview")
+            Text("Promotion Preview")
                 .font(.caption)
                 .foregroundColor(.secondary)
                 .padding(.leading, 5)
@@ -875,9 +876,22 @@ struct AdPayView: View {
                 description: viewModel.description,
                 image: viewModel.selectedImage?.cropToSquareAndResize(targetSize: 720),
                 hours: viewModel.hoursSelected,
-                ctaText: viewModel.displayCtaText
+                ctaText: viewModel.displayCtaText,
+                onButtonTap: {
+                    if viewModel.ctaLinkType == .customLink && viewModel.normalizedURL != nil {
+                        showPreviewSafari = true
+                    } else {
+                        showDefaultPagePreview = true
+                    }
+                }
             )
             .frame(maxWidth: .infinity)
+            .sheet(isPresented: $showPreviewSafari) {
+                if let urlString = viewModel.normalizedURL, let url = URL(string: urlString) {
+                    SafariView(url: url)
+                        .ignoresSafeArea()
+                }
+            }
         }
         .padding(.horizontal, 20)
     }
@@ -887,7 +901,7 @@ struct AdPayView: View {
     private var paymentSection: some View {
         VStack(spacing: 12) {
             // Content warning and refund policy
-            Text("Ads are subject to review. Reasons for rejection include inappropriate, misleading, or offensive content. If rejected, you'll be refunded minus processing fees (3% + $0.30). Approved ads later removed for violations are not eligible for refunds.")
+            Text("Promotions are subject to review. Reasons for rejection include inappropriate, misleading, or offensive content. If rejected, you'll be refunded minus processing fees (3% + $0.30). Approved promotions later removed for violations are not eligible for refunds.")
                 .font(.caption2)
                 .foregroundColor(.secondary)
                 .multilineTextAlignment(.center)
@@ -1058,6 +1072,7 @@ struct AdPreviewCard: View {
     let image: UIImage?
     let hours: Int
     let ctaText: String
+    var onButtonTap: (() -> Void)? = nil
 
     @Environment(\.colorScheme) private var colorScheme
 
@@ -1066,7 +1081,7 @@ struct AdPreviewCard: View {
     }
 
     private var displayDescription: String {
-        description.isEmpty ? "Your ad description will appear here..." : description
+        description.isEmpty ? "Your promotion description will appear here..." : description
     }
 
     private var accentColor: Color {
@@ -1122,14 +1137,18 @@ struct AdPreviewCard: View {
 
                 // CTA Button and Countdown
                 HStack(spacing: 8) {
-                    Text(ctaText)
-                        .font(.caption)
-                        .fontWeight(.semibold)
-                        .foregroundColor(.white)
-                        .padding(.horizontal, 12)
-                        .padding(.vertical, 5)
-                        .background(accentColor)
-                        .cornerRadius(8)
+                    Button(action: {
+                        onButtonTap?()
+                    }) {
+                        Text(ctaText)
+                            .font(.caption)
+                            .fontWeight(.semibold)
+                            .foregroundColor(.white)
+                            .padding(.horizontal, 12)
+                            .padding(.vertical, 5)
+                            .background(accentColor)
+                            .cornerRadius(8)
+                    }
 
                     // Countdown timer
                     HStack(spacing: 3) {

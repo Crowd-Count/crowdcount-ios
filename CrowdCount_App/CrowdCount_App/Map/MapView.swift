@@ -187,7 +187,7 @@ struct MapContentView: View {
             }
         }
         .sheet(isPresented: $showingListView) {
-            LocationListView(viewModel: viewModel)
+            LocationListView(viewModel: viewModel, adService: adService)
         }
     }
 }

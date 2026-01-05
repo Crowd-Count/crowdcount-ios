@@ -323,7 +323,7 @@ struct UserView: View {
                     }) {
                         HStack {
                             Image(systemName: "megaphone.fill")
-                            Text("Create an Ad")
+                            Text("Create a Promo")
                         }
                         .padding()
                         .background(Color.orange.opacity(0.75))
@@ -335,16 +335,16 @@ struct UserView: View {
                     .alert(isPresented: $showDemoAdAlert) {
                         Alert(
                             title: Text("Demo Mode"),
-                            message: Text("You can't create an ad with the demo.\n\nBut you can still give us money if you want... would be cool... please. Our venmo is @CrowdCount :)"),
+                            message: Text("You can't create a promotion with the demo.\n\nBut you can still give us money if you want... would be cool... please. Our venmo is @CrowdCount :)"),
                             dismissButton: .default(Text("Got it!"))
                         )
                     }
                 } else if isDeviceOnMap {
-                    // Device is on the map - show Create an Ad button
+                    // Device is on the map - show Create a Promo button
                     NavigationLink(destination: AdPayView(users: $users, deviceLocationNames: deviceLocationNames, devicePrimaryDevices: devicePrimaryDevices)) {
                         HStack {
                             Image(systemName: "megaphone.fill")
-                            Text("Create an Ad")
+                            Text("Create a Promo")
                         }
                         .padding()
                         .background(Color.orange.opacity(0.75))

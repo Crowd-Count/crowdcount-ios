@@ -56,17 +56,17 @@ struct InfoMapView: View {
                         .multilineTextAlignment(.center)
                 }
 
-                // Sponsored Ads
+                // Promotions
                 VStack(spacing: 5) {
                     Image(systemName: "megaphone.fill")
                         .resizable()
                         .scaledToFit()
                         .frame(width: 25, height: 25)
                         .foregroundColor(.blue)
-                    Text("Sponsored Ads")
+                    Text("Promotions")
                         .foregroundColor(.primary)
                         .bold()
-                    Text("The ad carousel at the bottom of the map displays sponsored content from local businesses. All ads are reviewed and approved by our team before appearing. Each ad runs for a set duration shown by the countdown timer. Ads are sorted by distance, so you'll see the closest ones first.")
+                    Text("The promotions carousel at the bottom of the map displays sponsored content from local businesses. All promotions are reviewed and approved by our team before appearing. Each promotion runs for a set duration shown by the countdown timer. Promotions are sorted by distance, so you'll see the closest ones first.")
                         .foregroundColor(.secondary)
                         .multilineTextAlignment(.center)
                         .tint(.primary)
