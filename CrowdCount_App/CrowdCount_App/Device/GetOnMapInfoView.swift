@@ -18,7 +18,7 @@ struct GetOnMapInfoView: View {
                     .fontWeight(.bold)
                     .multilineTextAlignment(.center)
 
-                Text("To create an ad for your business, your counter needs to be visible on the CrowdCount map first.")
+                Text("To create a promotion for your business, your counter needs to be visible on the CrowdCount map first.")
                     .foregroundColor(.primary)
                     .multilineTextAlignment(.center)
                     .padding(.horizontal)
@@ -66,7 +66,7 @@ struct GetOnMapInfoView: View {
                         VStack(alignment: .leading, spacing: 4) {
                             Text("Go Live")
                                 .font(.headline)
-                            Text("Once approved, your counter will appear on the map and you can create ads!")
+                            Text("Once approved, your counter will appear on the map and you can create promotions!")
                                 .foregroundColor(.primary)
                                 .font(.subheadline)
                         }

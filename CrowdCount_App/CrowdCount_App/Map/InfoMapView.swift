@@ -90,7 +90,7 @@ struct InfoMapView: View {
 
                 // Footer
                 VStack(spacing: 2) {
-                    Text("\u{00A9} 2025 CrowdCount LLC. All rights reserved.")
+                    Text("\u{00A9} 2026 CrowdCount LLC. All rights reserved.")
                         .foregroundColor(.secondary)
                         .font(.caption2)
                     Text("\(Text("[Privacy Policy](https://www.crowdcount.tech/legal/privacy-policy)")) | \(Text("[Terms of Use](https://www.crowdcount.tech/legal/terms-of-use)"))")

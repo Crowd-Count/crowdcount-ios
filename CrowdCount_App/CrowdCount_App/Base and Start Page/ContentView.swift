@@ -10,15 +10,56 @@ struct User: Identifiable, Codable {
     var overcrowdingLimit: Int?
 }
 
+struct CounterLocation: Identifiable, Codable, Hashable {
+    let id: UUID
+    var name: String
+    var deviceIds: [String]  // Device IDs (userId) in this location
+    var overcrowdingLimit: Int?
+    var isMapLocation: Bool
+    var mapPrimaryDevice: String?
+    var colorName: String?  // Color for the folder icon (nil = default orange)
+
+    // Available colors for folder icons (rainbow order)
+    static let availableColors: [(name: String, color: Color)] = [
+        ("red", .red),
+        ("orange", .orange),
+        ("yellow", .yellow),
+        ("green", .green),
+        ("blue", .blue),
+        ("purple", .purple)
+    ]
+
+    var folderColor: Color {
+        if let colorName = colorName,
+           let match = Self.availableColors.first(where: { $0.name == colorName }) {
+            return match.color
+        }
+        return .orange  // Default
+    }
+}
+
 struct ContentView: View {
     @State private var users: [User] = []
     @State private var currentUserIndex: Int = 0
     @State private var totalCount: Int = 0
     @State private var totalOvercrowdingCount: Int = 0
+
+    // Location state
+    @State private var locations: [CounterLocation] = []
+    @State private var showLocationList: Bool = false
+    @State private var viewingLocationId: UUID? = {
+        // Try to restore last viewed location at init time
+        if let savedId = UserDefaults.standard.string(forKey: "lastViewingLocationId"),
+           let uuid = UUID(uuidString: savedId) {
+            return uuid
+        }
+        return nil
+    }()  // nil = all counters, otherwise specific location
     @State private var showSettings: Bool = false
     @State private var selectedUserForSettings: User?
     @State private var userId: String = ""
     @State private var password: String = ""
+    @State private var locationName: String = ""
     @State private var currentCount: String = ""
     @State private var newCount: String = ""
     @State private var errorMessage: String?
@@ -42,10 +83,17 @@ struct ContentView: View {
     private let apiService = APIService.shared
     @State private var isBluetoothSetupRequired: [UUID: Bool] = [:]
     @State private var showLoginScreen: Bool = true
-    @State private var path: [String] = []
+    @State private var path = NavigationPath()
     @State private var userPasswords: [UUID: String] = [:] // Store passwords per user
     @StateObject private var alertViewModel = AlertViewModel()
-    
+
+    // Location reconciliation alert
+    @State private var showLocationReconciliationAlert: Bool = false
+    @State private var reconciliationMessage: String = ""
+
+    // Track newly added device to navigate to it
+    @State private var newlyAddedDeviceId: String? = nil
+
     @EnvironmentObject var appSettings: AppSettings
     
     let appVersion = Bundle.main.infoDictionary?["CFBundleShortVersionString"] as? String
@@ -77,58 +125,147 @@ struct ContentView: View {
                         LoginView(
                             userId: $userId,
                             password: $password,
+                            locationName: $locationName,
                             errorMessage: $errorMessage,
                             setUser: setUser,
                             serverStatus: serverStatus,
-                            serverStatusColor: serverStatusColor
+                            serverStatusColor: serverStatusColor,
+                            alertViewModel: alertViewModel
                         )
                     } else {
-                        if users.isEmpty {
+                        if users.isEmpty && locations.isEmpty {
                             NoDevicesView(showLoginScreen: $showLoginScreen)
-                        } else {
-                            UsersTabView(
+                        } else if let locationId = viewingLocationId {
+                            // Viewing a specific location
+                            LocationCountersView(
+                                locationId: locationId,
                                 users: $users,
-                                currentUserIndex: $currentUserIndex,
                                 totalCount: $totalCount,
-                                totalOvercrowdingCount: $totalOvercrowdingCount,
                                 userPasswords: $userPasswords,
-                                showNewCountField: $showNewCountField,
-                                newCount: $newCount,
                                 setCurrentCount: setCurrentCount,
                                 isBluetoothSetupRequired: $isBluetoothSetupRequired,
                                 bluetoothManager: bluetoothManager,
-                                wifiSSID: $wifiSSID,
-                                wifiPassword: $wifiPassword,
                                 sendWiFiCredentials: sendWiFiCredentials,
                                 deviceStatuses: $deviceStatuses,
                                 serverURL: serverURL,
                                 startDeviceStatusCheck: startDeviceStatusCheck,
                                 updateFrequencies: $updateFrequencies,
-                                showSettings: $showSettings,
-                                selectedUserForSettings: $selectedUserForSettings,
                                 logOut: logOut,
-                                startLiveCountUpdate: startLiveCountUpdate
+                                startLiveCountUpdate: startLiveCountUpdate,
+                                locations: $locations,
+                                saveLocations: saveLocations,
+                                createLocation: { name in _ = createLocation(name: name) },
+                                deleteLocation: deleteLocation,
+                                viewingLocationId: $viewingLocationId,
+                                showLoginScreen: $showLoginScreen,
+                                alertViewModel: alertViewModel,
+                                newlyAddedDeviceId: $newlyAddedDeviceId
                             )
+                        } else {
+                            // Viewing all counters
+                            if users.isEmpty {
+                                // No counters but locations exist - show select location prompt
+                                SelectLocationPromptView(
+                                    onOpenLocationPicker: { showLocationList = true },
+                                    alertViewModel: alertViewModel
+                                )
+                            } else {
+                                UsersTabView(
+                                    users: $users,
+                                    currentUserIndex: $currentUserIndex,
+                                    totalCount: $totalCount,
+                                    totalOvercrowdingCount: $totalOvercrowdingCount,
+                                    userPasswords: $userPasswords,
+                                    showNewCountField: $showNewCountField,
+                                    newCount: $newCount,
+                                    setCurrentCount: setCurrentCount,
+                                    isBluetoothSetupRequired: $isBluetoothSetupRequired,
+                                    bluetoothManager: bluetoothManager,
+                                    wifiSSID: $wifiSSID,
+                                    wifiPassword: $wifiPassword,
+                                    sendWiFiCredentials: sendWiFiCredentials,
+                                    deviceStatuses: $deviceStatuses,
+                                    serverURL: serverURL,
+                                    startDeviceStatusCheck: startDeviceStatusCheck,
+                                    updateFrequencies: $updateFrequencies,
+                                    showSettings: $showSettings,
+                                    selectedUserForSettings: $selectedUserForSettings,
+                                    logOut: logOut,
+                                    startLiveCountUpdate: startLiveCountUpdate,
+                                    locations: $locations,
+                                    saveLocations: saveLocations,
+                                    onOpenLocationPicker: { showLocationList = true },
+                                    alertViewModel: alertViewModel
+                                )
+                            }
                         }
                     }
                 }
                 .navigationBarTitleDisplayMode(.inline)
                 .toolbar {
                     ToolbarItem(placement: .principal) {
-                        AppTitleView(appVersion: appVersion, alertViewModel: alertViewModel)
+                        if let locationId = viewingLocationId,
+                           let location = locations.first(where: { $0.id == locationId }) {
+                            // Show location name when viewing a specific location - tappable
+                            Button(action: { showLocationList = true }) {
+                                HStack(spacing: 4) {
+                                    Text(location.name)
+                                        .font(.headline)
+                                    Image(systemName: "chevron.down")
+                                        .font(.caption)
+                                        .foregroundColor(.secondary)
+                                }
+                            }
+                            .buttonStyle(.plain)
+                        } else if !showLoginScreen && isServerRunning && !users.isEmpty {
+                            // Show "All Counters" when viewing all counters - tappable
+                            Button(action: { showLocationList = true }) {
+                                HStack(spacing: 4) {
+                                    Text("All Counters")
+                                        .font(.headline)
+                                    Image(systemName: "chevron.down")
+                                        .font(.caption)
+                                        .foregroundColor(.secondary)
+                                }
+                            }
+                            .buttonStyle(.plain)
+                        } else {
+                            // Show app title on login/loading screens
+                            AppTitleView(appVersion: appVersion, alertViewModel: alertViewModel)
+                        }
                     }
                 }
                 .onAppear {
                     loadUsers()
+                    loadLocations()
+                    migrateUsersToLocations()  // Migrate existing users to default location
+                    ensureDataConsistency()  // Fix any data sync issues between users and locations
                     startServerStatusCheck()
                     autoLoginIfNeeded()
+                    restoreLastViewedLocation()  // Restore last viewed location (after autoLogin sets showLoginScreen)
                     registerApp()
                     startHeartbeat()  // Start sending heartbeats
                     alertViewModel.checkForAlert()
+                    reconcileLocationsWithMap()  // Check if locations need to be updated based on map data
                 }
                 .onChange(of: updateFrequencies) {
                     DispatchQueue.main.async {
                         startLiveCountUpdate()
+                    }
+                }
+                .onChange(of: locations) { _, newLocations in
+                    // If current location was deleted, go back to all counters
+                    if let currentId = viewingLocationId,
+                       !newLocations.contains(where: { $0.id == currentId }) {
+                        viewingLocationId = nil
+                    }
+                }
+                .onChange(of: viewingLocationId) { _, newValue in
+                    // Persist the currently viewed location
+                    if let locationId = newValue {
+                        UserDefaults.standard.set(locationId.uuidString, forKey: "lastViewingLocationId")
+                    } else {
+                        UserDefaults.standard.removeObject(forKey: "lastViewingLocationId")
                     }
                 }
                 .navigationDestination(for: String.self) { value in
@@ -151,23 +288,56 @@ struct ContentView: View {
                         serverURL: serverURL
                     )
                 }
-                if !showLoginScreen && isServerRunning && networkMonitor.isConnected {
-                    MapButtonOverlay()
+                .sheet(isPresented: $showLocationList) {
+                    LocationPickerView(
+                        locations: $locations,
+                        users: users,
+                        currentlyViewingLocationId: viewingLocationId,
+                        onSave: saveLocations,
+                        onCreate: { name in
+                            _ = createLocation(name: name)
+                        },
+                        onDelete: deleteLocation,
+                        onNavigateToLocation: { location in
+                            // Switch to viewing this location
+                            viewingLocationId = location.id
+                        },
+                        onGoToAllCounters: {
+                            // Switch to viewing all counters
+                            viewingLocationId = nil
+                        },
+                        mapDeviceIds: [],  // Map data fetched per-location in LocationCountersView
+                        isBluetoothSetupRequired: isBluetoothSetupRequired
+                    )
+                }
+                if !showLoginScreen && isServerRunning && networkMonitor.isConnected && viewingLocationId == nil {
+                    FloatingButtonsOverlay(
+                        showLocationList: $showLocationList
+                    )
                 }
             }
             AlertOverlay(alertViewModel: alertViewModel)
             .onAppear {
                 alertViewModel.checkForAlert()
             }
+
         }
         .preferredColorScheme(appSettings.isDarkMode ? .dark : .light)
+        .alert("Locations Updated", isPresented: $showLocationReconciliationAlert) {
+            Button("OK", role: .cancel) { }
+        } message: {
+            Text(reconciliationMessage)
+        }
     }
 
-    private struct MapButtonOverlay: View {
+    private struct FloatingButtonsOverlay: View {
+        @Binding var showLocationList: Bool
+
         var body: some View {
             VStack {
                 Spacer()
                 HStack {
+                    // Map button (left)
                     NavigationLink(destination: MapContentView()) {
                         if #available(iOS 26.0, *) {
                             Image(systemName: "map.fill")
@@ -191,7 +361,35 @@ struct ContentView: View {
                         }
                     }
                     .padding(.leading, 20)
+
                     Spacer()
+
+                    // Location button (right) - same style as map button
+                    Button(action: { showLocationList = true }) {
+                        if #available(iOS 26.0, *) {
+                            Image(systemName: "list.bullet")
+                                .resizable()
+                                .scaledToFit()
+                                .frame(width: 30, height: 30)
+                                .foregroundColor(.white)
+                                .padding()
+                                .background(Color.blue.opacity(0.75))
+                                .clipShape(Circle())
+                                .shadow(radius: 10)
+                                .glassEffect()
+                        } else {
+                            Image(systemName: "list.bullet")
+                                .resizable()
+                                .scaledToFit()
+                                .frame(width: 30, height: 30)
+                                .foregroundColor(.white)
+                                .padding()
+                                .background(Color.blue.opacity(0.75))
+                                .clipShape(Circle())
+                                .shadow(radius: 10)
+                        }
+                    }
+                    .padding(.trailing, 20)
                 }
                 .padding(.bottom, 20)
             }
@@ -239,7 +437,7 @@ struct ContentView: View {
                         .font(.body)
 //                        .padding()
                         .padding(.horizontal,40)
-                    Text("\(Text("[crowdcount.tech/status](https://www.crowdcount.tech/status)"))")
+                    Link("crowdcount.tech/status", destination: URL(string: "https://www.crowdcount.tech/status")!)
                         .font(.body)
                 }
             }
@@ -344,40 +542,77 @@ struct ContentView: View {
         let logOut: (UUID) -> Void
         let startLiveCountUpdate: () -> Void
 
+        // Location management
+        @Binding var locations: [CounterLocation]
+        let saveLocations: () -> Void
+        let onOpenLocationPicker: () -> Void
+        @ObservedObject var alertViewModel: AlertViewModel
+
         var body: some View {
             TabView(selection: $currentUserIndex) {
-                // Total Count view (if multiple users)
-                if users.count > 1 {
-                    TotalCountView(totalCount: totalCount, totalOvercrowdingCount: totalOvercrowdingCount, users: users, userPasswords: $userPasswords)
-                        .tag(0)
-                }
-
-                // Individual user views
-                ForEach(users.indices, id: \.self) { index in
+                // Individual user views only (no total count in All Counters view)
+                ForEach(Array(users.indices), id: \.self) { index in
                     userView(for: index)
-                        .tag(users.count > 1 ? index + 1 : index)
+                        .tag(index)
                 }
 
-                // Add Device page (rightmost)
-                AddUserPage(
-                    users: $users,
-                    totalCount: $totalCount,
-                    userPasswords: $userPasswords,
-                    serverURL: serverURL,
-                    startDeviceStatusCheck: startDeviceStatusCheck,
-                    startLiveCountUpdate: startLiveCountUpdate
-                )
-                .tag(users.count + (users.count > 1 ? 1 : 0))
+                // Instructions page (rightmost) - tells user to add via a location
+                AddToLocationInstructionsView(onOpenLocationPicker: onOpenLocationPicker, alertViewModel: alertViewModel)
+                    .tag(users.count)
             }
             .tabViewStyle(PageTabViewStyle())
             .onAppear {
                 setupPageControlAppearance()
             }
+            .toolbar {
+                ToolbarItem(placement: .navigationBarLeading) {
+                    HStack(spacing: 14) {
+                        NavigationLink(destination: InformationView()) {
+                            if #available(iOS 26.0, *) {
+                                Image(systemName: "info")
+                                    .foregroundColor(.primary)
+                            } else {
+                                Image(systemName: "info.circle")
+                                    .foregroundColor(.primary)
+                            }
+                        }
+                        .padding(.leading, alertViewModel.alertExists ? 8 : 0)
+                        if alertViewModel.alertExists {
+                            Button(action: {
+                                alertViewModel.showAlert = true
+                            }) {
+                                if #available(iOS 26.0, *) {
+                                    Image(systemName: "bell.badge.fill")
+                                        .symbolRenderingMode(.palette)
+                                        .foregroundStyle(.red, .primary)
+                                } else {
+                                    Image(systemName: "bell.badge.fill")
+                                        .symbolRenderingMode(.multicolor)
+                                        .foregroundColor(.primary)
+                                }
+                            }
+                            .padding(.trailing, 12)
+                        }
+                    }
+                }
+                ToolbarItem(placement: .navigationBarTrailing) {
+                    if currentUserIndex < users.count {
+                        Button(action: {
+                            selectedUserForSettings = users[currentUserIndex]
+                            showSettings = true
+                        }) {
+                            Image(systemName: "gear")
+                                .foregroundColor(.primary)
+                        }
+                    }
+                }
+            }
+            .animation(.easeInOut(duration: 0.2), value: currentUserIndex)
         }
-        
+
         private func setupPageControlAppearance() {
-            UIPageControl.appearance().currentPageIndicatorTintColor = UIColor.label // Active page indicator color
-            UIPageControl.appearance().pageIndicatorTintColor = UIColor.secondaryLabel.withAlphaComponent(0.5) // Inactive page indicator color
+            UIPageControl.appearance().currentPageIndicatorTintColor = UIColor.label
+            UIPageControl.appearance().pageIndicatorTintColor = UIColor.secondaryLabel.withAlphaComponent(0.5)
         }
 
         @ViewBuilder
@@ -404,8 +639,53 @@ struct ContentView: View {
                 showSettingsForUser: {
                     selectedUserForSettings = users[index]
                     showSettings = true
-                }
+                },
+                alertViewModel: alertViewModel
             )
+        }
+    }
+
+    /// Instructions view shown in All Counters when user swipes to add - directs them to use locations
+    private struct AddToLocationInstructionsView: View {
+        let onOpenLocationPicker: () -> Void
+        @ObservedObject var alertViewModel: AlertViewModel
+        @Environment(\.colorScheme) var colorScheme
+
+        var body: some View {
+            VStack(spacing: 20) {
+                Image(systemName: "folder.badge.plus")
+                    .resizable()
+                    .scaledToFit()
+                    .frame(width: 50, height: 50)
+                    .foregroundColor(.secondary)
+
+                Text("Add counters to a location")
+                    .font(.headline)
+                    .foregroundColor(.primary)
+
+                Text("To add a new counter, go to a specific location first. This helps keep your counters organized.")
+                    .font(.subheadline)
+                    .foregroundColor(.secondary)
+                    .multilineTextAlignment(.center)
+                    .padding(.horizontal, 40)
+
+                Button(action: onOpenLocationPicker) {
+                    HStack {
+                        Image(systemName: "list.bullet")
+                        Text("Choose a Location")
+                    }
+                    .padding()
+                    .background(Color.blue.opacity(0.75))
+                    .foregroundColor(.white)
+                    .cornerRadius(20)
+                }
+                .padding(.top, 10)
+
+                Text("Or create a new location from the location picker")
+                    .font(.caption)
+                    .foregroundColor(.secondary)
+            }
+            .padding()
         }
     }
 
@@ -414,39 +694,80 @@ struct ContentView: View {
         @ObservedObject var alertViewModel: AlertViewModel
 
         var body: some View {
-            Button(action: {
-                if alertViewModel.alertExists {
-                    alertViewModel.showAlert.toggle()
-                }
-            }) {
-                VStack {
-                    Text("CrowdCount")
-                        .font(.headline)
-                        .overlay(alignment: .topTrailing) {
-                            if alertViewModel.alertExists {
-                                Circle()
-                                    .fill(Color.red)
-                                    .frame(width: 10, height: 10)
-                                    .offset(x: 18, y: 5.5)
-                            }
-                        }
-                    Text("CrowdCount App v\(appVersion ?? "ersion undefined")")
-                        .font(.subheadline)
-                        .foregroundColor(.secondary)
-                }
-            }
-            .buttonStyle(NoOpacityChangeButtonStyle())
-            .contentShape(Rectangle()) // Ensure the whole area is tappable
-            .disabled(!alertViewModel.alertExists) // Disable button if there's no alert
+            Text("CrowdCount")
+                .font(.headline)
         }
     }
 
-    struct NoOpacityChangeButtonStyle: ButtonStyle {
-        func makeBody(configuration: Configuration) -> some View {
-            configuration.label
-                .opacity(1.0) // Ensure the opacity does not change
+    /// View shown when there are locations but no counters - prompts user to select a location
+    private struct SelectLocationPromptView: View {
+        let onOpenLocationPicker: () -> Void
+        @ObservedObject var alertViewModel: AlertViewModel
+        @Environment(\.colorScheme) var colorScheme
+
+        var body: some View {
+            VStack(spacing: 20) {
+                Image(systemName: "folder.badge.plus")
+                    .resizable()
+                    .scaledToFit()
+                    .frame(width: 50, height: 50)
+                    .foregroundColor(.secondary)
+
+                Text("No counters added")
+                    .font(.headline)
+                    .foregroundColor(.primary)
+
+                Text("Select a location to add your first counter.")
+                    .font(.subheadline)
+                    .foregroundColor(.secondary)
+                    .multilineTextAlignment(.center)
+                    .padding(.horizontal, 40)
+
+                Button(action: onOpenLocationPicker) {
+                    HStack {
+                        Image(systemName: "list.bullet")
+                        Text("Choose a Location")
+                    }
+                    .padding()
+                    .background(Color.blue.opacity(0.75))
+                    .foregroundColor(.white)
+                    .cornerRadius(20)
+                }
+                .padding(.top, 10)
+            }
+            .padding()
+            .navigationBarItems(leading: HStack(spacing: 14) {
+                NavigationLink(destination: InformationView()) {
+                    if #available(iOS 26.0, *) {
+                        Image(systemName: "info")
+                            .foregroundColor(colorScheme == .dark ? .white : .primary)
+                    } else {
+                        Image(systemName: "info.circle")
+                            .foregroundColor(.primary)
+                    }
+                }
+                .padding(.leading, alertViewModel.alertExists ? 8 : 0)
+                if alertViewModel.alertExists {
+                    Button(action: {
+                        alertViewModel.showAlert = true
+                    }) {
+                        if #available(iOS 26.0, *) {
+                            Image(systemName: "bell.badge.fill")
+                                .symbolRenderingMode(.palette)
+                                .foregroundStyle(.red, .primary)
+                        } else {
+                            Image(systemName: "bell.badge.fill")
+                                .symbolRenderingMode(.multicolor)
+                                .foregroundColor(.primary)
+                        }
+                    }
+                    .buttonStyle(.plain)
+                    .padding(.trailing, 12)
+                }
+            })
         }
     }
+
 
     func startServerStatusCheck() {
         // Invalidate existing timer if any
@@ -654,6 +975,11 @@ struct ContentView: View {
 
     @MainActor
     func setUserAsync() async {
+        guard !locationName.isEmpty else {
+            errorMessage = "Please enter a Location Name"
+            return
+        }
+
         guard !userId.isEmpty else {
             errorMessage = "Please enter a Device ID"
             return
@@ -670,16 +996,44 @@ struct ContentView: View {
             if isPasswordCorrect {
                 self.errorMessage = nil
                 if !self.users.contains(where: { $0.userId == self.userId }) {
-                    let newUser = User(id: UUID(), userId: self.userId, currentCount: 0)
+                    // Save values before clearing
+                    let deviceId = self.userId
+                    let locName = self.locationName
+
+                    let newUser = User(id: UUID(), userId: deviceId, currentCount: 0)
                     self.users.append(newUser)
                     self.userPasswords[newUser.id] = self.password
                     self.calculateTotalCount()
                     self.calculateTotalOvercrowdingCount()
+
+                    // Track newly added device for navigation
+                    self.newlyAddedDeviceId = deviceId
+
                     self.showLoginScreen = false
                     self.startDeviceStatusCheck(for: newUser)
                     await self.fetchCurrentCountAsync(for: newUser.id)
                     self.startLiveCountUpdate()
                     saveUsers()
+
+                    // Create location with the device
+                    let newLocation = CounterLocation(
+                        id: UUID(),
+                        name: locName,
+                        deviceIds: [deviceId],
+                        overcrowdingLimit: nil,
+                        isMapLocation: false,
+                        mapPrimaryDevice: nil
+                    )
+                    self.locations.append(newLocation)
+                    saveLocations()
+
+                    // Navigate to the new location
+                    self.viewingLocationId = newLocation.id
+
+                    // Clear fields
+                    self.userId = ""
+                    self.password = ""
+                    self.locationName = ""
                 } else {
                     self.errorMessage = "Device already added"
                 }
@@ -789,22 +1143,34 @@ struct ContentView: View {
 
     func logOut(userId: UUID) {
         print("Before logout - currentUserIndex: \(currentUserIndex), users.count: \(users.count)")
-        
+
         if let index = self.users.firstIndex(where: { $0.id == userId }) {
-            print("Logging out user with ID: \(userId) at index: \(index)")
-            
+            let deviceId = self.users[index].userId
+            print("Logging out user with ID: \(userId) (deviceId: \(deviceId)) at index: \(index)")
+
             self.liveCountUpdateTimers[userId]?.invalidate()
             self.liveCountUpdateTimers.removeValue(forKey: userId)
-            
+
             self.deviceStatusCheckTimers[userId]?.invalidate()
             self.deviceStatusCheckTimers.removeValue(forKey: userId)
-            
+
+            // Remove device from all locations
+            for i in locations.indices {
+                locations[i].deviceIds.removeAll { $0 == deviceId }
+            }
+            // Remove any empty locations that result from this removal
+            locations.removeAll { $0.deviceIds.isEmpty }
+            saveLocations()
+
             self.users.remove(at: index)
             
             self.saveUsers()
             
             if self.users.isEmpty {
-                self.showLoginScreen = true
+                // Only show login if both users AND locations are empty
+                if self.locations.isEmpty {
+                    self.showLoginScreen = true
+                }
                 self.currentUserIndex = 0
                 self.stopOvercrowdingUpdateTimer()
             } else {
@@ -836,6 +1202,331 @@ struct ContentView: View {
         if let encodedPasswords = try? JSONEncoder().encode(userPasswords) {
             UserDefaults.standard.set(encodedPasswords, forKey: "userPasswords")
         }
+    }
+
+    // MARK: - Location Functions
+
+    func saveLocations() {
+        if let encoded = try? JSONEncoder().encode(locations) {
+            UserDefaults.standard.set(encoded, forKey: "locations")
+        }
+    }
+
+    /// Ensures users and locations data structures are consistent
+    func ensureDataConsistency() {
+        var needsSave = false
+
+        // 1. Remove deviceIds from locations that don't exist in users
+        let validDeviceIds = Set(users.map { $0.userId })
+        for i in locations.indices {
+            let before = locations[i].deviceIds.count
+            locations[i].deviceIds.removeAll { !validDeviceIds.contains($0) }
+            if locations[i].deviceIds.count != before {
+                needsSave = true
+                print("[ensureDataConsistency] Removed orphaned deviceIds from location '\(locations[i].name)'")
+            }
+        }
+
+        // 2. Remove empty locations (only if there are non-empty ones or no users)
+        let emptyLocationCount = locations.filter { $0.deviceIds.isEmpty }.count
+        if emptyLocationCount > 0 {
+            if users.isEmpty || locations.contains(where: { !$0.deviceIds.isEmpty }) {
+                locations.removeAll { $0.deviceIds.isEmpty }
+                needsSave = true
+                print("[ensureDataConsistency] Removed \(emptyLocationCount) empty locations")
+            }
+        }
+
+        // 3. Ensure every user's deviceId is in at least one location
+        for user in users {
+            let isInAnyLocation = locations.contains { $0.deviceIds.contains(user.userId) }
+            if !isInAnyLocation {
+                if locations.isEmpty {
+                    let defaultLocation = CounterLocation(
+                        id: UUID(),
+                        name: "My Counters",
+                        deviceIds: [user.userId],
+                        overcrowdingLimit: nil,
+                        isMapLocation: false,
+                        mapPrimaryDevice: nil
+                    )
+                    locations.append(defaultLocation)
+                } else {
+                    locations[0].deviceIds.append(user.userId)
+                }
+                needsSave = true
+                print("[ensureDataConsistency] Added orphaned user '\(user.userId)' to location")
+            }
+        }
+
+        if needsSave {
+            saveLocations()
+        }
+    }
+
+    func loadLocations() {
+        if let savedLocations = UserDefaults.standard.data(forKey: "locations"),
+           var decoded = try? JSONDecoder().decode([CounterLocation].self, from: savedLocations) {
+            var needsSave = false
+
+            // Clean up any invalid deviceIds (should be short alphanumeric strings only)
+            for i in decoded.indices {
+                let validIds = decoded[i].deviceIds.filter { deviceId in
+                    // Valid device IDs: short, alphanumeric with possible dashes/underscores
+                    let isValidLength = deviceId.count <= 20 && deviceId.count > 0
+                    let allowedChars = CharacterSet.alphanumerics.union(CharacterSet(charactersIn: "-_"))
+                    let isValidChars = deviceId.unicodeScalars.allSatisfy { allowedChars.contains($0) }
+                    return isValidLength && isValidChars
+                }
+                if validIds.count != decoded[i].deviceIds.count {
+                    let removed = decoded[i].deviceIds.filter { !validIds.contains($0) }
+                    print("[Locations] Removing invalid deviceIds from '\(decoded[i].name)': \(removed)")
+                    decoded[i].deviceIds = validIds
+                    needsSave = true
+                }
+
+                // Clean up location names that are too long (likely corrupted)
+                if decoded[i].name.count > 50 {
+                    print("[Locations] Truncating long location name: \(decoded[i].name.prefix(30))...")
+                    decoded[i].name = "Location \(i + 1)"
+                    needsSave = true
+                }
+            }
+
+            // Remove any locations that have no valid devices and suspicious names
+            let validLocations = decoded.filter { location in
+                // Keep locations that have devices OR have reasonable names
+                !location.deviceIds.isEmpty || location.name.count <= 50
+            }
+            if validLocations.count != decoded.count {
+                print("[Locations] Removed \(decoded.count - validLocations.count) invalid locations")
+                decoded = validLocations
+                needsSave = true
+            }
+
+            locations = decoded
+            if needsSave {
+                saveLocations()
+            }
+        }
+    }
+
+    /// Validate and restore last viewed location - clears if location no longer exists
+    func restoreLastViewedLocation() {
+        // viewingLocationId is already set at init from UserDefaults
+        // This function validates it exists and clears if not
+        if let currentId = viewingLocationId {
+            if !locations.contains(where: { $0.id == currentId }) {
+                // Location was deleted, go back to all counters
+                viewingLocationId = nil
+                UserDefaults.standard.removeObject(forKey: "lastViewingLocationId")
+            }
+        }
+    }
+
+    /// Migrate existing users to a default location (for first-time setup)
+    func migrateUsersToLocations() {
+        // Only migrate if we have users but no locations
+        guard !users.isEmpty && locations.isEmpty else { return }
+
+        let defaultLocation = CounterLocation(
+            id: UUID(),
+            name: "My Counters",
+            deviceIds: users.map { $0.userId },
+            overcrowdingLimit: nil,
+            isMapLocation: false,
+            mapPrimaryDevice: nil
+        )
+        locations.append(defaultLocation)
+        saveLocations()
+    }
+
+    /// Add a device to a location
+    func addDeviceToLocation(deviceId: String, locationId: UUID) {
+        if let index = locations.firstIndex(where: { $0.id == locationId }) {
+            if !locations[index].deviceIds.contains(deviceId) {
+                locations[index].deviceIds.append(deviceId)
+                saveLocations()
+            }
+        }
+    }
+
+    /// Remove a device from a location
+    func removeDeviceFromLocation(deviceId: String, locationId: UUID) {
+        if let index = locations.firstIndex(where: { $0.id == locationId }) {
+            locations[index].deviceIds.removeAll { $0 == deviceId }
+            saveLocations()
+        }
+    }
+
+    /// Create a new location
+    func createLocation(name: String, deviceIds: [String] = [], isMapLocation: Bool = false, mapPrimaryDevice: String? = nil) -> CounterLocation {
+        let newLocation = CounterLocation(
+            id: UUID(),
+            name: name,
+            deviceIds: deviceIds,
+            overcrowdingLimit: nil,
+            isMapLocation: isMapLocation,
+            mapPrimaryDevice: mapPrimaryDevice
+        )
+        locations.append(newLocation)
+        saveLocations()
+        return newLocation
+    }
+
+    /// Delete a location and all its counters
+    func deleteLocation(locationId: UUID) {
+        // Find the location and get its device IDs before deleting
+        if let location = locations.first(where: { $0.id == locationId }) {
+            let deviceIdsToRemove = location.deviceIds
+
+            // Remove all users (counters) that belong to this location
+            for deviceId in deviceIdsToRemove {
+                if let user = users.first(where: { $0.userId == deviceId }) {
+                    logOut(userId: user.id)
+                }
+            }
+        }
+
+        locations.removeAll { $0.id == locationId }
+        saveLocations()
+    }
+
+    /// Check if local locations match map data and reconcile any mismatches
+    /// This handles cases where map locations are created/updated after user already had counters
+    func reconcileLocationsWithMap() {
+        guard !users.isEmpty else { return }
+
+        guard let url = URL(string: "\(serverURL)/get_all_location_data_with_extra") else { return }
+
+        URLSession.shared.dataTask(with: url) { data, response, error in
+            guard let data = data, error == nil,
+                  let httpResponse = response as? HTTPURLResponse, httpResponse.statusCode == 200,
+                  let json = try? JSONSerialization.jsonObject(with: data, options: []) as? [String: Any],
+                  let mapLocations = json["locations"] as? [[String: Any]] else {
+                return
+            }
+
+            // Build map of deviceId -> (mapLocationName, primaryDevice)
+            var deviceToMapLocation: [String: String] = [:]
+            var deviceToPrimaryDevice: [String: String] = [:]
+
+            for location in mapLocations {
+                guard let primaryDeviceId = location["location_device"] as? String,
+                      let mapLocationName = location["location_name"] as? String else {
+                    continue
+                }
+
+                deviceToMapLocation[primaryDeviceId] = mapLocationName
+                deviceToPrimaryDevice[primaryDeviceId] = primaryDeviceId
+
+                if let deviceBreakdown = location["device_breakdown"] as? [[String: Any]] {
+                    for device in deviceBreakdown {
+                        if let deviceId = device["device_id"] as? String {
+                            deviceToMapLocation[deviceId] = mapLocationName
+                            deviceToPrimaryDevice[deviceId] = primaryDeviceId
+                        }
+                    }
+                }
+            }
+
+            DispatchQueue.main.async {
+                var movedCounters: [(deviceId: String, fromLocation: String, toLocation: String)] = []
+                var locationsToCreate: [String: [String]] = [:] // mapLocationName -> [deviceIds]
+
+                // Check each location for mismatches
+                for locationIndex in self.locations.indices {
+                    let location = self.locations[locationIndex]
+                    var devicesToRemove: [String] = []
+
+                    for deviceId in location.deviceIds {
+                        guard deviceId != "Demo" else { continue }
+
+                        if let mapLocationName = deviceToMapLocation[deviceId] {
+                            // Device is on the map
+                            if location.isMapLocation && location.name != mapLocationName {
+                                // Device belongs to a DIFFERENT map location
+                                devicesToRemove.append(deviceId)
+                                movedCounters.append((deviceId, location.name, mapLocationName))
+
+                                // Queue for new location creation
+                                if locationsToCreate[mapLocationName] == nil {
+                                    locationsToCreate[mapLocationName] = []
+                                }
+                                locationsToCreate[mapLocationName]?.append(deviceId)
+                            } else if !location.isMapLocation {
+                                // Local location but device is now on map - update location to map location
+                                // OR move device to its map location if names don't match
+                                if location.name != mapLocationName {
+                                    devicesToRemove.append(deviceId)
+                                    movedCounters.append((deviceId, location.name, mapLocationName))
+
+                                    if locationsToCreate[mapLocationName] == nil {
+                                        locationsToCreate[mapLocationName] = []
+                                    }
+                                    locationsToCreate[mapLocationName]?.append(deviceId)
+                                } else {
+                                    // Names match - update to map location status
+                                    self.locations[locationIndex].isMapLocation = true
+                                    self.locations[locationIndex].mapPrimaryDevice = deviceToPrimaryDevice[deviceId]
+                                }
+                            }
+                        }
+                    }
+
+                    // Remove devices that need to be moved
+                    for deviceId in devicesToRemove {
+                        self.locations[locationIndex].deviceIds.removeAll { $0 == deviceId }
+                    }
+                }
+
+                // Create new locations for moved devices
+                for (mapLocationName, deviceIds) in locationsToCreate {
+                    // Check if a location with this name already exists
+                    if let existingIndex = self.locations.firstIndex(where: { $0.name == mapLocationName && $0.isMapLocation }) {
+                        // Add to existing location
+                        for deviceId in deviceIds {
+                            if !self.locations[existingIndex].deviceIds.contains(deviceId) {
+                                self.locations[existingIndex].deviceIds.append(deviceId)
+                            }
+                        }
+                    } else {
+                        // Create new location
+                        let primaryDevice = deviceIds.first.flatMap { deviceToPrimaryDevice[$0] }
+                        let newLocation = CounterLocation(
+                            id: UUID(),
+                            name: mapLocationName,
+                            deviceIds: deviceIds,
+                            overcrowdingLimit: nil,
+                            isMapLocation: true,
+                            mapPrimaryDevice: primaryDevice
+                        )
+                        self.locations.append(newLocation)
+                    }
+                }
+
+                // Clean up empty locations (except if user is currently viewing one)
+                self.locations.removeAll { location in
+                    location.deviceIds.isEmpty && location.id != self.viewingLocationId
+                }
+
+                // Save changes
+                if !movedCounters.isEmpty {
+                    self.saveLocations()
+
+                    // Build alert message
+                    let uniqueDestinations = Set(movedCounters.map { $0.toLocation })
+                    if uniqueDestinations.count == 1, let destination = uniqueDestinations.first {
+                        self.reconciliationMessage = "\(movedCounters.count) counter\(movedCounters.count == 1 ? " was" : "s were") moved to '\(destination)' to match the public map configuration."
+                    } else {
+                        self.reconciliationMessage = "\(movedCounters.count) counter\(movedCounters.count == 1 ? " was" : "s were") reorganized to match the public map configuration."
+                    }
+                    self.showLocationReconciliationAlert = true
+
+                    print("[Reconciliation] Moved counters: \(movedCounters)")
+                }
+            }
+        }.resume()
     }
 
     func loadUsers() {

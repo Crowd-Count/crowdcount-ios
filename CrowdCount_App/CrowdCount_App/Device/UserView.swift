@@ -29,11 +29,16 @@ struct UserView: View {
     @Binding var updateFrequencies: [UUID: Double]
     let logOut: (UUID) -> Void
     let showSettingsForUser: () -> Void
+    @ObservedObject var alertViewModel: AlertViewModel
     @State private var temporaryCount: String? = nil
-    
+
     @State private var isOvercrowdingEnabled: Bool
     @State private var overcrowdingLimit: String?
     @State private var isOvercrowdingNotificationEnabled: Bool = false
+
+    // Map status indicators
+    let isLocationOnMap: Bool  // Is the parent location on the public map
+    let isDeviceOnMap: Bool    // Is this specific device on the map
 
     // For preview/testing purposes
     private let initialOvercrowdingEnabled: Bool
@@ -53,6 +58,9 @@ struct UserView: View {
         updateFrequencies: Binding<[UUID: Double]>,
         logOut: @escaping (UUID) -> Void,
         showSettingsForUser: @escaping () -> Void,
+        alertViewModel: AlertViewModel,
+        isLocationOnMap: Bool = false,
+        isDeviceOnMap: Bool = true,
         initialOvercrowdingEnabled: Bool = false,
         initialOvercrowdingLimit: String? = nil
     ) {
@@ -69,6 +77,9 @@ struct UserView: View {
         self._updateFrequencies = updateFrequencies
         self.logOut = logOut
         self.showSettingsForUser = showSettingsForUser
+        self.alertViewModel = alertViewModel
+        self.isLocationOnMap = isLocationOnMap
+        self.isDeviceOnMap = isDeviceOnMap
         self.initialOvercrowdingEnabled = initialOvercrowdingEnabled
         self.initialOvercrowdingLimit = initialOvercrowdingLimit
         self._isOvercrowdingEnabled = State(initialValue: initialOvercrowdingEnabled)
@@ -80,10 +91,6 @@ struct UserView: View {
     @EnvironmentObject var appSettings: AppSettings
 
     @State private var showDemoAlert: Bool = false
-    @State private var showDemoAdAlert: Bool = false
-    @State private var isDeviceOnMap: Bool = false
-    @State private var deviceLocationNames: [String: String] = [:]  // Maps device ID to location name
-    @State private var devicePrimaryDevices: [String: String] = [:]  // Maps device ID to its primary device
 
     var body: some View {
         VStack {
@@ -139,7 +146,20 @@ struct UserView: View {
                     }
                 }
             }
-            
+
+            // Warning if device is not on the public map (only show for map locations)
+            if isLocationOnMap && !isDeviceOnMap && user.userId != "Demo" {
+                HStack(spacing: 4) {
+                    Image(systemName: "exclamationmark.triangle.fill")
+                        .foregroundColor(.orange)
+                        .font(.caption)
+                    Text("Not on public map")
+                        .font(.caption)
+                        .foregroundColor(.orange)
+                }
+                .padding(.top, 2)
+            }
+
             HStack {
                 Text(temporaryCount ?? "\(user.currentCount)")
                     .font(.system(size: 50))
@@ -302,74 +322,6 @@ struct UserView: View {
                 .padding(.horizontal, 20)
             }
             
-            NavigationLink(destination: HistoricView(userId: user.userId, userUUID: user.id, userPasswords: $userPasswords)) {
-                HStack {
-                    Image(systemName: "clock.arrow.trianglehead.counterclockwise.rotate.90")
-                    Text("Count History")
-                }
-                .padding()
-                .background(Color.blue.opacity(0.75))
-                .foregroundColor(.primary)
-                .cornerRadius(20)
-                .padding(.horizontal, 16)
-            }
-            .padding(.top, 10)
-
-            // Only show ad-related buttons if device is online
-            if !isBluetoothSetupRequired {
-                if user.userId == "Demo" {
-                    Button(action: {
-                        showDemoAdAlert = true
-                    }) {
-                        HStack {
-                            Image(systemName: "megaphone.fill")
-                            Text("Create a Promo")
-                        }
-                        .padding()
-                        .background(Color.orange.opacity(0.75))
-                        .foregroundColor(.primary)
-                        .cornerRadius(20)
-                        .padding(.horizontal, 16)
-                    }
-                    .padding(.top, 10)
-                    .alert(isPresented: $showDemoAdAlert) {
-                        Alert(
-                            title: Text("Demo Mode"),
-                            message: Text("You can't create a promotion with the demo.\n\nBut you can still give us money if you want... would be cool... please. Our venmo is @CrowdCount :)"),
-                            dismissButton: .default(Text("Got it!"))
-                        )
-                    }
-                } else if isDeviceOnMap {
-                    // Device is on the map - show Create a Promo button
-                    NavigationLink(destination: AdPayView(users: $users, deviceLocationNames: deviceLocationNames, devicePrimaryDevices: devicePrimaryDevices)) {
-                        HStack {
-                            Image(systemName: "megaphone.fill")
-                            Text("Create a Promo")
-                        }
-                        .padding()
-                        .background(Color.orange.opacity(0.75))
-                        .foregroundColor(.primary)
-                        .cornerRadius(20)
-                        .padding(.horizontal, 16)
-                    }
-                    .padding(.top, 10)
-                } else {
-                    // Device is online but not on the map - show Get on the Map button
-                    NavigationLink(destination: GetOnMapInfoView()) {
-                        HStack {
-                            Image(systemName: "map.fill")
-                            Text("Get on the Map")
-                        }
-                        .padding()
-                        .background(Color.green.opacity(0.75))
-                        .foregroundColor(.primary)
-                        .cornerRadius(20)
-                        .padding(.horizontal, 16)
-                    }
-                    .padding(.top, 10)
-                }
-            }
-
             if isBluetoothSetupRequired {
                 NavigationLink(destination: BluetoothSetupView(
                     wifiSSID: $wifiSSID,
@@ -386,45 +338,29 @@ struct UserView: View {
                 .padding(.top, 10)
             }
             
-            if user.userId == "Demo"{
-                Spacer()
-                HStack {
-                    Button(action: {
-                        logOut(user.id)
-                        print("Remove Device pressed.")
-                    }) {
-                        Text("Exit Demo")
-                            .padding()
-                            .bold()
-                            .background(Color.secondary.opacity(0.2))
-                            .foregroundColor(.red)
-                            .cornerRadius(20)
-                    }
-                }
-                .padding(.bottom, 40)
-            }
+            // Exit Demo button - commented out
+            // if user.userId == "Demo"{
+            //     Spacer()
+            //     HStack {
+            //         Button(action: {
+            //             logOut(user.id)
+            //             print("Remove Device pressed.")
+            //         }) {
+            //             Text("Exit Demo")
+            //                 .padding()
+            //                 .bold()
+            //                 .background(Color.secondary.opacity(0.2))
+            //                 .foregroundColor(.red)
+            //                 .cornerRadius(20)
+            //         }
+            //     }
+            //     .padding(.bottom, 40)
+            // }
         }
         .padding()
-        .navigationBarItems(trailing: Button(action: showSettingsForUser) {
-            Image(systemName: "gear")
-                .foregroundColor(colorScheme == .dark ? .white : .primary)
-                .padding()
-        })
-        .navigationBarItems(leading: NavigationLink(destination: InformationView()) {
-            if #available(iOS 26.0, *) {
-                Image(systemName: "info")
-                    .padding()
-                    .foregroundColor(colorScheme == .dark ? .white : .primary)
-            } else {
-                Image(systemName: "info.circle")
-                    .foregroundColor(.primary)
-                    .padding()
-            }
-        })
         .onAppear {
             deviceName = loadDeviceName()
             checkIfOvercrowdingExists(user)
-            checkIfDeviceIsOnMap()
             checkIfOvercrowdingNotificationsEnabled()
         }
         .onChange(of: user.currentCount) { oldValue, newValue in
@@ -713,56 +649,6 @@ struct UserView: View {
             }
         }.resume()
     }
-
-    // MARK: - Check if Device is on Map
-
-    func checkIfDeviceIsOnMap() {
-        guard let url = URL(string: "\(serverURL)/get_all_location_data_with_extra") else { return }
-
-        URLSession.shared.dataTask(with: url) { data, response, error in
-            guard let data = data, error == nil else {
-                print("Network error checking map locations: \(String(describing: error))")
-                return
-            }
-
-            if let httpResponse = response as? HTTPURLResponse, httpResponse.statusCode == 200,
-               let json = try? JSONSerialization.jsonObject(with: data, options: []) as? [String: Any],
-               let locations = json["locations"] as? [[String: Any]] {
-                // Extract device IDs and their location names (including secondary devices)
-                var locationNames: [String: String] = [:]
-                var primaryDevices: [String: String] = [:]
-
-                for location in locations {
-                    guard let primaryDeviceId = location["location_device"] as? String,
-                          let locationName = location["location_name"] as? String else {
-                        continue
-                    }
-
-                    // Map the primary device
-                    locationNames[primaryDeviceId] = locationName
-                    primaryDevices[primaryDeviceId] = primaryDeviceId
-
-                    // Also map any secondary devices from device_breakdown
-                    if let deviceBreakdown = location["device_breakdown"] as? [[String: Any]] {
-                        for device in deviceBreakdown {
-                            if let deviceId = device["device_id"] as? String {
-                                locationNames[deviceId] = locationName
-                                primaryDevices[deviceId] = primaryDeviceId
-                            }
-                        }
-                    }
-                }
-
-                DispatchQueue.main.async {
-                    self.deviceLocationNames = locationNames
-                    self.devicePrimaryDevices = primaryDevices
-                    self.isDeviceOnMap = locationNames.keys.contains(self.user.userId)
-                }
-            } else {
-                print("Failed to fetch map locations")
-            }
-        }.resume()
-    }
 }
 
 // MARK: - Preview
@@ -782,7 +668,8 @@ struct UserView: View {
             showSettings: .constant(false),
             updateFrequencies: .constant([:]),
             logOut: { _ in },
-            showSettingsForUser: {}
+            showSettingsForUser: {},
+            alertViewModel: AlertViewModel()
         )
         .environmentObject(AppSettings())
     }
@@ -804,6 +691,7 @@ struct UserView: View {
             updateFrequencies: .constant([:]),
             logOut: { _ in },
             showSettingsForUser: {},
+            alertViewModel: AlertViewModel(),
             initialOvercrowdingEnabled: true,
             initialOvercrowdingLimit: "200"
         )

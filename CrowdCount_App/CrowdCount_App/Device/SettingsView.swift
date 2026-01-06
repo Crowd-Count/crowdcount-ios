@@ -147,12 +147,13 @@ struct SettingsView: View {
                                                 Color(UIColor.tertiarySystemBackground) :
                                                 Color(UIColor.secondarySystemBackground))
                                     )
+                                    .textContentType(.password)
                                     .onTapGesture {
                                         hideKeyboard()
                                     }
                             }
                             .padding(.horizontal, 20)
-                            
+
                             HStack{
                                 SecureField("Enter New Password", text: $newPassword)
                                     .padding()
@@ -162,12 +163,13 @@ struct SettingsView: View {
                                                 Color(UIColor.tertiarySystemBackground) :
                                                 Color(UIColor.secondarySystemBackground))
                                     )
+                                    .textContentType(.newPassword)
                                     .onTapGesture {
                                         hideKeyboard()
                                     }
                             }
                             .padding(.horizontal, 20)
-                                
+
                             HStack{
                                 SecureField("Confirm New Password", text: $confirmPassword)
                                     .padding()
@@ -177,6 +179,7 @@ struct SettingsView: View {
                                                 Color(UIColor.tertiarySystemBackground) :
                                                 Color(UIColor.secondarySystemBackground))
                                     )
+                                    .textContentType(.newPassword)
                                     .onTapGesture {
                                         hideKeyboard()
                                     }
@@ -336,8 +339,11 @@ struct SettingsView: View {
             .alert("Confirm Device ID and password", isPresented: $showConfirmationAlert) {
                 TextField("\(user.userId)", text: $confirmationUserId)
                     .foregroundColor(.primary)
+                    .textContentType(.username)
+                    .autocapitalization(.none)
                 SecureField("Password", text: $confirmationPassword)
                     .foregroundColor(.primary)
+                    .textContentType(.password)
                 Button("Cancel", role: .cancel) {}
                 Button("Confirm") {
                     resetDeviceData()

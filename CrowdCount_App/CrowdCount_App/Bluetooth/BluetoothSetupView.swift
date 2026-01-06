@@ -243,6 +243,8 @@ struct BluetoothSetupView: View {
                             .background(Color.secondary.opacity(0.25))
                             .cornerRadius(15)
                             .autocapitalization(.none)
+                            .textContentType(.username)
+                            .disableAutocorrection(true)
                     }
 
                     // WiFi Password
@@ -255,6 +257,7 @@ struct BluetoothSetupView: View {
                             .background(Color.secondary.opacity(0.25))
                             .cornerRadius(15)
                             .autocapitalization(.none)
+                            .textContentType(.password)
                     }
 
                     // Advanced Settings Toggle

@@ -7,13 +7,24 @@ struct AddUserPage: View {
     @State private var userId: String = ""
     @State private var password: String = ""
     @State private var errorMessage: String?
-    
+
     @EnvironmentObject var appSettings: AppSettings
     @Environment(\.colorScheme) var colorScheme
 
     let serverURL: String
     let startDeviceStatusCheck: (User) -> Void
     let startLiveCountUpdate: () -> Void  // Added this to trigger the count update
+
+    // Location support - closure-based approach for correct location assignment
+    let onDeviceAdded: (String) -> Void  // Called with deviceId after successful add
+    let isInLocationView: Bool  // For UI text customization
+    var isLocationOnMap: Bool = false  // Whether the current location is on the public map
+    var locationHasCounters: Bool = false  // Whether the location already has counters
+    var locationName: String = ""  // Name of the current location
+    var onDeleteLocation: (() -> Void)? = nil  // Called when user wants to delete empty location
+    @ObservedObject var alertViewModel: AlertViewModel
+
+    @State private var showDeleteConfirmation: Bool = false
 
     @FocusState private var focusedField: Field?
 
@@ -28,14 +39,22 @@ struct AddUserPage: View {
                 .scaledToFit()
                 .frame(width: 40, height: 40) // Adjust the width and height as needed
                 .foregroundColor(.secondary)
-            (Text("Have ")
-                .foregroundColor(.secondary) +
-             Text("multiple counters?")
-                .foregroundColor(.primary) +
-             Text("\nAdd them here!")
-                .foregroundColor(.secondary))
-                .padding()
-                .multilineTextAlignment(.center)
+
+            if isInLocationView {
+                Text("Add a counter to this location")
+                    .foregroundColor(.primary)
+                    .padding()
+                    .multilineTextAlignment(.center)
+            } else {
+                (Text("Have ")
+                    .foregroundColor(.secondary) +
+                 Text("multiple counters?")
+                    .foregroundColor(.primary) +
+                 Text("\nAdd them here!")
+                    .foregroundColor(.secondary))
+                    .padding()
+                    .multilineTextAlignment(.center)
+            }
             
             if let errorMessage = errorMessage {
                 Text(errorMessage)
@@ -45,19 +64,23 @@ struct AddUserPage: View {
 
             HStack {
                 TextField("Enter Device ID", text: $userId, onEditingChanged: { _ in clearErrorMessage() })
-                    .padding() // Adds padding to the top and bottom of the text field
-                    .background(Color.secondary.opacity(0.25)) // Set background color and opacity
+                    .padding()
+                    .background(Color.secondary.opacity(0.25))
                     .cornerRadius(15)
                     .focused($focusedField, equals: .userId)
+                    .textContentType(.username)
+                    .autocapitalization(.none)
+                    .disableAutocorrection(true)
             }
-            .padding(.horizontal, 20) // Adds padding to the left and right of the box itself
-            
+            .padding(.horizontal, 20)
+
             HStack {
                 SecureField("Enter Password", text: $password, onCommit: clearErrorMessage)
-                    .padding() // Adds padding to the top and bottom of the secure field
-                    .background(Color.secondary.opacity(0.25)) // Set background color and opacity
+                    .padding()
+                    .background(Color.secondary.opacity(0.25))
                     .cornerRadius(15)
                     .focused($focusedField, equals: .password)
+                    .textContentType(.password)
             }
             .padding(.horizontal, 20)
             .padding(.bottom, 20)
@@ -69,19 +92,53 @@ struct AddUserPage: View {
                     .foregroundColor(.primary)
                     .cornerRadius(20)
             }
+
+            if isInLocationView {
+                Group {
+                    if !locationHasCounters {
+                        // Empty location - welcoming message
+                        Text("Add your first counter to get started.")
+                    } else if isLocationOnMap {
+                        // Map location with existing counters
+                        Text("Only counters belonging to '\(locationName)' on the public map can be added here. Other counters will be placed in a new location.")
+                    } else {
+                        // Local location with existing counters
+                        Text("Add another counter to this location.")
+                    }
+                }
+                .font(.caption)
+                .foregroundColor(.secondary)
+                .multilineTextAlignment(.center)
+                .padding(.horizontal, 20)
+                .padding(.top, 16)
+
+                // Delete Location button - only show for empty locations
+                if !locationHasCounters, onDeleteLocation != nil {
+                    Button(action: {
+                        showDeleteConfirmation = true
+                    }) {
+                        HStack {
+                            Image(systemName: "trash")
+                            Text("Delete Location")
+                        }
+                        .padding()
+                        .background(Color.red.opacity(0.15))
+                        .foregroundColor(.red)
+                        .cornerRadius(20)
+                    }
+                    .padding(.top, 30)
+                }
+            }
         }
         .padding()
-        .navigationBarItems(leading: NavigationLink(destination: InformationView()) {
-            if #available(iOS 26.0, *) {
-                Image(systemName: "info")
-                    .padding()
-                    .foregroundColor(colorScheme == .dark ? .white : .primary)
-            } else {
-                Image(systemName: "info.circle")
-                    .foregroundColor(.primary)
-                    .padding()
+        .alert("Delete Location?", isPresented: $showDeleteConfirmation) {
+            Button("Cancel", role: .cancel) { }
+            Button("Delete", role: .destructive) {
+                onDeleteLocation?()
             }
-        })
+        } message: {
+            Text("Are you sure you want to delete '\(locationName)'? This cannot be undone.")
+        }
     }
 
     func addUser() {
@@ -99,13 +156,20 @@ struct AddUserPage: View {
             DispatchQueue.main.async {
                 if success {
                     if !users.contains(where: { $0.userId == userId }) {
-                        let newUser = User(id: UUID(), userId: userId, currentCount: 0)
+                        // Save deviceId before clearing fields
+                        let deviceId = userId
+
+                        let newUser = User(id: UUID(), userId: deviceId, currentCount: 0)
                         users.append(newUser)
                         userPasswords[newUser.id] = password // Save the password for the new user
                         calculateTotalCount()
                         clearFields()
                         saveUsers()
                         savePasswords() // Save the passwords
+
+                        // Add device to location via closure (handles correct location assignment)
+                        onDeviceAdded(deviceId)
+
                         startDeviceStatusCheck(newUser)
                         startLiveCountUpdate()  // Ensure count update starts for the new user
                         hideKeyboard()
@@ -120,7 +184,7 @@ struct AddUserPage: View {
             }
         }
     }
-    
+
     func calculateTotalCount() {
         totalCount = users.reduce(0) { $0 + $1.currentCount }
     }
