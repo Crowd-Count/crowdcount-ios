@@ -11,6 +11,8 @@ struct LocationPickerView: View {
     let onGoToAllCounters: () -> Void  // Go back to main view (pops navigation)
     let mapDeviceIds: Set<String>  // Device IDs that are on the public map
     let isBluetoothSetupRequired: [UUID: Bool]  // Offline status for each device
+    let userPasswords: [UUID: String]  // Passwords for each user
+    let serverURL: String
 
     @Environment(\.dismiss) var dismiss
     @State private var showAddLocation: Bool = false
@@ -185,7 +187,9 @@ struct LocationPickerView: View {
                             settingsLocationIndex = nil
                         },
                         mapDeviceIds: mapDeviceIds,
-                        isBluetoothSetupRequired: isBluetoothSetupRequired
+                        isBluetoothSetupRequired: isBluetoothSetupRequired,
+                        userPasswords: userPasswords,
+                        serverURL: serverURL
                     )
                 }
             }
@@ -219,6 +223,8 @@ struct LocationPickerView: View {
         onNavigateToLocation: { _ in },
         onGoToAllCounters: {},
         mapDeviceIds: ["T0001"],
-        isBluetoothSetupRequired: [:]
+        isBluetoothSetupRequired: [:],
+        userPasswords: [:],
+        serverURL: "https://api.crowdcount.tech"
     )
 }

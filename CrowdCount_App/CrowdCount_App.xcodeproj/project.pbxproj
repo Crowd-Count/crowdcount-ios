@@ -9,6 +9,9 @@
 /* Begin PBXBuildFile section */
 		7C077D5E2E611AA70042C0AD /* LocationListView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 7C077D5D2E611AA40042C0AD /* LocationListView.swift */; };
 		7C2469DD2E09E05200409394 /* BarGraphYear.swift in Sources */ = {isa = PBXBuildFile; fileRef = 7C2469DC2E09E04E00409394 /* BarGraphYear.swift */; };
+		7C349C012F0F19A9001A87C1 /* CountersListView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 7C349C002F0F19A9001A87C1 /* CountersListView.swift */; };
+		7C349C032F0F238C001A87C1 /* AllCountersListView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 7C349C022F0F238C001A87C1 /* AllCountersListView.swift */; };
+		7C349C052F0F2AE4001A87C1 /* NicknameManager.swift in Sources */ = {isa = PBXBuildFile; fileRef = 7C349C042F0F2AE4001A87C1 /* NicknameManager.swift */; };
 		7C362EFA2C358DBA00F02FDA /* InformationView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 7C362EF92C358DB600F02FDA /* InformationView.swift */; };
 		7C464AF72E0B0F6F005EDE4B /* AppIcon.icon in Resources */ = {isa = PBXBuildFile; fileRef = 7C464AF62E0B0F6F005EDE4B /* AppIcon.icon */; };
 		7C52D5F52C5D2C7900336BF3 /* PrivacyInfo.xcprivacy in Resources */ = {isa = PBXBuildFile; fileRef = 7C52D5F42C5D2C7900336BF3 /* PrivacyInfo.xcprivacy */; };
@@ -78,6 +81,9 @@
 /* Begin PBXFileReference section */
 		7C077D5D2E611AA40042C0AD /* LocationListView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = LocationListView.swift; sourceTree = "<group>"; };
 		7C2469DC2E09E04E00409394 /* BarGraphYear.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = BarGraphYear.swift; sourceTree = "<group>"; };
+		7C349C002F0F19A9001A87C1 /* CountersListView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = CountersListView.swift; sourceTree = "<group>"; };
+		7C349C022F0F238C001A87C1 /* AllCountersListView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = AllCountersListView.swift; sourceTree = "<group>"; };
+		7C349C042F0F2AE4001A87C1 /* NicknameManager.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = NicknameManager.swift; sourceTree = "<group>"; };
 		7C362EF92C358DB600F02FDA /* InformationView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = InformationView.swift; sourceTree = "<group>"; };
 		7C464AF62E0B0F6F005EDE4B /* AppIcon.icon */ = {isa = PBXFileReference; lastKnownFileType = folder.iconcomposer.icon; path = AppIcon.icon; sourceTree = "<group>"; };
 		7C52D5F42C5D2C7900336BF3 /* PrivacyInfo.xcprivacy */ = {isa = PBXFileReference; lastKnownFileType = text.xml; path = PrivacyInfo.xcprivacy; sourceTree = "<group>"; };
@@ -156,6 +162,7 @@
 		7C52D5F32C5D1B5600336BF3 /* App Foundation */ = {
 			isa = PBXGroup;
 			children = (
+				7C349C042F0F2AE4001A87C1 /* NicknameManager.swift */,
 				7CC3810C2F0126A5001C3A41 /* APIService.swift */,
 				7C5A120B2C18D0BB0050C4D8 /* CrowdCount_AppApp.swift */,
 				7CA9C98D2C7E2B1800356DB5 /* AppDelegate.swift */,
@@ -255,6 +262,8 @@
 		7C7F1B1A2C4D2F5B005A5D18 /* Device */ = {
 			isa = PBXGroup;
 			children = (
+				7C349C022F0F238C001A87C1 /* AllCountersListView.swift */,
+				7C349C002F0F19A9001A87C1 /* CountersListView.swift */,
 				7CC381222F0C1AF2001C3A41 /* LocationCountersView.swift */,
 				7CC3811E2F0C11C8001C3A41 /* LocationPickerView.swift */,
 				7CC3811F2F0C11C8001C3A41 /* LocationSettingsView.swift */,
@@ -441,6 +450,7 @@
 				7CC3810D2F0126A5001C3A41 /* APIService.swift in Sources */,
 				7C8FF56B2C3EAAC0008D039F /* BarGraphWeek.swift in Sources */,
 				7C8FF5692C3D47B8008D039F /* BarGraphDay.swift in Sources */,
+				7C349C012F0F19A9001A87C1 /* CountersListView.swift in Sources */,
 				7CD02E9B2C2DFD69000EAFC5 /* AddUserPage.swift in Sources */,
 				7CD02E952C2CF693000EAFC5 /* LoginView.swift in Sources */,
 				7CD54D5A2C29EF4C00E144A1 /* SettingsView.swift in Sources */,
@@ -451,8 +461,10 @@
 				7CC3BE372C3C1BF400C5DEFC /* HistoricView.swift in Sources */,
 				7CAB5C3A2CBEC1ED00F982B9 /* InfoMapView.swift in Sources */,
 				7CBAF1782C19F8CE000E80E9 /* BluetoothSetupView.swift in Sources */,
+				7C349C032F0F238C001A87C1 /* AllCountersListView.swift in Sources */,
 				7C8F95332EF602F5008FE41B /* AdPayView.swift in Sources */,
 				7C077D5E2E611AA70042C0AD /* LocationListView.swift in Sources */,
+				7C349C052F0F2AE4001A87C1 /* NicknameManager.swift in Sources */,
 				7CC381202F0C11C8001C3A41 /* LocationSettingsView.swift in Sources */,
 				7CC381212F0C11C8001C3A41 /* LocationPickerView.swift in Sources */,
 				7CBDF77E2C4003D50046C7FB /* ShareSheetHelper.swift in Sources */,
@@ -646,7 +658,7 @@
 				ASSETCATALOG_COMPILER_INCLUDE_ALL_APPICON_ASSETS = YES;
 				CODE_SIGN_ENTITLEMENTS = CrowdCount_App/CrowdCount_App.entitlements;
 				CODE_SIGN_STYLE = Automatic;
-				CURRENT_PROJECT_VERSION = 102;
+				CURRENT_PROJECT_VERSION = 132;
 				DEVELOPMENT_ASSET_PATHS = "\"CrowdCount_App/Preview Content\"";
 				ENABLE_PREVIEWS = YES;
 				GENERATE_INFOPLIST_FILE = YES;
@@ -689,7 +701,7 @@
 				ASSETCATALOG_COMPILER_INCLUDE_ALL_APPICON_ASSETS = YES;
 				CODE_SIGN_ENTITLEMENTS = CrowdCount_App/CrowdCount_App.entitlements;
 				CODE_SIGN_STYLE = Automatic;
-				CURRENT_PROJECT_VERSION = 102;
+				CURRENT_PROJECT_VERSION = 132;
 				DEVELOPMENT_ASSET_PATHS = "\"CrowdCount_App/Preview Content\"";
 				ENABLE_PREVIEWS = YES;
 				GENERATE_INFOPLIST_FILE = YES;

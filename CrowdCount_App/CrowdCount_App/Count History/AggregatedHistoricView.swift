@@ -274,7 +274,7 @@ struct AggregatedHistoricView: View {
             }
         }
         .preferredColorScheme(appSettings.isDarkMode ? .dark : .light)
-        .navigationBarTitle("Aggregated Count History", displayMode: .inline)
+        .navigationBarTitle("Count History", displayMode: .inline)
         .onAppear {
             Task {
                 await loadInitialData()

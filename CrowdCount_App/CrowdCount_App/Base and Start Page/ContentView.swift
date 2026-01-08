@@ -18,6 +18,8 @@ struct CounterLocation: Identifiable, Codable, Hashable {
     var isMapLocation: Bool
     var mapPrimaryDevice: String?
     var colorName: String?  // Color for the folder icon (nil = default orange)
+    var overcrowdingGroupId: String?  // Server-generated group ID for location-level overcrowding
+    var isOvercrowdingNotificationEnabled: Bool = false  // Track if notifications are enabled for this location
 
     // Available colors for folder icons (rainbow order)
     static let availableColors: [(name: String, color: Color)] = [
@@ -82,6 +84,7 @@ struct ContentView: View {
     // API Service for optimized networking
     private let apiService = APIService.shared
     @State private var isBluetoothSetupRequired: [UUID: Bool] = [:]
+    @State private var isCountLoaded: [UUID: Bool] = [:]  // Track if initial count has been fetched
     @State private var showLoginScreen: Bool = true
     @State private var path = NavigationPath()
     @State private var userPasswords: [UUID: String] = [:] // Store passwords per user
@@ -144,6 +147,7 @@ struct ContentView: View {
                                 userPasswords: $userPasswords,
                                 setCurrentCount: setCurrentCount,
                                 isBluetoothSetupRequired: $isBluetoothSetupRequired,
+                                isCountLoaded: $isCountLoaded,
                                 bluetoothManager: bluetoothManager,
                                 sendWiFiCredentials: sendWiFiCredentials,
                                 deviceStatuses: $deviceStatuses,
@@ -170,33 +174,7 @@ struct ContentView: View {
                                     alertViewModel: alertViewModel
                                 )
                             } else {
-                                UsersTabView(
-                                    users: $users,
-                                    currentUserIndex: $currentUserIndex,
-                                    totalCount: $totalCount,
-                                    totalOvercrowdingCount: $totalOvercrowdingCount,
-                                    userPasswords: $userPasswords,
-                                    showNewCountField: $showNewCountField,
-                                    newCount: $newCount,
-                                    setCurrentCount: setCurrentCount,
-                                    isBluetoothSetupRequired: $isBluetoothSetupRequired,
-                                    bluetoothManager: bluetoothManager,
-                                    wifiSSID: $wifiSSID,
-                                    wifiPassword: $wifiPassword,
-                                    sendWiFiCredentials: sendWiFiCredentials,
-                                    deviceStatuses: $deviceStatuses,
-                                    serverURL: serverURL,
-                                    startDeviceStatusCheck: startDeviceStatusCheck,
-                                    updateFrequencies: $updateFrequencies,
-                                    showSettings: $showSettings,
-                                    selectedUserForSettings: $selectedUserForSettings,
-                                    logOut: logOut,
-                                    startLiveCountUpdate: startLiveCountUpdate,
-                                    locations: $locations,
-                                    saveLocations: saveLocations,
-                                    onOpenLocationPicker: { showLocationList = true },
-                                    alertViewModel: alertViewModel
-                                )
+                                allCountersListView
                             }
                         }
                     }
@@ -204,8 +182,12 @@ struct ContentView: View {
                 .navigationBarTitleDisplayMode(.inline)
                 .toolbar {
                     ToolbarItem(placement: .principal) {
-                        if let locationId = viewingLocationId,
-                           let location = locations.first(where: { $0.id == locationId }) {
+                        if !isServerRunning {
+                            // Hide toolbar during loading
+                            EmptyView()
+                        } else if let locationId = viewingLocationId,
+                           let location = locations.first(where: { $0.id == locationId }),
+                           !showLoginScreen {
                             // Show location name when viewing a specific location - tappable
                             Button(action: { showLocationList = true }) {
                                 HStack(spacing: 4) {
@@ -217,7 +199,7 @@ struct ContentView: View {
                                 }
                             }
                             .buttonStyle(.plain)
-                        } else if !showLoginScreen && isServerRunning && !users.isEmpty {
+                        } else if !showLoginScreen && !users.isEmpty {
                             // Show "All Counters" when viewing all counters - tappable
                             Button(action: { showLocationList = true }) {
                                 HStack(spacing: 4) {
@@ -229,8 +211,8 @@ struct ContentView: View {
                                 }
                             }
                             .buttonStyle(.plain)
-                        } else {
-                            // Show app title on login/loading screens
+                        } else if showLoginScreen {
+                            // Show app title on login screen only
                             AppTitleView(appVersion: appVersion, alertViewModel: alertViewModel)
                         }
                     }
@@ -307,7 +289,9 @@ struct ContentView: View {
                             viewingLocationId = nil
                         },
                         mapDeviceIds: [],  // Map data fetched per-location in LocationCountersView
-                        isBluetoothSetupRequired: isBluetoothSetupRequired
+                        isBluetoothSetupRequired: isBluetoothSetupRequired,
+                        userPasswords: userPasswords,
+                        serverURL: serverURL
                     )
                 }
                 if !showLoginScreen && isServerRunning && networkMonitor.isConnected && viewingLocationId == nil {
@@ -348,7 +332,7 @@ struct ContentView: View {
                                 .background(Color.green.opacity(0.75))
                                 .clipShape(Circle())
                                 .shadow(radius: 10)
-                                .glassEffect()
+                                .glassEffect(.regular.interactive())
                         } else {
                             Image(systemName: "map.fill")
                                 .resizable()
@@ -376,7 +360,7 @@ struct ContentView: View {
                                 .background(Color.blue.opacity(0.75))
                                 .clipShape(Circle())
                                 .shadow(radius: 10)
-                                .glassEffect()
+                                .glassEffect(.regular.interactive())
                         } else {
                             Image(systemName: "list.bullet")
                                 .resizable()
@@ -768,6 +752,28 @@ struct ContentView: View {
         }
     }
 
+    // MARK: - Helper Views
+
+    private var allCountersListView: some View {
+        AllCountersListView(
+            users: users,
+            allUsers: $users,
+            userPasswords: $userPasswords,
+            serverURL: serverURL,
+            setCurrentCount: setCurrentCount,
+            isBluetoothSetupRequired: isBluetoothSetupRequired,
+            isCountLoaded: isCountLoaded,
+            bluetoothManager: bluetoothManager,
+            sendWiFiCredentials: sendWiFiCredentials,
+            updateFrequencies: $updateFrequencies,
+            logOut: logOut,
+            onOpenLocationPicker: { showLocationList = true },
+            alertViewModel: alertViewModel,
+            locations: locations
+        )
+    }
+
+    // MARK: - Functions
 
     func startServerStatusCheck() {
         // Invalidate existing timer if any
@@ -904,6 +910,8 @@ struct ContentView: View {
                     self.users[updatedIndex].currentCount = result.count
                     self.calculateTotalCount()
                 }
+                // Mark count as loaded after successful fetch
+                self.isCountLoaded[userId] = true
             }
         } catch {
             print("Error fetching current count for user: \(user.userId): \(error)")
@@ -923,6 +931,8 @@ struct ContentView: View {
                     users[index].currentCount = count
                     changed = true
                 }
+                // Mark count as loaded after successful fetch
+                isCountLoaded[id] = true
             }
         }
 
@@ -1379,6 +1389,14 @@ struct ContentView: View {
         // Find the location and get its device IDs before deleting
         if let location = locations.first(where: { $0.id == locationId }) {
             let deviceIdsToRemove = location.deviceIds
+
+            // Delete overcrowding group if it exists
+            if let groupId = location.overcrowdingGroupId {
+                Task {
+                    try? await APIService.shared.deleteOvercrowdingGroup(groupId: groupId)
+                    print("[deleteLocation] Deleted overcrowding group: \(groupId)")
+                }
+            }
 
             // Remove all users (counters) that belong to this location
             for deviceId in deviceIdsToRemove {

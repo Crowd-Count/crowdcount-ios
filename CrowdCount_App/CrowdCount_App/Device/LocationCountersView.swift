@@ -8,6 +8,7 @@ struct LocationCountersView: View {
     @Binding var userPasswords: [UUID: String]
     let setCurrentCount: (User, String) -> Void
     @Binding var isBluetoothSetupRequired: [UUID: Bool]
+    @Binding var isCountLoaded: [UUID: Bool]  // Track if initial count has been fetched
     @ObservedObject var bluetoothManager: BluetoothManager
     let sendWiFiCredentials: () -> Void
     @Binding var deviceStatuses: [UUID: String]
@@ -30,9 +31,6 @@ struct LocationCountersView: View {
     // For location picker sheet (local state, not shared)
     @State private var showLocationPicker: Bool = false
 
-    // For settings sheet
-    @State private var showSettings: Bool = false
-    @State private var selectedUserForSettings: User?
     @State private var currentIndex: Int = 0
 
     // Map device data (fetched from TotalCountView)
@@ -51,6 +49,27 @@ struct LocationCountersView: View {
     /// Get current location from binding (always up to date)
     private var location: CounterLocation? {
         locations.first { $0.id == locationId }
+    }
+
+    /// Binding to the current location
+    private var locationBinding: Binding<CounterLocation> {
+        Binding(
+            get: {
+                location ?? CounterLocation(
+                    id: locationId,
+                    name: "Unknown",
+                    deviceIds: [],
+                    overcrowdingLimit: nil,
+                    isMapLocation: false,
+                    mapPrimaryDevice: nil
+                )
+            },
+            set: { newValue in
+                if let index = locations.firstIndex(where: { $0.id == locationId }) {
+                    locations[index] = newValue
+                }
+            }
+        )
     }
 
     /// Users that belong to this location
@@ -132,43 +151,38 @@ struct LocationCountersView: View {
                                 }
                             }
                         },
-                        isBluetoothSetupRequired: isBluetoothSetupRequired
+                        isBluetoothSetupRequired: isBluetoothSetupRequired,
+                        isCountLoaded: isCountLoaded,
+                        location: locationBinding,
+                        onLocationUpdated: { updatedLocation in
+                            // Save the updated location
+                            if let index = locations.firstIndex(where: { $0.id == locationId }) {
+                                locations[index] = updatedLocation
+                                saveLocations()
+                            }
+                        }
                     )
                     .tag(0)
                 }
 
-                // Individual user views
-                ForEach(Array(locationUsers.enumerated()), id: \.element.id) { displayIndex, user in
-                    if let userIndex = users.firstIndex(where: { $0.id == user.id }) {
-                        UserView(
-                            user: $users[userIndex],
-                            users: $users,
-                            serverURL: serverURL,
-                            userPasswords: $userPasswords,
-                            setCurrentCount: setCurrentCount,
-                            isBluetoothSetupRequired: Binding(
-                                get: { isBluetoothSetupRequired[user.id] ?? false },
-                                set: { isBluetoothSetupRequired[user.id] = $0 }
-                            ),
-                            bluetoothManager: bluetoothManager,
-                            sendWiFiCredentials: sendWiFiCredentials,
-                            deviceStatusMessage: Binding(
-                                get: { deviceStatuses[user.id] ?? "" },
-                                set: { deviceStatuses[user.id] = $0 }
-                            ),
-                            showSettings: $showSettings,
-                            updateFrequencies: $updateFrequencies,
-                            logOut: logOut,
-                            showSettingsForUser: {
-                                selectedUserForSettings = user
-                                showSettings = true
-                            },
-                            alertViewModel: alertViewModel,
-                            isLocationOnMap: location?.isMapLocation ?? false,
-                            isDeviceOnMap: mapDeviceLocationNames.keys.contains(user.userId)
-                        )
-                        .tag(displayIndex + 1)
-                    }
+                // All counters stacked on one page
+                if !locationUsers.isEmpty {
+                    CountersListView(
+                        users: locationUsers,
+                        allUsers: $users,
+                        userPasswords: $userPasswords,
+                        serverURL: serverURL,
+                        setCurrentCount: setCurrentCount,
+                        isBluetoothSetupRequired: isBluetoothSetupRequired,
+                        isCountLoaded: isCountLoaded,
+                        bluetoothManager: bluetoothManager,
+                        sendWiFiCredentials: sendWiFiCredentials,
+                        isLocationOnMap: location?.isMapLocation ?? false,
+                        mapDeviceIds: Set(mapDeviceLocationNames.keys),
+                        updateFrequencies: $updateFrequencies,
+                        logOut: logOut
+                    )
+                    .tag(1)
                 }
 
                 // Add Device page (rightmost)
@@ -254,7 +268,7 @@ struct LocationCountersView: View {
                     },
                     alertViewModel: alertViewModel
                 )
-                .tag(locationUsers.isEmpty ? 0 : locationUsers.count + 1)  // If empty, AddUser is at 0; otherwise after TotalCount + users
+                .tag(locationUsers.isEmpty ? 0 : 2)  // If empty, AddUser is at 0; otherwise at index 2 (after TotalCount and CountersList)
             }
             .tabViewStyle(PageTabViewStyle())
             .id(locationId)  // Force new view when switching locations (resets state including currentIndex)
@@ -267,19 +281,17 @@ struct LocationCountersView: View {
             .onChange(of: locationUsers.count) { oldCount, newCount in
                 // Reset tab index if it's out of bounds
                 // If empty: just AddUser (0)
-                // If has users: TotalCount (0) + users (1...count) + AddUser (count+1)
-                let maxIndex = newCount == 0 ? 1 : newCount + 2  // +1 for TotalCount, +1 for AddUser
+                // If has users: TotalCount (0), CountersList (1), AddUser (2)
+                let maxIndex = newCount == 0 ? 1 : 3
                 if currentIndex >= maxIndex {
                     currentIndex = max(0, maxIndex - 1)
                 }
             }
             .onChange(of: newlyAddedDeviceId) { _, deviceId in
-                // Navigate to the newly added device's tab
-                if let deviceId = deviceId,
-                   let deviceIndex = locationUsers.firstIndex(where: { $0.userId == deviceId }) {
-                    // Tab index is: 0 = TotalCount, 1...N = users, N+1 = AddUser
+                // Navigate to the counters list when a device is added
+                if deviceId != nil {
                     withAnimation {
-                        currentIndex = deviceIndex + 1
+                        currentIndex = 1  // CountersList page
                     }
                     // Clear the newlyAddedDeviceId after navigating
                     DispatchQueue.main.asyncAfter(deadline: .now() + 0.5) {
@@ -303,7 +315,7 @@ struct LocationCountersView: View {
                                 .background(Color.green.opacity(0.75))
                                 .clipShape(Circle())
                                 .shadow(radius: 10)
-                                .glassEffect()
+                                .glassEffect(.regular.interactive())
                         } else {
                             Image(systemName: "map.fill")
                                 .resizable()
@@ -331,7 +343,7 @@ struct LocationCountersView: View {
                                 .background(Color.blue.opacity(0.75))
                                 .clipShape(Circle())
                                 .shadow(radius: 10)
-                                .glassEffect()
+                                .glassEffect(.regular.interactive())
                         } else {
                             Image(systemName: "list.bullet")
                                 .resizable()
@@ -382,33 +394,8 @@ struct LocationCountersView: View {
                     }
                 }
             }
-            ToolbarItem(placement: .navigationBarTrailing) {
-                if currentIndex >= 1 && currentIndex <= locationUsers.count {
-                    Button(action: {
-                        let userIndex = currentIndex - 1
-                        if userIndex < locationUsers.count {
-                            selectedUserForSettings = locationUsers[userIndex]
-                            showSettings = true
-                        }
-                    }) {
-                        Image(systemName: "gear")
-                            .foregroundColor(.primary)
-                    }
-                    .transition(.opacity)
-                }
-            }
         }
         .animation(.easeInOut(duration: 0.2), value: currentIndex)
-        .sheet(item: $selectedUserForSettings) { user in
-            SettingsView(
-                showSettings: $showSettings,
-                user: user,
-                updateFrequencies: $updateFrequencies,
-                userPasswords: $userPasswords,
-                logOut: logOut,
-                serverURL: serverURL
-            )
-        }
         .sheet(isPresented: $showLocationPicker) {
             LocationPickerView(
                 locations: $locations,
@@ -426,7 +413,9 @@ struct LocationCountersView: View {
                     viewingLocationId = nil
                 },
                 mapDeviceIds: Set(mapDeviceLocationNames.keys),
-                isBluetoothSetupRequired: isBluetoothSetupRequired
+                isBluetoothSetupRequired: isBluetoothSetupRequired,
+                userPasswords: userPasswords,
+                serverURL: serverURL
             )
         }
         .alert("Counter Added to Different Location", isPresented: $showDeviceMovedAlert) {

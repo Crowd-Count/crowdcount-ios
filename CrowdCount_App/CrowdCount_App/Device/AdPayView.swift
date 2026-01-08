@@ -135,11 +135,30 @@ class AdCreationViewModel: ObservableObject {
     @Published var showPaymentSuccess: Bool = false
     @Published var showPaymentError: Bool = false
     @Published var errorMessage: String = ""
+    @Published var pricePerHour: Double = 5.0  // Default, fetched from server
+    @Published var isPricingLoaded: Bool = false
 
-    let pricePerHour: Double = 5.0
+    private let apiService = APIService.shared
 
     var totalPrice: Double {
         return Double(hoursSelected) * pricePerHour
+    }
+
+    /// Fetch pricing from server
+    func loadPricing() async {
+        do {
+            let price = try await apiService.fetchPromotionPricing()
+            await MainActor.run {
+                self.pricePerHour = price
+                self.isPricingLoaded = true
+            }
+        } catch {
+            // Use default price on error
+            await MainActor.run {
+                self.isPricingLoaded = true
+            }
+            print("Failed to fetch promotion pricing: \(error)")
+        }
     }
 
     var formIsValid: Bool {
@@ -494,6 +513,9 @@ struct AdPayView: View {
         } message: {
             Text(viewModel.errorMessage.isEmpty ? "There was an issue processing your payment. Please try again." : viewModel.errorMessage)
         }
+        .task {
+            await viewModel.loadPricing()
+        }
     }
 
     // MARK: - Header Section
@@ -846,15 +868,26 @@ struct AdPayView: View {
                 Text("Total Price")
                     .font(.caption)
                     .foregroundColor(.secondary)
-                Text("$5.00 per hour")
-                    .font(.caption2)
-                    .foregroundColor(.secondary)
+                if viewModel.isPricingLoaded {
+                    Text("$\(viewModel.pricePerHour, specifier: "%.2f") per hour")
+                        .font(.caption2)
+                        .foregroundColor(.secondary)
+                } else {
+                    Text("Loading pricing...")
+                        .font(.caption2)
+                        .foregroundColor(.secondary)
+                }
             }
             Spacer()
-            Text("$\(viewModel.totalPrice, specifier: "%.2f")")
-                .font(.title)
-                .fontWeight(.bold)
-                .foregroundColor(.green)
+            if viewModel.isPricingLoaded {
+                Text("$\(viewModel.totalPrice, specifier: "%.2f")")
+                    .font(.title)
+                    .fontWeight(.bold)
+                    .foregroundColor(.green)
+            } else {
+                ProgressView()
+                    .scaleEffect(0.8)
+            }
         }
         .padding()
         .background(Color.green.opacity(0.1))

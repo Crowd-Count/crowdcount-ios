@@ -11,6 +11,9 @@ struct TotalCountView: View {
     let onLocationMapStatusChanged: (Bool) -> Void  // Callback when map status changes
     let onMapDataFetched: ([String: String], [String: String]) -> Void  // Callback with (deviceLocationNames, devicePrimaryDevices)
     let isBluetoothSetupRequired: [UUID: Bool]  // Offline status for each device
+    let isCountLoaded: [UUID: Bool]  // Track if initial count has been fetched
+    @Binding var location: CounterLocation  // Location binding for overcrowding updates
+    let onLocationUpdated: (CounterLocation) -> Void  // Callback when location is updated
 
     @Environment(\.colorScheme) var colorScheme
 
@@ -19,6 +22,14 @@ struct TotalCountView: View {
     @State private var deviceLocationNames: [String: String] = [:]
     @State private var devicePrimaryDevices: [String: String] = [:]
     @State private var showDemoAdAlert: Bool = false
+
+    // Overcrowding state
+    @State private var showOvercrowdingSheet: Bool = false
+    @State private var newOvercrowdingLimit: String = ""
+    @State private var isOvercrowdingEnabled: Bool = false
+    @State private var isOvercrowdingNotificationEnabled: Bool = false
+    @State private var showDemoAlert: Bool = false
+    @State private var isLoadingOvercrowding: Bool = false
 
     // Check if this location has a demo device
     private var hasDemoDevice: Bool {
@@ -46,27 +57,79 @@ struct TotalCountView: View {
         users.filter { isBluetoothSetupRequired[$0.id] == true }
     }
 
+    // Check if all counts have been loaded
+    private var allCountsLoaded: Bool {
+        users.allSatisfy { isCountLoaded[$0.id] == true }
+    }
+
     var body: some View {
         VStack {
             Spacer()
-            Spacer()
+            Spacer().frame(height: 15)
+
+            // WiFi status icons for all counters
+            if !users.isEmpty {
+                VStack(spacing: 4) {
+                    HStack(alignment: .center, spacing: 8) {
+                        ForEach(users) { user in
+                            let isOffline = isBluetoothSetupRequired[user.id] == true
+                            Image(systemName: isOffline ? "wifi.slash" : "wifi")
+                                .foregroundColor(isOffline ? .red : .green)
+                                .font(.system(size: 18))
+                                .symbolRenderingMode(.hierarchical)
+                                .offset(y: isOffline ? -1 : 0)
+                        }
+                    }
+                    .padding(.horizontal, 12)
+                    .padding(.vertical, 6)
+                    .background {
+                        Group {
+                            if #available(iOS 26.0, *) {
+                                Capsule()
+                                    .fill(.ultraThinMaterial)
+                                    .glassEffect(.regular)
+                            } else {
+                                Capsule()
+                                    .fill(.ultraThinMaterial)
+                            }
+                        }
+                    }
+
+                    if !offlineCounters.isEmpty {
+                        Text("\(offlineCounters.count) counter\(offlineCounters.count == 1 ? "" : "s") offline")
+                            .font(.caption)
+                            .foregroundColor(.red)
+                    }
+                }
+                .padding(.bottom, 6)
+            }
+
             VStack(spacing: 4) {
-                Text("Total Count for")
-                    .font(.title2)
+                Text(offlineCounters.isEmpty ? "Live Count for" : "Total Count for")
+                    .font(.callout)
                     .foregroundColor(.secondary)
                 Text(locationName)
-                    .font(.title)
+                    .font(.title2)
                     .fontWeight(.semibold)
             }
-            .padding(.top)
 
             Group {
-                if totalOvercrowdingCount > 0 {
-                    Text("\(totalCount)")
-                        .fontWeight(.bold)
-                    + Text(" / \(totalOvercrowdingCount)")
-                        .fontWeight(.bold)
-                        .foregroundColor(.secondary)
+                if !allCountsLoaded {
+                    ProgressView()
+                        .scaleEffect(1.5)
+                        .frame(height: 75)
+                } else if totalOvercrowdingCount > 0 {
+                    HStack(alignment: .center, spacing: 0) {
+                        Text("\(totalCount)")
+                            .fontWeight(.bold)
+                        Text(" / ")
+                            .fontWeight(.bold)
+                            .foregroundColor(.secondary)
+                            .baselineOffset(2)
+                        Text("\(totalOvercrowdingCount)")
+                            .fontWeight(.bold)
+                            .foregroundColor(.secondary)
+                    }
                 } else {
                     Text("\(totalCount)")
                         .fontWeight(.bold)
@@ -76,7 +139,8 @@ struct TotalCountView: View {
             .lineLimit(1)
             .minimumScaleFactor(0.4)
             .padding(.horizontal, 20)
-            .padding(.vertical, 10)
+            .padding(.top, 8)
+            .padding(.bottom, 10)
 
             NavigationLink(destination: AggregatedHistoricView(users: users, userPasswords: $userPasswords)) {
                 HStack {
@@ -89,7 +153,72 @@ struct TotalCountView: View {
                 .cornerRadius(20)
                 .padding(.horizontal, 16)
             }
-            .padding(.top)
+
+            // Overcrowding button
+            Button(action: {
+                if hasDemoDevice {
+                    showDemoAlert = true
+                } else {
+                    // Initialize the text field with current limit
+                    if let limit = location.overcrowdingLimit, limit > 0 {
+                        newOvercrowdingLimit = String(limit)
+                    } else {
+                        newOvercrowdingLimit = ""
+                    }
+                    showOvercrowdingSheet = true
+                }
+            }) {
+                HStack(spacing: 8) {
+                    if isOvercrowdingEnabled && isOvercrowdingNotificationEnabled {
+                        Image(systemName: "bell.fill")
+                            .foregroundColor(.primary)
+                    } else {
+                        Image(systemName: "bell.slash")
+                            .foregroundColor(.primary)
+                    }
+                    Text("Overcrowding")
+                        .foregroundColor(.primary)
+                }
+                .padding()
+                .background(Color.secondary.opacity(0.5))
+                .cornerRadius(20)
+            }
+            .padding(.top, 10)
+            .alert("Demo Mode", isPresented: $showDemoAlert) {
+                Button("OK", role: .cancel) { }
+            } message: {
+                Text("Sorry, but you can't set overcrowding limits in demo mode.")
+            }
+            .sheet(isPresented: $showOvercrowdingSheet) {
+                OvercrowdingSettingsSheet(
+                    isPresented: $showOvercrowdingSheet,
+                    limitText: $newOvercrowdingLimit,
+                    isEnabled: $isOvercrowdingEnabled,
+                    notificationsEnabled: $isOvercrowdingNotificationEnabled,
+                    isLoading: $isLoadingOvercrowding,
+                    currentLimit: location.overcrowdingLimit,
+                    onSave: { limit in
+                        if limit == 0 {
+                            deleteOvercrowdingGroup()
+                        } else if let existingGroupId = location.overcrowdingGroupId {
+                            updateOvercrowdingGroup(groupId: existingGroupId, limit: limit)
+                        } else {
+                            createOvercrowdingGroup(limit: limit)
+                        }
+                    },
+                    onDelete: {
+                        deleteOvercrowdingGroup()
+                    },
+                    onToggleNotifications: { enabled in
+                        if enabled {
+                            registerForGroupNotifications()
+                        } else {
+                            unregisterFromGroupNotifications()
+                        }
+                    }
+                )
+                .presentationDetents([.medium])
+            }
 
             // Ad/Map buttons
             if hasDemoDevice {
@@ -142,7 +271,7 @@ struct TotalCountView: View {
                 .padding(.top, 10)
             }
 
-            Spacer()
+            Spacer().frame(height: 30)
 
             // Warning about extra devices not on map
             if !extraDevices.isEmpty {
@@ -168,29 +297,198 @@ struct TotalCountView: View {
                 .padding(.horizontal)
             }
 
-            // Warning about offline counters
-            if !offlineCounters.isEmpty {
-                HStack(spacing: 4) {
-                    Image(systemName: "wifi.slash")
-                        .foregroundColor(.red)
-                        .symbolRenderingMode(.hierarchical)
-                    Text("\(offlineCounters.count) counter\(offlineCounters.count == 1 ? " is" : "s are") offline")
-                        .font(.caption)
-                        .foregroundColor(.red)
-                }
-                .padding(.horizontal)
-            }
-
-            Text("Counts and history are aggregated from all of your counters in \(locationName).")
-                .font(.footnote)
-                .foregroundColor(.secondary)
-                .multilineTextAlignment(.center)
-                .padding(.horizontal)
+//            Text("Counts and history are aggregated from all of your counters in \(locationName).")
+//                .font(.footnote)
+//                .foregroundColor(.secondary)
+//                .multilineTextAlignment(.center)
+//                .padding(.horizontal)
             Spacer()
         }
         .padding()
         .onAppear {
             checkIfLocationIsOnMap()
+            checkOvercrowdingStatus()
+        }
+    }
+
+    // MARK: - Overcrowding Methods
+
+    private func checkOvercrowdingStatus() {
+        // Check if location already has an overcrowding group
+        if let groupId = location.overcrowdingGroupId {
+            isOvercrowdingEnabled = true
+            isOvercrowdingNotificationEnabled = location.isOvercrowdingNotificationEnabled
+
+            // Fetch current status from server
+            Task {
+                if let appId = UserDefaults.standard.string(forKey: "appId") {
+                    let enabled = try? await APIService.shared.checkGroupNotificationStatus(groupId: groupId, appId: appId)
+                    await MainActor.run {
+                        isOvercrowdingNotificationEnabled = enabled ?? false
+                    }
+                }
+            }
+        } else if let limit = location.overcrowdingLimit, limit > 0 {
+            // Has local limit but no group yet
+            isOvercrowdingEnabled = true
+        } else {
+            isOvercrowdingEnabled = false
+            isOvercrowdingNotificationEnabled = false
+        }
+    }
+
+    private func createOvercrowdingGroup(limit: Int) {
+        let deviceIds = users.map { $0.userId }
+        guard !deviceIds.isEmpty else { return }
+
+        isLoadingOvercrowding = true
+
+        Task {
+            do {
+                let groupId = try await APIService.shared.createOvercrowdingGroup(
+                    deviceIds: deviceIds,
+                    limit: limit,
+                    groupName: locationName
+                )
+
+                await MainActor.run {
+                    var updatedLocation = location
+                    updatedLocation.overcrowdingGroupId = groupId
+                    updatedLocation.overcrowdingLimit = limit
+                    location = updatedLocation
+                    onLocationUpdated(updatedLocation)
+
+                    isOvercrowdingEnabled = true
+                    isLoadingOvercrowding = false
+                }
+            } catch {
+                print("Error creating overcrowding group: \(error)")
+                await MainActor.run {
+                    isLoadingOvercrowding = false
+                }
+            }
+        }
+    }
+
+    private func updateOvercrowdingGroup(groupId: String, limit: Int) {
+        let deviceIds = users.map { $0.userId }
+
+        isLoadingOvercrowding = true
+
+        Task {
+            do {
+                try await APIService.shared.updateOvercrowdingGroup(
+                    groupId: groupId,
+                    deviceIds: deviceIds,
+                    limit: limit
+                )
+
+                await MainActor.run {
+                    var updatedLocation = location
+                    updatedLocation.overcrowdingLimit = limit
+                    location = updatedLocation
+                    onLocationUpdated(updatedLocation)
+
+                    isLoadingOvercrowding = false
+                }
+            } catch {
+                print("Error updating overcrowding group: \(error)")
+                await MainActor.run {
+                    isLoadingOvercrowding = false
+                }
+            }
+        }
+    }
+
+    private func deleteOvercrowdingGroup() {
+        guard let groupId = location.overcrowdingGroupId else {
+            // Just clear local state
+            var updatedLocation = location
+            updatedLocation.overcrowdingLimit = nil
+            location = updatedLocation
+            onLocationUpdated(updatedLocation)
+            isOvercrowdingEnabled = false
+            isOvercrowdingNotificationEnabled = false
+            return
+        }
+
+        isLoadingOvercrowding = true
+
+        Task {
+            do {
+                // Unregister from notifications first if enabled
+                if location.isOvercrowdingNotificationEnabled,
+                   let appId = UserDefaults.standard.string(forKey: "appId") {
+                    try? await APIService.shared.unregisterGroupNotification(groupId: groupId, appId: appId)
+                }
+
+                // Then delete the group
+                try await APIService.shared.deleteOvercrowdingGroup(groupId: groupId)
+
+                await MainActor.run {
+                    var updatedLocation = location
+                    updatedLocation.overcrowdingGroupId = nil
+                    updatedLocation.overcrowdingLimit = nil
+                    updatedLocation.isOvercrowdingNotificationEnabled = false
+                    location = updatedLocation
+                    onLocationUpdated(updatedLocation)
+
+                    isOvercrowdingEnabled = false
+                    isOvercrowdingNotificationEnabled = false
+                    isLoadingOvercrowding = false
+                }
+            } catch {
+                print("Error deleting overcrowding group: \(error)")
+                await MainActor.run {
+                    isLoadingOvercrowding = false
+                }
+            }
+        }
+    }
+
+    private func registerForGroupNotifications() {
+        guard let groupId = location.overcrowdingGroupId,
+              let appId = UserDefaults.standard.string(forKey: "appId") else { return }
+
+        Task {
+            do {
+                try await APIService.shared.registerGroupNotification(groupId: groupId, appId: appId)
+
+                await MainActor.run {
+                    var updatedLocation = location
+                    updatedLocation.isOvercrowdingNotificationEnabled = true
+                    location = updatedLocation
+                    onLocationUpdated(updatedLocation)
+                }
+            } catch {
+                print("Error registering for notifications: \(error)")
+                await MainActor.run {
+                    isOvercrowdingNotificationEnabled = false
+                }
+            }
+        }
+    }
+
+    private func unregisterFromGroupNotifications() {
+        guard let groupId = location.overcrowdingGroupId,
+              let appId = UserDefaults.standard.string(forKey: "appId") else { return }
+
+        Task {
+            do {
+                try await APIService.shared.unregisterGroupNotification(groupId: groupId, appId: appId)
+
+                await MainActor.run {
+                    var updatedLocation = location
+                    updatedLocation.isOvercrowdingNotificationEnabled = false
+                    location = updatedLocation
+                    onLocationUpdated(updatedLocation)
+                }
+            } catch {
+                print("Error unregistering from notifications: \(error)")
+                await MainActor.run {
+                    isOvercrowdingNotificationEnabled = true
+                }
+            }
         }
     }
 
@@ -249,6 +547,135 @@ struct TotalCountView: View {
     }
 }
 
+// MARK: - Overcrowding Settings Sheet
+
+struct OvercrowdingSettingsSheet: View {
+    @Binding var isPresented: Bool
+    @Binding var limitText: String
+    @Binding var isEnabled: Bool
+    @Binding var notificationsEnabled: Bool
+    @Binding var isLoading: Bool
+    let currentLimit: Int?
+    let onSave: (Int) -> Void
+    let onDelete: () -> Void
+    let onToggleNotifications: (Bool) -> Void
+
+    @State private var hasUnsavedChanges: Bool = false
+
+    private var hasValidLimit: Bool {
+        if let limit = Int(limitText), limit > 0 {
+            return true
+        }
+        return false
+    }
+
+    private var limitChanged: Bool {
+        let newLimit = Int(limitText) ?? 0
+        let oldLimit = currentLimit ?? 0
+        return newLimit != oldLimit && hasValidLimit
+    }
+
+    var body: some View {
+        NavigationView {
+            Form {
+                Section(header: Text("Overcrowding Limit"), footer: Text("Get alerted when the total count exceeds this limit.")) {
+                    HStack {
+                        TextField("Enter limit", text: $limitText)
+                            .keyboardType(.numberPad)
+                            .onChange(of: limitText) { _, _ in
+                                hasUnsavedChanges = limitChanged
+                            }
+                        if !limitText.isEmpty {
+                            Button(action: { limitText = "" }) {
+                                Image(systemName: "xmark.circle.fill")
+                                    .foregroundColor(.secondary)
+                            }
+                            .buttonStyle(.plain)
+                        }
+                    }
+
+                    if hasUnsavedChanges {
+                        Button(action: {
+                            if let limit = Int(limitText), limit > 0 {
+                                onSave(limit)
+                                hasUnsavedChanges = false
+                            }
+                        }) {
+                            HStack {
+                                Spacer()
+                                if isLoading {
+                                    ProgressView()
+                                        .scaleEffect(0.8)
+                                } else {
+                                    Text("Set Limit")
+                                        .fontWeight(.medium)
+                                }
+                                Spacer()
+                            }
+                        }
+                        .disabled(isLoading)
+                    }
+                }
+
+                Section(header: Text("Notifications")) {
+                    Toggle(isOn: Binding(
+                        get: { notificationsEnabled },
+                        set: { newValue in
+                            notificationsEnabled = newValue
+                            onToggleNotifications(newValue)
+                        }
+                    )) {
+                        HStack {
+                            Image(systemName: notificationsEnabled && isEnabled ? "bell.fill" : "bell.slash")
+                                .foregroundColor(notificationsEnabled && isEnabled ? .primary : .secondary)
+                            Text("Push Notifications")
+                                .foregroundColor(isEnabled ? .primary : .secondary)
+                        }
+                    }
+                    .disabled(!isEnabled)
+                }
+
+                if isEnabled {
+                    Section {
+                        Button(role: .destructive, action: {
+                            onDelete()
+                            isPresented = false
+                        }) {
+                            HStack {
+                                Spacer()
+                                Text("Remove Overcrowding Limit")
+                                Spacer()
+                            }
+                        }
+                    }
+                }
+            }
+            .navigationTitle("Overcrowding")
+            .navigationBarTitleDisplayMode(.inline)
+            .toolbar {
+                ToolbarItem(placement: .navigationBarLeading) {
+                    Button("Cancel") {
+                        isPresented = false
+                    }
+                }
+                ToolbarItem(placement: .navigationBarTrailing) {
+                    Button("Done") {
+                        // If text is empty or zero and there was a limit, remove it
+                        let newLimit = Int(limitText) ?? 0
+                        if newLimit == 0 && isEnabled {
+                            onSave(0)  // This triggers deletion
+                        } else if hasUnsavedChanges && newLimit > 0 {
+                            onSave(newLimit)
+                        }
+                        isPresented = false
+                    }
+                    .fontWeight(.semibold)
+                }
+            }
+        }
+    }
+}
+
 struct TotalCountView_Previews: PreviewProvider {
     static var previews: some View {
         TotalCountView(
@@ -261,7 +688,17 @@ struct TotalCountView_Previews: PreviewProvider {
             serverURL: "https://api.example.com",
             onLocationMapStatusChanged: { _ in },
             onMapDataFetched: { _, _ in },
-            isBluetoothSetupRequired: [:]
+            isBluetoothSetupRequired: [:],
+            isCountLoaded: [:],
+            location: .constant(CounterLocation(
+                id: UUID(),
+                name: "Grand Central",
+                deviceIds: [],
+                overcrowdingLimit: 200,
+                isMapLocation: false,
+                mapPrimaryDevice: nil
+            )),
+            onLocationUpdated: { _ in }
         )
     }
 }

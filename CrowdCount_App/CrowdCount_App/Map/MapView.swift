@@ -485,7 +485,7 @@ private struct RefreshButtonOverlay: View {
                     .padding()
                     .cornerRadius(20)
                     .shadow(radius: 10)
-                    .glassEffect(in: RoundedRectangle(cornerRadius: 20))
+                    .glassEffect(.regular.interactive(), in: RoundedRectangle(cornerRadius: 20))
             } else {
                 Image(systemName: "arrow.clockwise")
                     .resizable()
@@ -520,7 +520,7 @@ private struct ListModeButtonOverlay: View {
                     .padding()
                     .cornerRadius(20)
                     .shadow(radius: 10)
-                    .glassEffect(in: RoundedRectangle(cornerRadius: 20))
+                    .glassEffect(.regular.interactive(), in: RoundedRectangle(cornerRadius: 20))
             } else {
                 Image(systemName: "list.bullet")
                     .resizable()
@@ -549,7 +549,7 @@ private struct ReportButtonOverlay: View {
                     .padding()
                     .cornerRadius(20)
                     .shadow(radius: 10)
-                    .glassEffect(in: RoundedRectangle(cornerRadius: 20))
+                    .glassEffect(.regular.interactive(), in: RoundedRectangle(cornerRadius: 20))
             } else {
                 Image(systemName: "exclamationmark.bubble.fill")
                     .resizable()
@@ -603,7 +603,7 @@ private struct LocationButtonOverlay: View {
                     .padding()
                     .cornerRadius(20)
                     .shadow(radius: 10)
-                    .glassEffect(in: RoundedRectangle(cornerRadius: 20))
+                    .glassEffect(.regular.interactive(),in: RoundedRectangle(cornerRadius: 20))
             } else {
                 Image(systemName: viewModel.isMapCenteredOnUser ? "location.fill" : "location")
                     .resizable()

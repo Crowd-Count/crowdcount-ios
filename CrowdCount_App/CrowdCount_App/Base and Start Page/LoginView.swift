@@ -198,7 +198,7 @@ struct LoginView: View {
                         .font(.title2)
                         .background(Color.green.opacity(0.75))
                         .clipShape(Capsule())
-                        .glassEffect()
+                        .glassEffect(.regular.interactive())
                     } else {
                         HStack {
                             Image(systemName: "map")

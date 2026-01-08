@@ -495,7 +495,7 @@ struct AdCardView: View {
             if #available(iOS 26.0, *) {
                 RoundedRectangle(cornerRadius: 30)
                     .fill(.clear)
-                    .glassEffect(in: RoundedRectangle(cornerRadius: 30))
+                    .glassEffect(.regular, in: RoundedRectangle(cornerRadius: 30))
             } else {
                 RoundedRectangle(cornerRadius: 30)
                     .fill(.ultraThinMaterial)
@@ -566,29 +566,29 @@ struct ServerAdCardView: View {
     }
 
     var body: some View {
-        HStack(spacing: 12) {
+        HStack(spacing: 10) {
             // Ad Image
             if let image = loadedImage {
                 Image(uiImage: image)
                     .resizable()
                     .aspectRatio(contentMode: .fill)
-                    .frame(width: 70, height: 70)
+                    .frame(width: 80, height: 80)
                     .clipShape(RoundedRectangle(cornerRadius: 12))
             } else if let demoIcon = ad.demoIcon {
                 // Demo ad with icon
                 RoundedRectangle(cornerRadius: 12)
                     .fill(accentColor.opacity(0.15))
-                    .frame(width: 70, height: 70)
+                    .frame(width: 80, height: 80)
                     .overlay {
                         Image(systemName: demoIcon)
-                            .font(.system(size: 28))
+                            .font(.system(size: 32))
                             .foregroundColor(accentColor)
                     }
             } else {
                 // Placeholder while loading
                 RoundedRectangle(cornerRadius: 12)
                     .fill(accentColor.opacity(0.15))
-                    .frame(width: 70, height: 70)
+                    .frame(width: 80, height: 80)
                     .overlay {
                         ProgressView()
                             .scaleEffect(0.8)
@@ -657,8 +657,8 @@ struct ServerAdCardView: View {
         .onReceive(timer) { _ in
             timeRemaining = ad.expirationDateParsed.timeIntervalSinceNow
         }
-        .padding(12)
-        .frame(width: 300, height: 125)
+        .padding(10)
+        .frame(width: 295, height: 125)
         .background {
             if #available(iOS 26.0, *) {
                 RoundedRectangle(cornerRadius: 30)
@@ -795,14 +795,14 @@ struct AdCarouselView: View {
                 VStack(spacing: 0) {
                     // Header
                     HStack {
-                        Text("Sponsored")
+                        Text("Promotions")
                             .font(.caption)
                             .foregroundColor(.secondary)
                             .padding(.leading, 16)
                         Spacer()
                     }
-                    .padding(.top, 12)
-                    .padding(.bottom, 6)
+                    .padding(.top, 8)
+                    .padding(.bottom, 4)
 
                     // Horizontal scroll of ad cards
                     ScrollView(.horizontal, showsIndicators: false) {
@@ -821,8 +821,8 @@ struct AdCarouselView: View {
                 .background {
                     if #available(iOS 26.0, *) {
                         UnevenRoundedRectangle(topLeadingRadius: topRadius, bottomLeadingRadius: bottomRadius, bottomTrailingRadius: bottomRadius, topTrailingRadius: topRadius)
-                            .fill(.clear)
-                            .glassEffect(in: UnevenRoundedRectangle(topLeadingRadius: topRadius, bottomLeadingRadius: bottomRadius, bottomTrailingRadius: bottomRadius, topTrailingRadius: topRadius))
+                            .fill(colorScheme == .dark ? Color.black.opacity(0.3) : Color.clear)
+                            .glassEffect(.clear, in: UnevenRoundedRectangle(topLeadingRadius: topRadius, bottomLeadingRadius: bottomRadius, bottomTrailingRadius: bottomRadius, topTrailingRadius: topRadius))
                     } else {
                         UnevenRoundedRectangle(topLeadingRadius: topRadius, bottomLeadingRadius: bottomRadius, bottomTrailingRadius: bottomRadius, topTrailingRadius: topRadius)
                             .fill(.ultraThinMaterial)

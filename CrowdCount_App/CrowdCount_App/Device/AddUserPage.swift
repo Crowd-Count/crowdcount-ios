@@ -41,7 +41,7 @@ struct AddUserPage: View {
                 .foregroundColor(.secondary)
 
             if isInLocationView {
-                Text("Add a counter to this location")
+                Text("Add a counter to \(locationName)")
                     .foregroundColor(.primary)
                     .padding()
                     .multilineTextAlignment(.center)

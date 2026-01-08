@@ -253,7 +253,7 @@ struct SettingsView: View {
                             Button(action: {
                                 showAlert = true
                             }) {
-                                Text("Reset Data")
+                                Text("Reset This Counter's Data")
                                     .padding()
                                     .bold()
                                     .background(
@@ -318,9 +318,9 @@ struct SettingsView: View {
             }
             .alert(isPresented: $showAlert) {
                 Alert(
-                    title: Text("Are you sure?"),
-                    message: Text("Resetting a device's data is irreversible, all your history and data for this device will be lost."),
-                    primaryButton: .destructive(Text("I am sure")) {
+                    title: Text("Reset \(user.userId)?"),
+                    message: Text("This will permanently delete all history and data for this counter only. This cannot be undone."),
+                    primaryButton: .destructive(Text("Reset")) {
                         if user.userId == "Demo"{
                             showDemoAlert = true
                         }

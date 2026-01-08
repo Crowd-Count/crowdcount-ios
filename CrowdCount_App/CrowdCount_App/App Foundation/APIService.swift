@@ -69,6 +69,7 @@ actor CacheManager {
         static let yearData: TimeInterval = 120.0         // Cache year data for 2 min
         static let alertCheck: TimeInterval = 30.0        // Cache alert check for 30s
         static let locations: TimeInterval = 30.0         // Cache map locations for 30s
+        static let promotionPricing: TimeInterval = 60.0  // Cache pricing for 1 minute
     }
 
     func get<T>(_ key: String) -> T? {
@@ -261,6 +262,128 @@ class APIService: ObservableObject {
         return OvercrowdingResult(limit: limit, changed: changed)
     }
 
+    // MARK: - Overcrowding Groups (Location-level)
+
+    struct OvercrowdingGroupResult {
+        let groupId: String
+        let limit: Int
+        let currentTotal: Int
+        let deviceIds: [String]
+    }
+
+    /// Create a new overcrowding group for a location
+    func createOvercrowdingGroup(deviceIds: [String], limit: Int, groupName: String?) async throws -> String {
+        var body: [String: Any] = [
+            "device_ids": deviceIds,
+            "limit": limit
+        ]
+        if let name = groupName {
+            body["group_name"] = name
+        }
+
+        let data = try await request(
+            endpoint: "create_overcrowding_group",
+            method: "POST",
+            body: body
+        )
+
+        guard let json = try? JSONSerialization.jsonObject(with: data) as? [String: Any],
+              let groupId = json["group_id"] as? String else {
+            throw APIError.decodingError
+        }
+
+        return groupId
+    }
+
+    /// Update an existing overcrowding group
+    func updateOvercrowdingGroup(groupId: String, deviceIds: [String]? = nil, limit: Int? = nil) async throws {
+        var body: [String: Any] = ["group_id": groupId]
+        if let deviceIds = deviceIds {
+            body["device_ids"] = deviceIds
+        }
+        if let limit = limit {
+            body["limit"] = limit
+        }
+
+        _ = try await request(
+            endpoint: "update_overcrowding_group",
+            method: "POST",
+            body: body
+        )
+
+        // Invalidate cache for this group
+        await cache.invalidate("group:\(groupId)")
+    }
+
+    /// Delete an overcrowding group
+    func deleteOvercrowdingGroup(groupId: String) async throws {
+        _ = try await request(
+            endpoint: "delete_overcrowding_group",
+            method: "POST",
+            body: ["group_id": groupId]
+        )
+
+        // Invalidate cache for this group
+        await cache.invalidate("group:\(groupId)")
+    }
+
+    /// Fetch overcrowding group details including current total count
+    func fetchOvercrowdingGroup(groupId: String) async throws -> OvercrowdingGroupResult {
+        let cacheKey = "group:\(groupId)"
+
+        let data = try await request(
+            endpoint: "get_overcrowding_group?group_id=\(groupId)",
+            cacheKey: cacheKey,
+            cacheTTL: CacheManager.TTL.overcrowding
+        )
+
+        guard let json = try? JSONSerialization.jsonObject(with: data) as? [String: Any],
+              let limit = json["overcrowding_limit"] as? Int,
+              let total = json["current_total"] as? Int,
+              let devices = json["device_ids"] as? [String] else {
+            throw APIError.decodingError
+        }
+
+        return OvercrowdingGroupResult(
+            groupId: groupId,
+            limit: limit,
+            currentTotal: total,
+            deviceIds: devices
+        )
+    }
+
+    /// Register an app for group overcrowding notifications
+    func registerGroupNotification(groupId: String, appId: String) async throws {
+        _ = try await request(
+            endpoint: "register_group_notification",
+            method: "POST",
+            body: ["group_id": groupId, "app_id": appId]
+        )
+    }
+
+    /// Unregister from group overcrowding notifications
+    func unregisterGroupNotification(groupId: String, appId: String) async throws {
+        _ = try await request(
+            endpoint: "unregister_group_notification",
+            method: "POST",
+            body: ["group_id": groupId, "app_id": appId]
+        )
+    }
+
+    /// Check if notifications are enabled for a group
+    func checkGroupNotificationStatus(groupId: String, appId: String) async throws -> Bool {
+        let data = try await request(
+            endpoint: "check_group_notification?group_id=\(groupId)&app_id=\(appId)"
+        )
+
+        guard let json = try? JSONSerialization.jsonObject(with: data) as? [String: Any],
+              let enabled = json["notifications_enabled"] as? Bool else {
+            return false
+        }
+
+        return enabled
+    }
+
     // MARK: - Connection Status
     func checkConnectionStatus(deviceId: String) async throws -> String {
         let cacheKey = "connection:\(deviceId)"
@@ -443,6 +566,103 @@ class APIService: ObservableObject {
         }
 
         return (type: type, title: title, body: body, alertId: alertId)
+    }
+
+    // MARK: - Promotion Pricing
+
+    /// Fetch current promotion pricing from server
+    /// Returns price per hour, falls back to 5.0 on error
+    func fetchPromotionPricing() async throws -> Double {
+        let cacheKey = "promotionPricing"
+
+        let data = try await request(
+            endpoint: "get-promotion-pricing",
+            cacheKey: cacheKey,
+            cacheTTL: CacheManager.TTL.promotionPricing
+        )
+
+        guard let json = try? JSONSerialization.jsonObject(with: data) as? [String: Any],
+              let pricePerHour = json["price_per_hour"] as? Double else {
+            return 5.0  // Default fallback
+        }
+
+        return pricePerHour
+    }
+
+    // MARK: - Reset Schedule
+
+    struct ResetSchedule {
+        let groupId: String
+        let resetHour: Int
+        let resetMinute: Int
+        let timezone: String
+    }
+
+    /// Fetch reset schedule for a group
+    /// Returns nil if no schedule exists
+    func fetchResetSchedule(groupId: String) async throws -> ResetSchedule? {
+        let data = try await request(endpoint: "reset-schedule/\(groupId)")
+
+        guard let json = try? JSONSerialization.jsonObject(with: data) as? [String: Any] else {
+            throw APIError.decodingError
+        }
+
+        // schedule can be null if no schedule exists
+        guard let scheduleJson = json["schedule"] as? [String: Any] else {
+            return nil
+        }
+
+        guard let groupId = scheduleJson["group_id"] as? String,
+              let resetHour = scheduleJson["reset_hour"] as? Int,
+              let resetMinute = scheduleJson["reset_minute"] as? Int,
+              let timezone = scheduleJson["timezone"] as? String else {
+            throw APIError.decodingError
+        }
+
+        return ResetSchedule(
+            groupId: groupId,
+            resetHour: resetHour,
+            resetMinute: resetMinute,
+            timezone: timezone
+        )
+    }
+
+    /// Set or update reset schedule for a group
+    func setResetSchedule(groupId: String, hour: Int, minute: Int, timezone: String) async throws -> ResetSchedule {
+        let data = try await request(
+            endpoint: "reset-schedule",
+            method: "POST",
+            body: [
+                "group_id": groupId,
+                "reset_hour": hour,
+                "reset_minute": minute,
+                "timezone": timezone
+            ]
+        )
+
+        guard let json = try? JSONSerialization.jsonObject(with: data) as? [String: Any],
+              let scheduleJson = json["schedule"] as? [String: Any],
+              let returnedGroupId = scheduleJson["group_id"] as? String,
+              let resetHour = scheduleJson["reset_hour"] as? Int,
+              let resetMinute = scheduleJson["reset_minute"] as? Int,
+              let returnedTimezone = scheduleJson["timezone"] as? String else {
+            throw APIError.decodingError
+        }
+
+        return ResetSchedule(
+            groupId: returnedGroupId,
+            resetHour: resetHour,
+            resetMinute: resetMinute,
+            timezone: returnedTimezone
+        )
+    }
+
+    /// Delete reset schedule for a group
+    func deleteResetSchedule(groupId: String) async throws {
+        _ = try await request(
+            endpoint: "reset-schedule/\(groupId)",
+            method: "DELETE"
+        )
     }
 
     // MARK: - App Registration & Heartbeat

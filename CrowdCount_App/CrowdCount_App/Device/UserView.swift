@@ -9,10 +9,8 @@ struct UserView: View {
     @Environment(\.colorScheme) var colorScheme
     
     @State private var showNewCountField: Bool = false
-    @State private var showOvercrowdingField: Bool = false
-    
+
     @State private var newCount: String = ""
-    @State private var newOvercrowdingCount: String = ""
     
     @State private var deviceName: String = ""
     @State private var isEditingName: Bool = false
@@ -32,17 +30,10 @@ struct UserView: View {
     @ObservedObject var alertViewModel: AlertViewModel
     @State private var temporaryCount: String? = nil
 
-    @State private var isOvercrowdingEnabled: Bool
-    @State private var overcrowdingLimit: String?
-    @State private var isOvercrowdingNotificationEnabled: Bool = false
-
     // Map status indicators
     let isLocationOnMap: Bool  // Is the parent location on the public map
     let isDeviceOnMap: Bool    // Is this specific device on the map
-
-    // For preview/testing purposes
-    private let initialOvercrowdingEnabled: Bool
-    private let initialOvercrowdingLimit: String?
+    let isCountLoaded: Bool    // Track if initial count has been fetched
 
     init(
         user: Binding<User>,
@@ -61,8 +52,7 @@ struct UserView: View {
         alertViewModel: AlertViewModel,
         isLocationOnMap: Bool = false,
         isDeviceOnMap: Bool = true,
-        initialOvercrowdingEnabled: Bool = false,
-        initialOvercrowdingLimit: String? = nil
+        isCountLoaded: Bool = true
     ) {
         self._user = user
         self._users = users
@@ -80,25 +70,13 @@ struct UserView: View {
         self.alertViewModel = alertViewModel
         self.isLocationOnMap = isLocationOnMap
         self.isDeviceOnMap = isDeviceOnMap
-        self.initialOvercrowdingEnabled = initialOvercrowdingEnabled
-        self.initialOvercrowdingLimit = initialOvercrowdingLimit
-        self._isOvercrowdingEnabled = State(initialValue: initialOvercrowdingEnabled)
-        self._overcrowdingLimit = State(initialValue: initialOvercrowdingLimit)
+        self.isCountLoaded = isCountLoaded
     }
-    @State private var showOvercrowdingNotificationAlert: Bool = false
-    @State private var showNoLimitAlert: Bool = false
 
     @EnvironmentObject var appSettings: AppSettings
 
-    @State private var showDemoAlert: Bool = false
-
     var body: some View {
         VStack {
-            if user.userId == "Demo"{
-                Spacer()
-                Text("")
-                    .padding(.top, 40)
-            }
             if !isBluetoothSetupRequired {
                 Image(systemName: "wifi")
                     .foregroundColor(.green)
@@ -161,14 +139,14 @@ struct UserView: View {
             }
 
             HStack {
-                Text(temporaryCount ?? "\(user.currentCount)")
-                    .font(.system(size: 50))
-                    .fontWeight(.bold)
-                if isOvercrowdingEnabled, let limit = overcrowdingLimit {
-                    Text("/ \(limit)")
+                if !isCountLoaded && temporaryCount == nil {
+                    ProgressView()
+                        .scaleEffect(1.2)
+                        .frame(height: 50)
+                } else {
+                    Text(temporaryCount ?? "\(user.currentCount)")
                         .font(.system(size: 50))
                         .fontWeight(.bold)
-                        .foregroundColor(.secondary)
                 }
                 if showUndoButton {
                     Button(action: undoCount) {
@@ -183,7 +161,6 @@ struct UserView: View {
             HStack {
                 Button(action: {
                     showNewCountField.toggle()
-                    showOvercrowdingField = false
                 }) {
                     HStack {
                         if !showNewCountField {
@@ -226,102 +203,7 @@ struct UserView: View {
                 }
                 .padding(.horizontal, 20)
             }
-            
-            HStack {
-                Button(action: {
-                    showOvercrowdingField.toggle()
-                    showNewCountField = false
-                }) {
-                    HStack {
-                        if !showOvercrowdingField {
-                            Image(systemName: "exclamationmark.shield")
-                                .foregroundColor(.primary)
-                        }
-                        Text(showOvercrowdingField ? "Cancel" : "Overcrowding")
-                            .foregroundColor(.primary)
-                    }
-                    .padding()
-                    .background(Color.secondary.opacity(showOvercrowdingField ? 0.25 : 0.5))
-                    .clipShape(
-                        .rect(
-                            topLeadingRadius: 20,
-                            bottomLeadingRadius: 20,
-                            bottomTrailingRadius: (showOvercrowdingField ? 20 : 10),
-                            topTrailingRadius: (showOvercrowdingField ? 20 : 10)
-                        )
-                    )
-                }
-                if !showOvercrowdingField {
-                    Button(action: {
-                        if isOvercrowdingEnabled {
-                            isOvercrowdingNotificationEnabled.toggle()
-                            showOvercrowdingNotificationAlert = true
-                            if isOvercrowdingNotificationEnabled {
-                                registerForOvercrowdingNotifications()
-                            } else {
-                                unregisterFromOvercrowdingNotifications()
-                            }
-                        } else {
-                            showNoLimitAlert = true
-                        }
-                    }) {
-                        HStack {
-                            Image(systemName: isOvercrowdingNotificationEnabled ? "bell.fill" : "bell.slash")
-                                .foregroundColor(isOvercrowdingEnabled ? .primary : .gray)
-                        }
-                        .padding()
-                        .background(Color.secondary.opacity(isOvercrowdingEnabled ? 0.5 : 0.25))
-                        .clipShape(
-                            .rect(
-                                topLeadingRadius: 10,
-                                bottomLeadingRadius: 10,
-                                bottomTrailingRadius: 20,
-                                topTrailingRadius: 20
-                            )
-                        )
-                    }
-                }
-                
-                if showOvercrowdingField {
-                    Button(action: {
-                        if user.userId == "Demo" {
-                            showDemoAlert = true // Show alert for demo user
-                            showOvercrowdingField.toggle()
-                            newOvercrowdingCount = ""
-                        } else {
-                            setOvercrowding(user, newOvercrowdingCount)
-                            showOvercrowdingField.toggle()
-                            newOvercrowdingCount = ""
-                        }
-                    }) {
-                        Text("Submit")
-                            .padding()
-                            .background(Color.secondary.opacity(0.75))
-                            .foregroundColor(.primary)
-                            .cornerRadius(20)
-                    }
-                }
-            }
-            .padding(.top, 10)
-            .alert(isPresented: $showDemoAlert) { // Alert modifier
-                Alert(
-                    title: Text("Demo Mode"),
-                    message: Text("Sorry, but you can't change the overcrowding limit in demo mode."),
-                    dismissButton: .default(Text("Ah gee willikers!"))
-                )
-            }
-            
-            if showOvercrowdingField {
-                HStack {
-                    TextField("Enter Overcrowding Limit", text: $newOvercrowdingCount)
-                        .padding()
-                        .background(Color.secondary.opacity(0.25))
-                        .cornerRadius(15)
-                        .keyboardType(.numberPad)
-                }
-                .padding(.horizontal, 20)
-            }
-            
+
             if isBluetoothSetupRequired {
                 NavigationLink(destination: BluetoothSetupView(
                     wifiSSID: $wifiSSID,
@@ -329,7 +211,7 @@ struct UserView: View {
                     bluetoothManager: bluetoothManager,
                     sendWiFiCredentials: sendWiFiCredentials
                 )) {
-                    Text("Reconnect Device to WiFi")
+                    Text("Connect Device to WiFi")
                         .padding()
                         .background(Color.red.opacity(0.75))
                         .foregroundColor(.primary)
@@ -356,26 +238,17 @@ struct UserView: View {
             //     }
             //     .padding(.bottom, 40)
             // }
+
+            Spacer().frame(height: 30)
         }
         .padding()
         .onAppear {
             deviceName = loadDeviceName()
-            checkIfOvercrowdingExists(user)
-            checkIfOvercrowdingNotificationsEnabled()
         }
         .onChange(of: user.currentCount) { oldValue, newValue in
             temporaryCount = nil // Clear temporary count when user count updates
         }
-        .alert("Overcrowding Notifications", isPresented: $showOvercrowdingNotificationAlert) {
-            Button("OK", role: .cancel) { }
-        } message: {
-            Text(isOvercrowdingNotificationEnabled ? "Notifications turned on. You will be notified when the count exceeds the overcrowding limit." : "Notifications turned off. You will no longer receive overcrowding notifications.")
-        }
-        .alert("No Overcrowding Limit Set", isPresented: $showNoLimitAlert) {
-            Button("OK", role: .cancel) { }
-        } message: {
-            Text("Please set an overcrowding limit first before enabling notifications.")
-        }
+        
     }
     
     func saveDeviceName() {
@@ -405,250 +278,6 @@ struct UserView: View {
             showUndoButton = false
         }
     }
-    
-    // MARK: - API Overcrowding Functions
-    
-    func setOvercrowding(_ user: User, _ overcrowdingValue: String) {
-        guard let password = userPasswords[user.id] else { return }
-        
-        if overcrowdingValue == "0" {
-            removeOvercrowding(user)
-            return
-        }
-        
-        guard let url = URL(string: "\(serverURL)/add_overcrowding") else { return }
-        
-        let body: [String: Any] = [
-            "device_name": user.userId,
-            "overcrowding_value": overcrowdingValue,
-            "password": password
-        ]
-        
-        var request = URLRequest(url: url)
-        request.httpMethod = "POST"
-        request.setValue("application/json", forHTTPHeaderField: "Content-Type")
-        
-        do {
-            request.httpBody = try JSONSerialization.data(withJSONObject: body, options: [])
-        } catch {
-            print("Failed to encode JSON: \(error)")
-            return
-        }
-        
-        URLSession.shared.dataTask(with: request) { data, response, error in
-            guard let _ = data, error == nil else {
-                print("Network error: \(String(describing: error))")
-                return
-            }
-            
-            if let httpResponse = response as? HTTPURLResponse, httpResponse.statusCode == 200 {
-                print("Overcrowding value submitted successfully")
-                DispatchQueue.main.async {
-                    self.isOvercrowdingEnabled = true
-                    self.overcrowdingLimit = overcrowdingValue
-                }
-            } else {
-                print("Failed to submit overcrowding value")
-            }
-        }.resume()
-    }
-    
-    func fetchOvercrowdingLimit(_ user: User) {
-        guard let url = URL(string: "\(serverURL)/get_overcrowding?device_name=\(user.userId)") else { return }
-
-        URLSession.shared.dataTask(with: url) { data, response, error in
-            guard let data = data, error == nil else {
-                print("Network error: \(String(describing: error))")
-                return
-            }
-
-            if let httpResponse = response as? HTTPURLResponse, httpResponse.statusCode == 200,
-               let json = try? JSONSerialization.jsonObject(with: data, options: []) as? [String: Any],
-               let overcrowdingLimit = json["overcrowding"] as? Int {
-                DispatchQueue.main.async {
-                    self.overcrowdingLimit = String(overcrowdingLimit)
-                    self.isOvercrowdingEnabled = true
-                }
-            } else {
-                print("Failed to fetch overcrowding limit")
-                DispatchQueue.main.async {
-                    self.overcrowdingLimit = nil
-                    self.isOvercrowdingEnabled = false
-                }
-            }
-        }.resume()
-    }
-    
-    func removeOvercrowding(_ user: User) {
-        guard let password = userPasswords[user.id] else { return }
-        guard let url = URL(string: "\(serverURL)/remove_overcrowding") else { return }
-        
-        let body: [String: Any] = [
-            "device_name": user.userId,
-            "password": password
-        ]
-        
-        var request = URLRequest(url: url)
-        request.httpMethod = "POST"
-        request.setValue("application/json", forHTTPHeaderField: "Content-Type")
-        
-        do {
-            request.httpBody = try JSONSerialization.data(withJSONObject: body, options: [])
-        } catch {
-            print("Failed to encode JSON: \(error)")
-            return
-        }
-        
-        URLSession.shared.dataTask(with: request) { data, response, error in
-            guard let _ = data, error == nil else {
-                print("Network error: \(String(describing: error))")
-                return
-            }
-            
-            if let httpResponse = response as? HTTPURLResponse, httpResponse.statusCode == 200 {
-                print("Overcrowding value removed successfully")
-                DispatchQueue.main.async {
-                    self.isOvercrowdingEnabled = false
-                    self.overcrowdingLimit = nil
-                }
-            } else {
-                print("Failed to remove overcrowding value")
-            }
-        }.resume()
-    }
-    
-    func checkIfOvercrowdingExists(_ user: User) {
-        guard let url = URL(string: "\(serverURL)/check_if_overcrowding_exists?device_name=\(user.userId)") else { return }
-
-        URLSession.shared.dataTask(with: url) { data, response, error in
-            guard let data = data, error == nil else {
-                print("Network error: \(String(describing: error))")
-                return
-            }
-
-            if let httpResponse = response as? HTTPURLResponse, httpResponse.statusCode == 200,
-               let json = try? JSONSerialization.jsonObject(with: data, options: []) as? [String: Any],
-               let overcrowdingExists = json["overcrowding_exists"] as? Bool {
-                DispatchQueue.main.async {
-                    self.isOvercrowdingEnabled = overcrowdingExists
-                    if overcrowdingExists {
-                        self.fetchOvercrowdingLimit(user)
-                    } else {
-                        self.overcrowdingLimit = nil
-                    }
-                }
-            } else {
-                print("Failed to check if overcrowding exists")
-                DispatchQueue.main.async {
-                    self.isOvercrowdingEnabled = false
-                    self.overcrowdingLimit = nil
-                }
-            }
-        }.resume()
-    }
-
-    // MARK: - Overcrowding Notification Functions
-
-    func registerForOvercrowdingNotifications() {
-        guard let appId = UserDefaults.standard.string(forKey: "appId") else {
-            print("No app ID found - cannot register for notifications")
-            return
-        }
-
-        guard let url = URL(string: "\(serverURL)/register_overcrowding_notification") else { return }
-
-        let body: [String: Any] = [
-            "device_id": user.userId,
-            "app_id": appId
-        ]
-
-        var request = URLRequest(url: url)
-        request.httpMethod = "POST"
-        request.setValue("application/json", forHTTPHeaderField: "Content-Type")
-
-        do {
-            request.httpBody = try JSONSerialization.data(withJSONObject: body, options: [])
-        } catch {
-            print("Failed to encode JSON: \(error)")
-            return
-        }
-
-        URLSession.shared.dataTask(with: request) { data, response, error in
-            guard let _ = data, error == nil else {
-                print("Network error: \(String(describing: error))")
-                return
-            }
-
-            if let httpResponse = response as? HTTPURLResponse, httpResponse.statusCode == 200 {
-                print("Successfully registered for overcrowding notifications")
-            } else {
-                print("Failed to register for overcrowding notifications")
-            }
-        }.resume()
-    }
-
-    func unregisterFromOvercrowdingNotifications() {
-        guard let appId = UserDefaults.standard.string(forKey: "appId") else {
-            print("No app ID found")
-            return
-        }
-
-        guard let url = URL(string: "\(serverURL)/unregister_overcrowding_notification") else { return }
-
-        let body: [String: Any] = [
-            "device_id": user.userId,
-            "app_id": appId
-        ]
-
-        var request = URLRequest(url: url)
-        request.httpMethod = "POST"
-        request.setValue("application/json", forHTTPHeaderField: "Content-Type")
-
-        do {
-            request.httpBody = try JSONSerialization.data(withJSONObject: body, options: [])
-        } catch {
-            print("Failed to encode JSON: \(error)")
-            return
-        }
-
-        URLSession.shared.dataTask(with: request) { data, response, error in
-            guard let _ = data, error == nil else {
-                print("Network error: \(String(describing: error))")
-                return
-            }
-
-            if let httpResponse = response as? HTTPURLResponse, httpResponse.statusCode == 200 {
-                print("Successfully unregistered from overcrowding notifications")
-            } else {
-                print("Failed to unregister from overcrowding notifications")
-            }
-        }.resume()
-    }
-
-    func checkIfOvercrowdingNotificationsEnabled() {
-        guard let appId = UserDefaults.standard.string(forKey: "appId") else {
-            return
-        }
-
-        guard let url = URL(string: "\(serverURL)/check_overcrowding_notification?device_id=\(user.userId)&app_id=\(appId)") else { return }
-
-        URLSession.shared.dataTask(with: url) { data, response, error in
-            guard let data = data, error == nil else {
-                print("Network error: \(String(describing: error))")
-                return
-            }
-
-            if let httpResponse = response as? HTTPURLResponse, httpResponse.statusCode == 200,
-               let json = try? JSONSerialization.jsonObject(with: data, options: []) as? [String: Any],
-               let isEnabled = json["notifications_enabled"] as? Bool {
-                DispatchQueue.main.async {
-                    self.isOvercrowdingNotificationEnabled = isEnabled
-                }
-            } else {
-                print("Failed to check overcrowding notification status")
-            }
-        }.resume()
-    }
 }
 
 // MARK: - Preview
@@ -675,26 +304,3 @@ struct UserView: View {
     }
 }
 
-#Preview("User View - With Overcrowding") {
-    NavigationView {
-        UserView(
-            user: .constant(User(id: UUID(), userId: "T1234", currentCount: 156)),
-            users: .constant([User(id: UUID(), userId: "T1234", currentCount: 156)]),
-            serverURL: "https://api.example.com",
-            userPasswords: .constant([:]),
-            setCurrentCount: { _, _ in },
-            isBluetoothSetupRequired: .constant(false),
-            bluetoothManager: BluetoothManager(),
-            sendWiFiCredentials: {},
-            deviceStatusMessage: .constant("Connected"),
-            showSettings: .constant(false),
-            updateFrequencies: .constant([:]),
-            logOut: { _ in },
-            showSettingsForUser: {},
-            alertViewModel: AlertViewModel(),
-            initialOvercrowdingEnabled: true,
-            initialOvercrowdingLimit: "200"
-        )
-        .environmentObject(AppSettings())
-    }
-}
