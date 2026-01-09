@@ -30,6 +30,7 @@ struct LocationCountersView: View {
 
     // For location picker sheet (local state, not shared)
     @State private var showLocationPicker: Bool = false
+    @State private var showLocationSettings: Bool = false
 
     @State private var currentIndex: Int = 0
 
@@ -394,6 +395,14 @@ struct LocationCountersView: View {
                     }
                 }
             }
+            ToolbarItem(placement: .navigationBarTrailing) {
+                Button(action: {
+                    showLocationSettings = true
+                }) {
+                    Image(systemName: "gear")
+                        .foregroundColor(.primary)
+                }
+            }
         }
         .animation(.easeInOut(duration: 0.2), value: currentIndex)
         .sheet(isPresented: $showLocationPicker) {
@@ -411,6 +420,24 @@ struct LocationCountersView: View {
                 onGoToAllCounters: {
                     // Switch to all counters view
                     viewingLocationId = nil
+                },
+                mapDeviceIds: Set(mapDeviceLocationNames.keys),
+                isBluetoothSetupRequired: isBluetoothSetupRequired,
+                userPasswords: userPasswords,
+                serverURL: serverURL
+            )
+        }
+        .sheet(isPresented: $showLocationSettings) {
+            LocationSettingsView(
+                location: locationBinding,
+                users: users,
+                onSave: saveLocations,
+                onDelete: {
+                    deleteLocation(locationId)
+                    viewingLocationId = nil
+                    if locations.isEmpty {
+                        showLoginScreen = true
+                    }
                 },
                 mapDeviceIds: Set(mapDeviceLocationNames.keys),
                 isBluetoothSetupRequired: isBluetoothSetupRequired,

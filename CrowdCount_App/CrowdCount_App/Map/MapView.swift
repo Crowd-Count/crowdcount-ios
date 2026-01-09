@@ -13,13 +13,19 @@ struct MapContentView: View {
     @State private var showingListView = false
     @State private var showAdCarousel: Bool
     private var previewAds: [ServerAd]?
+    private var previewLocations: [Location]?
 
     // TEMPORARY: Set to true to show demo ads for screenshots
     private static let useDemoAds = false
 
-    init(showAds: Bool = true, previewAds: [ServerAd]? = nil) {
+    init(showAds: Bool = true, previewAds: [ServerAd]? = nil, previewLocations: [Location]? = nil) {
         _showAdCarousel = State(initialValue: showAds)
         self.previewAds = Self.useDemoAds ? ServerAd.sampleAds : previewAds
+        self.previewLocations = previewLocations
+    }
+
+    private var displayLocations: [Location] {
+        previewLocations ?? viewModel.locations
     }
 
     // Get the bottom safe area inset
@@ -52,7 +58,7 @@ struct MapContentView: View {
     var body: some View {
         ZStack {
             Map(position: $viewModel.cameraPosition) {
-                ForEach(viewModel.locations) { location in
+                ForEach(displayLocations) { location in
                     Marker(location.name, systemImage: location.icon, coordinate: location.coordinate)
                         .tint(Color.fromString(location.color))
                     Annotation("", coordinate: location.coordinate) {
@@ -99,22 +105,40 @@ struct MapContentView: View {
                 }
             }
             .onAppear {
-                viewModel.refreshLocations()
-                locationManager.requestLocationPermission()
+                // If using preview locations, set camera to fit them
+                if let previewLocs = previewLocations, !previewLocs.isEmpty {
+                    // Calculate center of preview locations
+                    let lats = previewLocs.map { $0.coordinate.latitude }
+                    let lons = previewLocs.map { $0.coordinate.longitude }
+                    let centerLat = (lats.min()! + lats.max()!) / 2
+                    let centerLon = (lons.min()! + lons.max()!) / 2
+                    let spanLat = (lats.max()! - lats.min()!) * 1.5
+                    let spanLon = (lons.max()! - lons.min()!) * 1.5
+                    viewModel.cameraPosition = .region(
+                        MKCoordinateRegion(
+                            center: CLLocationCoordinate2D(latitude: centerLat, longitude: centerLon),
+                            span: MKCoordinateSpan(latitudeDelta: max(spanLat, 0.02), longitudeDelta: max(spanLon, 0.02))
+                        )
+                    )
+                    viewModel.isLoading = false
+                } else {
+                    viewModel.refreshLocations()
+                    locationManager.requestLocationPermission()
 
-                // If authorization was already determined before view appeared, check status
-                if locationManager.authorizationStatus == .authorizedWhenInUse ||
-                   locationManager.authorizationStatus == .authorizedAlways {
-                    locationManager.requestLocation()
-                } else if locationManager.authorizationStatus == .denied ||
-                          locationManager.authorizationStatus == .restricted {
-                    locationManager.locationDetermined = true
-                }
+                    // If authorization was already determined before view appeared, check status
+                    if locationManager.authorizationStatus == .authorizedWhenInUse ||
+                       locationManager.authorizationStatus == .authorizedAlways {
+                        locationManager.requestLocation()
+                    } else if locationManager.authorizationStatus == .denied ||
+                              locationManager.authorizationStatus == .restricted {
+                        locationManager.locationDetermined = true
+                    }
 
-                // Timeout fallback: if we don't get location within 5 seconds, fit all markers
-                DispatchQueue.main.asyncAfter(deadline: .now() + 5.0) {
-                    if !viewModel.hasSetInitialPosition && !viewModel.isLoading {
-                        viewModel.setInitialPosition(userLocation: locationManager.userLocation)
+                    // Timeout fallback: if we don't get location within 5 seconds, fit all markers
+                    DispatchQueue.main.asyncAfter(deadline: .now() + 5.0) {
+                        if !viewModel.hasSetInitialPosition && !viewModel.isLoading {
+                            viewModel.setInitialPosition(userLocation: locationManager.userLocation)
+                        }
                     }
                 }
             }
@@ -166,7 +190,7 @@ struct MapContentView: View {
                 .padding(.bottom, 8)
 
                 if showAdCarousel {
-                    AdCarouselView(isVisible: $showAdCarousel, adService: adService, userLocation: locationManager.userLocation, locations: viewModel.locations, previewAds: previewAds)
+                    AdCarouselView(isVisible: $showAdCarousel, adService: adService, userLocation: locationManager.userLocation, locations: displayLocations, previewAds: previewAds)
                         .padding(.horizontal, 8)
                         .padding(.bottom, adCarouselBottomPadding)
                 }
@@ -460,6 +484,54 @@ struct Location: Identifiable {
             return .gray
         }
     }
+
+    // Sample locations for previews (Boulder, CO area)
+    static let sampleLocations: [Location] = [
+        Location(
+            id: "sample-1",
+            name: "CrowdCount HQ",
+            coordinate: CLLocationCoordinate2D(latitude: 40.0192959, longitude: -105.28284905),
+            userId: "T0001",
+            color: "red",
+            icon: "flag.2.crossed.fill",
+            currentCount: 5,
+            comparison: "up",
+            overcrowding: 10
+        ),
+        Location(
+            id: "sample-2",
+            name: "City Park",
+            coordinate: CLLocationCoordinate2D(latitude: 40.01783, longitude: -105.2684),
+            userId: "T0002",
+            color: "green",
+            icon: "tree.fill",
+            currentCount: 23,
+            comparison: "neutral",
+            overcrowding: nil
+        ),
+        Location(
+            id: "sample-3",
+            name: "The Pond",
+            coordinate: CLLocationCoordinate2D(latitude: 40.00087, longitude: -105.25944),
+            userId: "T0000",
+            color: "blue",
+            icon: "fish.fill",
+            currentCount: 29,
+            comparison: "down",
+            overcrowding: nil
+        ),
+        Location(
+            id: "sample-4",
+            name: "McCrowd's Pub",
+            coordinate: CLLocationCoordinate2D(latitude: 40.00846, longitude: -105.27546),
+            userId: "Demo",
+            color: "orange",
+            icon: "mug.fill",
+            currentCount: 86,
+            comparison: "up",
+            overcrowding: 100
+        )
+    ]
 }
 
 // MARK: - RefreshButtonOverlay
@@ -621,17 +693,33 @@ private struct LocationButtonOverlay: View {
 
 // MARK: - Preview
 
-#Preview("Map with Ad Carousel") {
-    NavigationView {
-        MapContentView(showAds: true, previewAds: ServerAd.sampleAds)
-            .environmentObject(AppSettings())
+#Preview("Map with Locations & Ads") {
+    NavigationStack {
+        MapContentView(
+            showAds: true,
+            previewAds: ServerAd.sampleAds,
+            previewLocations: Location.sampleLocations
+        )
+        .environmentObject(AppSettings())
     }
     .preferredColorScheme(.dark)
 }
 
+#Preview("Map with Locations & Ads - Light") {
+    NavigationStack {
+        MapContentView(
+            showAds: true,
+            previewAds: ServerAd.sampleAds,
+            previewLocations: Location.sampleLocations
+        )
+        .environmentObject(AppSettings())
+    }
+    .preferredColorScheme(.light)
+}
+
 #Preview("Map without Ad Carousel") {
-    NavigationView {
-        MapContentView(showAds: false)
+    NavigationStack {
+        MapContentView(showAds: false, previewLocations: Location.sampleLocations)
             .environmentObject(AppSettings())
     }
     .preferredColorScheme(.dark)

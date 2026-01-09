@@ -11,6 +11,7 @@ struct LocationSettingsView: View {
     let serverURL: String
 
     @Environment(\.dismiss) var dismiss
+    @EnvironmentObject var appSettings: AppSettings
     @State private var locationName: String = ""
     @State private var selectedColor: String = "orange"
     @State private var showDeleteConfirmation: Bool = false
@@ -207,6 +208,23 @@ struct LocationSettingsView: View {
                     .padding(.vertical, 8)
                 }
 
+                // Appearance
+                Section(header: Text("Appearance")) {
+                    Button(action: {
+                        appSettings.isDarkMode.toggle()
+                    }) {
+                        HStack {
+                            Image(systemName: appSettings.isDarkMode ? "moon.fill" : "sun.max.fill")
+                                .foregroundColor(appSettings.isDarkMode ? .yellow : .orange)
+                            Text(appSettings.isDarkMode ? "Dark Mode" : "Light Mode")
+                                .foregroundColor(.primary)
+                            Spacer()
+                            Text("Press to Switch")
+                                .foregroundColor(.secondary)
+                        }
+                    }
+                }
+
                 // Reset All Counters
                 Section(header: Text("Data Management"), footer: Text("This will permanently delete all history and count data for every counter in this location. This cannot be undone.")) {
                     Button(role: .destructive, action: {
@@ -292,6 +310,7 @@ struct LocationSettingsView: View {
                 Text(resetAllResult ?? "")
             }
         }
+        .preferredColorScheme(appSettings.isDarkMode ? .dark : .light)
     }
 
     private var infoFooter: some View {

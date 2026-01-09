@@ -110,50 +110,68 @@ struct ServerAd: Identifiable, Codable {
         return URL(string: "https://crowdcount.tech/ad/\(id)")
     }
 
-    // Sample ads for previews
+    // Sample ads for previews (Boulder, CO - device IDs match Location.sampleLocations)
     static let sampleAds: [ServerAd] = [
         ServerAd(
             id: "sample-1",
-            title: "Joe's Coffee",
-            description: "50% off your first order! Best espresso in town.",
+            title: "CrowdCount HQ",
+            description: "Visit our headquarters! Free demo and swag.",
             imagePath: nil,
-            deviceId: "A1234",
+            deviceId: "T0001",
             durationHours: 24,
             totalPrice: 120.0,
-            ctaText: "Get Offer",
+            ctaText: "Visit Us",
             ctaLinkType: "default",
             ctaURL: nil,
             status: "approved",
             createdAt: ISO8601DateFormatter().string(from: Date()),
             expirationDate: ISO8601DateFormatter().string(from: Date().addingTimeInterval(2 * 3600 + 34 * 60)),
-            demoIcon: "cup.and.saucer.fill",
-            demoColor: "brown",
-            demoCoordinate: CLLocationCoordinate2D(latitude: 37.7849, longitude: -122.4094)
+            demoIcon: "flag.2.crossed.fill",
+            demoColor: "red",
+            demoCoordinate: CLLocationCoordinate2D(latitude: 40.0192959, longitude: -105.28284905)
         ),
         ServerAd(
             id: "sample-2",
-            title: "City Gym",
-            description: "Free trial week - No commitment required.",
+            title: "McCrowd's Pub",
+            description: "$2 draft pints for the next hour!",
             imagePath: nil,
-            deviceId: "A1234",
+            deviceId: "Demo",
+            durationHours: 1,
+            totalPrice: 5.0,
+            ctaText: "View Details",
+            ctaLinkType: "default",
+            ctaURL: nil,
+            status: "approved",
+            createdAt: ISO8601DateFormatter().string(from: Date()),
+            expirationDate: ISO8601DateFormatter().string(from: Date().addingTimeInterval(1 * 3600)),
+            demoIcon: "mug.fill",
+            demoColor: "orange",
+            demoCoordinate: CLLocationCoordinate2D(latitude: 40.00846, longitude: -105.27546)
+        ),
+        ServerAd(
+            id: "sample-3",
+            title: "City Park",
+            description: "Nature walks every weekend. Join the community!",
+            imagePath: nil,
+            deviceId: "T0002",
             durationHours: 48,
             totalPrice: 240.0,
-            ctaText: "Start Free",
+            ctaText: "Join Now",
             ctaLinkType: "custom",
             ctaURL: "https://crowdcount.tech",
             status: "approved",
             createdAt: ISO8601DateFormatter().string(from: Date()),
             expirationDate: ISO8601DateFormatter().string(from: Date().addingTimeInterval(5 * 3600 + 12 * 60)),
-            demoIcon: "dumbbell.fill",
-            demoColor: "orange",
-            demoCoordinate: CLLocationCoordinate2D(latitude: 37.7749, longitude: -122.4194)
+            demoIcon: "tree.fill",
+            demoColor: "green",
+            demoCoordinate: CLLocationCoordinate2D(latitude: 40.01783, longitude: -105.2684)
         ),
         ServerAd(
-            id: "sample-3",
-            title: "Fresh Bites",
-            description: "Healthy meals delivered to your door daily.",
+            id: "sample-4",
+            title: "The Pond",
+            description: "Fresh seafood daily. Best fish tacos in Boulder!",
             imagePath: nil,
-            deviceId: "A1234",
+            deviceId: "T0000",
             durationHours: 12,
             totalPrice: 60.0,
             ctaText: "Order Now",
@@ -162,27 +180,9 @@ struct ServerAd: Identifiable, Codable {
             status: "approved",
             createdAt: ISO8601DateFormatter().string(from: Date()),
             expirationDate: ISO8601DateFormatter().string(from: Date().addingTimeInterval(45 * 60)),
-            demoIcon: "leaf.fill",
-            demoColor: "green",
-            demoCoordinate: CLLocationCoordinate2D(latitude: 37.7899, longitude: -122.4014)
-        ),
-        ServerAd(
-            id: "sample-4",
-            title: "BookNook",
-            description: "New releases every week. Join our reading club!",
-            imagePath: nil,
-            deviceId: "A1234",
-            durationHours: 72,
-            totalPrice: 360.0,
-            ctaText: "Learn More",
-            ctaLinkType: "custom",
-            ctaURL: "https://booknook.example.com",
-            status: "approved",
-            createdAt: ISO8601DateFormatter().string(from: Date()),
-            expirationDate: ISO8601DateFormatter().string(from: Date().addingTimeInterval(12 * 3600)),
-            demoIcon: "book.fill",
-            demoColor: "purple",
-            demoCoordinate: CLLocationCoordinate2D(latitude: 37.7699, longitude: -122.4294)
+            demoIcon: "fish.fill",
+            demoColor: "blue",
+            demoCoordinate: CLLocationCoordinate2D(latitude: 40.00087, longitude: -105.25944)
         )
     ]
 }
@@ -658,7 +658,7 @@ struct ServerAdCardView: View {
             timeRemaining = ad.expirationDateParsed.timeIntervalSinceNow
         }
         .padding(10)
-        .frame(width: 295, height: 125)
+        .frame(width: 310, height: 125)
         .background {
             if #available(iOS 26.0, *) {
                 RoundedRectangle(cornerRadius: 30)
@@ -732,6 +732,7 @@ struct AdCarouselView: View {
     var locations: [Location]
     var previewAds: [ServerAd]? = nil  // Optional preview ads for SwiftUI previews
     @Environment(\.colorScheme) private var colorScheme
+    @State private var currentAdId: String?
 
     private var displayAds: [ServerAd] {
         let ads = previewAds ?? adService.activeAds
@@ -805,17 +806,40 @@ struct AdCarouselView: View {
                     .padding(.bottom, 4)
 
                     // Horizontal scroll of ad cards
-                    ScrollView(.horizontal, showsIndicators: false) {
-                        HStack(spacing: 12) {
+                    GeometryReader { geo in
+                        let cardWidth: CGFloat = 310
+                        let spacing: CGFloat = 12
+                        let sideInset = max(16, (geo.size.width - cardWidth) / 2)
+
+                        ScrollView(.horizontal, showsIndicators: false) {
+                            HStack(spacing: spacing) {
+                                ForEach(displayAds) { ad in
+                                    ServerAdCardView(ad: ad, locations: locations)
+                                }
+                            }
+                            .scrollTargetLayout()
+                        }
+                        .contentMargins(.horizontal, sideInset)
+                        .scrollClipDisabled()
+                        .scrollTargetBehavior(.viewAligned)
+                        .scrollPosition(id: $currentAdId)
+                    }
+                    .frame(height: 125)
+
+                    // Page indicator dots (only show if more than 1 ad)
+                    if displayAds.count > 1 {
+                        HStack(spacing: 6) {
                             ForEach(displayAds) { ad in
-                                ServerAdCardView(ad: ad, locations: locations)
+                                Circle()
+                                    .fill(currentAdId == ad.id || (currentAdId == nil && ad.id == displayAds.first?.id) ? Color.primary : Color.secondary.opacity(0.4))
+                                    .frame(width: 6, height: 6)
                             }
                         }
-                        .padding(.horizontal, 16)
-                        .padding(.bottom, 16)
+                        .offset(y: 12)
+                        .padding(.bottom, 24)
+                    } else {
+                        Spacer().frame(height: 16)
                     }
-                    .scrollClipDisabled()
-                    .scrollTargetBehavior(.viewAligned)
                 }
                 .clipShape(UnevenRoundedRectangle(topLeadingRadius: topRadius, bottomLeadingRadius: bottomRadius, bottomTrailingRadius: bottomRadius, topTrailingRadius: topRadius))
                 .background {
