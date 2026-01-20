@@ -281,6 +281,11 @@ struct LocationSettingsView: View {
                     Task {
                         await loadResetSchedule(groupId: groupId)
                     }
+                } else if let firstDeviceId = location.deviceIds.first, firstDeviceId != "Demo" {
+                    // No local group ID - check server for existing group
+                    Task {
+                        await checkForExistingGroup(deviceId: firstDeviceId)
+                    }
                 } else {
                     isLoadingSchedule = false
                 }
@@ -365,6 +370,34 @@ struct LocationSettingsView: View {
         }
     }
 
+    private func checkForExistingGroup(deviceId: String) async {
+        do {
+            let groupIds = try await apiService.fetchGroupIdsForDevice(deviceId: deviceId)
+            if let existingGroupId = groupIds.first {
+                // Found existing group on server - update local state
+                await MainActor.run {
+                    location.overcrowdingGroupId = existingGroupId
+                }
+                // Sync devices to ensure all current location devices are in the group
+                do {
+                    try await apiService.updateOvercrowdingGroup(groupId: existingGroupId, deviceIds: location.deviceIds)
+                } catch {
+                    print("Error syncing group devices: \(error)")
+                }
+                await loadResetSchedule(groupId: existingGroupId)
+            } else {
+                await MainActor.run {
+                    isLoadingSchedule = false
+                }
+            }
+        } catch {
+            print("Error checking for existing group: \(error)")
+            await MainActor.run {
+                isLoadingSchedule = false
+            }
+        }
+    }
+
     private func handleScheduleToggle(enabled: Bool, groupId: String) async {
         if enabled {
             // Create new schedule with current selected time
@@ -405,8 +438,14 @@ struct LocationSettingsView: View {
                     }
                 }
             } else {
-                // Group exists, just create the schedule
-                await saveResetSchedule(groupId: location.overcrowdingGroupId!, time: selectedResetTime)
+                // Group exists - sync devices to match current location, then create/update schedule
+                let groupId = location.overcrowdingGroupId!
+                do {
+                    try await apiService.updateOvercrowdingGroup(groupId: groupId, deviceIds: location.deviceIds)
+                } catch {
+                    print("Error syncing group devices: \(error)")
+                }
+                await saveResetSchedule(groupId: groupId, time: selectedResetTime)
             }
         } else {
             // Disable - delete the schedule

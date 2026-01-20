@@ -442,6 +442,7 @@ struct AdPayView: View {
     @Binding var users: [User]
     var deviceLocationNames: [String: String] = [:]  // Maps device ID to location name
     var devicePrimaryDevices: [String: String] = [:]  // Maps device ID to its primary device
+    var preselectedDeviceId: String? = nil  // Optional device ID to auto-select on load
     @StateObject private var viewModel = AdCreationViewModel()
     @State private var selectedPhotoItem: PhotosPickerItem?
     @State private var paymentHandler = PaymentHandler()
@@ -485,7 +486,6 @@ struct AdPayView: View {
                 buttonTextField
                 buttonLinkSection
                 imagePickerSection
-                deviceSelector
                 hoursSelector
                 priceDisplay
 
@@ -515,6 +515,16 @@ struct AdPayView: View {
         }
         .task {
             await viewModel.loadPricing()
+        }
+        .onAppear {
+            // Auto-select location if preselected device ID is provided
+            if let preselected = preselectedDeviceId, viewModel.selectedDeviceId.isEmpty {
+                viewModel.selectedDeviceId = preselected
+                // Set title from location name
+                if let locationName = deviceLocationNames[preselected] {
+                    viewModel.title = locationName
+                }
+            }
         }
     }
 
@@ -554,26 +564,20 @@ struct AdPayView: View {
                     .font(.caption)
                     .foregroundColor(.secondary)
                 Spacer()
-                if !selectedLocationName.isEmpty {
-                    Text("From location")
-                        .font(.caption2)
-                        .foregroundColor(.secondary)
-                }
+                Text("From location name")
+                    .font(.caption2)
+                    .foregroundColor(.secondary)
             }
             .padding(.horizontal, 5)
 
-            Text(selectedLocationName.isEmpty ? "Select a location first" : selectedLocationName)
+            Text(selectedLocationName.isEmpty ? "Loading..." : selectedLocationName)
                 .frame(maxWidth: .infinity, alignment: .leading)
                 .padding()
-                .foregroundColor(selectedLocationName.isEmpty ? .secondary : .primary)
+                .foregroundColor(.secondary)
                 .background(Color.secondary.opacity(0.15))
                 .cornerRadius(15)
         }
         .padding(.horizontal, 20)
-        .onChange(of: viewModel.selectedDeviceId) { _, _ in
-            // Update the title in the viewModel when device changes
-            viewModel.title = selectedLocationName
-        }
     }
 
     // MARK: - Description Field

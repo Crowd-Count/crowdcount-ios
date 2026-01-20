@@ -147,6 +147,8 @@ struct UserView: View {
                     Text(temporaryCount ?? "\(user.currentCount)")
                         .font(.system(size: 50))
                         .fontWeight(.bold)
+                        .lineLimit(1)
+                        .minimumScaleFactor(0.5)
                 }
                 if showUndoButton {
                     Button(action: undoCount) {

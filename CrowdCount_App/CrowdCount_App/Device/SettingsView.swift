@@ -114,27 +114,28 @@ struct SettingsView: View {
                             .padding(10)
                         }
                     }
-                    
-                    if !showPasswordFields {
-                        HStack {
-                            Button(action: {
-                                showPasswordFields.toggle()
-                                errorMessage = nil
-                                successMessage = nil
-                            }) {
-                                Text("Change Password")
-                                    .padding()
-                                    .background(
-                                        RoundedRectangle(cornerRadius: 20)
-                                            .fill(colorScheme == .dark ?
-                                                Color(UIColor.tertiarySystemBackground) :
-                                                Color(UIColor.secondarySystemBackground))
-                                    )
-                                    .foregroundColor(.primary)
-                            }
-                        }
-                        .padding(10)
-                    }
+
+//       REMOVED FOR NOW SINCE IT PRESENTS SOME ISSUES AND THERS NO NEED FOR IT
+//                    if !showPasswordFields {
+//                        HStack {
+//                            Button(action: {
+//                                showPasswordFields.toggle()
+//                                errorMessage = nil
+//                                successMessage = nil
+//                            }) {
+//                                Text("Change Password")
+//                                    .padding()
+//                                    .background(
+//                                        RoundedRectangle(cornerRadius: 20)
+//                                            .fill(colorScheme == .dark ?
+//                                                Color(UIColor.tertiarySystemBackground) :
+//                                                Color(UIColor.secondarySystemBackground))
+//                                    )
+//                                    .foregroundColor(.primary)
+//                            }
+//                        }
+//                        .padding(10)
+//                    }
                     
                     if showPasswordFields {
                         VStack(spacing: 20) {

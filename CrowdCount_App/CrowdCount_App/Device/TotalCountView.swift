@@ -244,18 +244,42 @@ struct TotalCountView: View {
                     )
                 }
             } else if isLocationOnMap {
-                NavigationLink(destination: AdPayView(users: .constant(users), deviceLocationNames: deviceLocationNames, devicePrimaryDevices: devicePrimaryDevices)) {
-                    HStack {
-                        Image(systemName: "megaphone.fill")
-                        Text("Create a Promo")
+                let hasOfflineCounters = !offlineCounters.isEmpty
+                let preselectedDevice = location.mapPrimaryDevice ?? users.first(where: { deviceLocationNames.keys.contains($0.userId) })?.userId
+
+                if hasOfflineCounters {
+                    // Greyed out button when counters are offline
+                    Button(action: {}) {
+                        HStack {
+                            Image(systemName: "megaphone.fill")
+                            Text("Create a Promo")
+                        }
+                        .padding()
+                        .background(Color.gray.opacity(0.4))
+                        .foregroundColor(.secondary)
+                        .cornerRadius(20)
+                        .padding(.horizontal, 16)
                     }
-                    .padding()
-                    .background(Color.orange.opacity(0.75))
-                    .foregroundColor(.primary)
-                    .cornerRadius(20)
-                    .padding(.horizontal, 16)
+                    .disabled(true)
+                    .padding(.top, 10)
+
+                    Text("All counters must be online to create a promo")
+                        .font(.caption)
+                        .foregroundColor(.secondary)
+                } else {
+                    NavigationLink(destination: AdPayView(users: .constant(users), deviceLocationNames: deviceLocationNames, devicePrimaryDevices: devicePrimaryDevices, preselectedDeviceId: preselectedDevice)) {
+                        HStack {
+                            Image(systemName: "megaphone.fill")
+                            Text("Create a Promo")
+                        }
+                        .padding()
+                        .background(Color.orange.opacity(0.75))
+                        .foregroundColor(.primary)
+                        .cornerRadius(20)
+                        .padding(.horizontal, 16)
+                    }
+                    .padding(.top, 10)
                 }
-                .padding(.top, 10)
             } else {
                 NavigationLink(destination: GetOnMapInfoView()) {
                     HStack {

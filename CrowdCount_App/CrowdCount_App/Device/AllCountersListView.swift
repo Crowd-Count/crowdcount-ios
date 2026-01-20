@@ -174,6 +174,8 @@ struct AllCountersRowView: View {
                         Text(temporaryCount ?? "\(user.currentCount)")
                             .font(.title2.bold())
                             .monospacedDigit()
+                            .lineLimit(1)
+                            .minimumScaleFactor(0.5)
                     }
 
                     if showUndoButton {

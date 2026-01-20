@@ -384,6 +384,20 @@ class APIService: ObservableObject {
         return enabled
     }
 
+    /// Get all group IDs that contain a specific device
+    func fetchGroupIdsForDevice(deviceId: String) async throws -> [String] {
+        let data = try await request(
+            endpoint: "get_groups_for_device?device_id=\(deviceId)"
+        )
+
+        guard let json = try? JSONSerialization.jsonObject(with: data) as? [String: Any],
+              let groupIds = json["group_ids"] as? [String] else {
+            throw APIError.decodingError
+        }
+
+        return groupIds
+    }
+
     // MARK: - Connection Status
     func checkConnectionStatus(deviceId: String) async throws -> String {
         let cacheKey = "connection:\(deviceId)"
