@@ -99,6 +99,10 @@ struct HistoricView: View {
     @State private var isWeekLoading: Bool = false
     @State private var isYearLoading: Bool = false
 
+    // Auto-refresh timer for live data (30 seconds)
+    @State private var refreshTimer: Timer? = nil
+    private let refreshInterval: TimeInterval = 30.0
+
     @EnvironmentObject var appSettings: AppSettings
 
     // Use the shared APIService for optimized networking with caching
@@ -377,7 +381,51 @@ struct HistoricView: View {
             Task {
                 await loadInitialData()
             }
+            startAutoRefreshTimer()
         }
+        .onDisappear {
+            stopAutoRefreshTimer()
+        }
+        .onChange(of: selectedDay) { _, newValue in
+            // Restart timer when switching days - only auto-refresh for "Today"
+            if newValue == "Today" {
+                startAutoRefreshTimer()
+            } else {
+                stopAutoRefreshTimer()
+            }
+        }
+    }
+
+    // MARK: - Auto-Refresh Timer
+
+    private func startAutoRefreshTimer() {
+        // Only auto-refresh when viewing "Today"
+        guard selectedDay == "Today" else { return }
+
+        stopAutoRefreshTimer() // Stop any existing timer first
+
+        refreshTimer = Timer.scheduledTimer(withTimeInterval: refreshInterval, repeats: true) { _ in
+            Task { @MainActor in
+                await refreshTodayData()
+            }
+        }
+    }
+
+    private func stopAutoRefreshTimer() {
+        refreshTimer?.invalidate()
+        refreshTimer = nil
+    }
+
+    @MainActor
+    private func refreshTodayData() async {
+        // Silently refresh today's data and connection status
+        // Cache TTL is 30 seconds so data will be fresh
+
+        // Refresh connection status
+        await fetchConnectionStatusAsync()
+
+        // Refresh day data using the existing method (cache will have expired)
+        await checkAndFetchDayDataAsync(for: getCurrentDate())
     }
 
     /// Load all initial data in parallel for faster loading

@@ -29,6 +29,11 @@ struct AggregatedHistoricView: View {
     @State private var isDayLoading: Bool = false
     @State private var isWeekLoading: Bool = false
     @State private var isYearLoading: Bool = false
+    @State private var isAnyDeviceOnline: Bool = false
+
+    // Auto-refresh timer for live data (30 seconds)
+    @State private var refreshTimer: Timer? = nil
+    private let refreshInterval: TimeInterval = 30.0
 
     @EnvironmentObject var appSettings: AppSettings
 
@@ -83,7 +88,7 @@ struct AggregatedHistoricView: View {
                                 averageDayData: averageDayData,
                                 isTodayView: selectedDay == "Today",
                                 selectedDate: selectedDay,
-                                isDeviceOnline: false, // Aggregated view doesn't show online status
+                                isDeviceOnline: isAnyDeviceOnline,
                                 mostRecentDataTime: mostRecentDataTime
                             )
                                 .frame(height: 250)
@@ -278,8 +283,69 @@ struct AggregatedHistoricView: View {
         .onAppear {
             Task {
                 await loadInitialData()
+                await checkAnyDeviceOnline()
+            }
+            startAutoRefreshTimer()
+        }
+        .onDisappear {
+            stopAutoRefreshTimer()
+        }
+        .onChange(of: selectedDay) { _, newValue in
+            // Restart timer when switching days - only auto-refresh for "Today"
+            if newValue == "Today" {
+                startAutoRefreshTimer()
+            } else {
+                stopAutoRefreshTimer()
             }
         }
+    }
+
+    // MARK: - Auto-Refresh Timer
+
+    private func startAutoRefreshTimer() {
+        // Only auto-refresh when viewing "Today"
+        guard selectedDay == "Today" else { return }
+
+        stopAutoRefreshTimer() // Stop any existing timer first
+
+        refreshTimer = Timer.scheduledTimer(withTimeInterval: refreshInterval, repeats: true) { _ in
+            Task { @MainActor in
+                await refreshTodayData()
+            }
+        }
+    }
+
+    private func stopAutoRefreshTimer() {
+        refreshTimer?.invalidate()
+        refreshTimer = nil
+    }
+
+    @MainActor
+    private func refreshTodayData() async {
+        // Silently refresh today's data and connection status
+
+        // Refresh connection status
+        await checkAnyDeviceOnline()
+
+        // Refresh day data using the existing method (cache will have expired after 30s)
+        await fetchAggregatedDayDataAsync(for: getCurrentDate())
+    }
+
+    @MainActor
+    private func checkAnyDeviceOnline() async {
+        // Check if at least one device is online
+        for user in users {
+            do {
+                let status = try await apiService.checkConnectionStatus(deviceId: user.userId)
+                if status == "online" {
+                    self.isAnyDeviceOnline = true
+                    return
+                }
+            } catch {
+                // Continue checking other devices
+            }
+        }
+        self.isAnyDeviceOnline = false
     }
 
     /// Load all initial data in parallel for faster loading

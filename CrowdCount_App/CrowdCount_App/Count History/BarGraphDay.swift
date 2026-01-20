@@ -7,7 +7,16 @@ struct BarGraphDay: View {
     var isTodayView: Bool
     var selectedDate: String
     var isDeviceOnline: Bool
-    var mostRecentDataTime: String? // NEW: Most recent time with data
+    var mostRecentDataTime: String? // Most recent hour with data
+
+    // Computed property to check if we have truly live data (current hour matches most recent data hour)
+    private var isLiveData: Bool {
+        guard isTodayView && isDeviceOnline else { return false }
+        guard let mostRecentDataTime = mostRecentDataTime,
+              let mostRecentHour = Int(mostRecentDataTime) else { return false }
+        let currentHour = Calendar.current.component(.hour, from: Date())
+        return mostRecentHour == currentHour
+    }
 
     var body: some View {
         VStack {
@@ -43,7 +52,7 @@ struct BarGraphDay: View {
             .frame(height: 200)
             .padding(.horizontal)
 
-            LegendViewDay(selectedDate: selectedDate, isTodayView: isTodayView, isDeviceOnline: isDeviceOnline, showAverage: averageDayData != nil, hasRecentData: mostRecentDataTime != nil)
+            LegendViewDay(selectedDate: selectedDate, isTodayView: isTodayView, isDeviceOnline: isDeviceOnline, showAverage: averageDayData != nil, isLiveData: isLiveData)
                 .padding(.top, 20) // Adjust padding for more space between graph and legend
         }
         .padding([.top, .bottom]) // Add padding to top and bottom of the view
@@ -80,24 +89,12 @@ struct BarGraphDay: View {
         }
     }
 
-    // MODIFIED: New function to determine if a bar should be highlighted
+    // Only highlight the bar if it's truly live data (current hour with data)
     func shouldHighlightBar(for hour: Int) -> Bool {
-        guard isTodayView && isDeviceOnline else { return false }
-        
-        // If we have mostRecentDataTime, use it instead of current time
-        if let mostRecentDataTime = mostRecentDataTime,
-           let mostRecentHour = Int(mostRecentDataTime) {
-            return hour == mostRecentHour
-        } else {
-            // Fallback to current time if no recent data time is available
-            return hour == mostRecentHour()
-        }
-    }
-    
-    // MODIFIED: Keep original function as fallback
-    func mostRecentHour() -> Int {
-        let currentHour = Calendar.current.component(.hour, from: Date())
-        return min(currentHour, 23)
+        guard isLiveData else { return false }
+        guard let mostRecentDataTime = mostRecentDataTime,
+              let mostRecentHour = Int(mostRecentDataTime) else { return false }
+        return hour == mostRecentHour
     }
 }
 
@@ -113,7 +110,7 @@ struct LegendViewDay: View {
     var isTodayView: Bool
     var isDeviceOnline: Bool
     var showAverage: Bool
-    var hasRecentData: Bool // NEW: Indicates if there's recent data to highlight
+    var isLiveData: Bool // True only when current hour has data and device is online
     @State private var showAlert = false
     @State private var showLiveAlert = false
 
@@ -125,7 +122,7 @@ struct LegendViewDay: View {
             Text(selectedDate)
                 .font(.caption)
                 .foregroundColor(.primary)
-        
+
             Circle()
                 .fill(Color.orange)
                 .frame(width: 10, height: 10)
@@ -149,8 +146,8 @@ struct LegendViewDay: View {
                       dismissButton: .default(Text("OK")))
             }
 
-            // MODIFIED: Show green indicator only when there's recent data
-            if isTodayView && isDeviceOnline && hasRecentData {
+            // Show green indicator only when we have live data for the current hour
+            if isLiveData {
                 Circle()
                     .fill(Color.green)
                     .frame(width: 10, height: 10)
@@ -169,7 +166,7 @@ struct LegendViewDay: View {
                 .alert(isPresented: $showLiveAlert) {
                     Alert(title: Text("Info for Live Data"),
                           message: Text("""
-                                      The Live Data is not the current count at this moment, but rather the current average count within the last hour. It is updated continuously and might change throughout the hour.
+                                      The Live Data shows real-time data for the current hour. This updates automatically every 30 seconds to reflect the latest count.
                                       """),
                           dismissButton: .default(Text("OK")))
                 }
@@ -187,7 +184,7 @@ struct BarGraph_Previews: PreviewProvider {
             isTodayView: true,
             selectedDate: "July 9, 2024",
             isDeviceOnline: true,
-            mostRecentDataTime: "13:45"
+            mostRecentDataTime: "13"
         )
         .frame(height: 300)
     }
