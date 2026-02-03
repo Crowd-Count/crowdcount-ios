@@ -277,16 +277,22 @@ struct LocationSettingsView: View {
                 locationName = location.name
                 selectedColor = location.colorName ?? "orange"
                 // Load reset schedule if group exists
+                print("[DailyReset] onAppear - local overcrowdingGroupId: \(location.overcrowdingGroupId ?? "nil")")
+                print("[DailyReset] onAppear - deviceIds: \(location.deviceIds)")
+
                 if let groupId = location.overcrowdingGroupId {
+                    print("[DailyReset] Using local group ID: \(groupId)")
                     Task {
                         await loadResetSchedule(groupId: groupId)
                     }
-                } else if let firstDeviceId = location.deviceIds.first, firstDeviceId != "Demo" {
-                    // No local group ID - check server for existing group
+                } else if !location.deviceIds.isEmpty {
+                    // No local group ID - check server for existing group across all devices
+                    print("[DailyReset] No local group ID, checking server...")
                     Task {
-                        await checkForExistingGroup(deviceId: firstDeviceId)
+                        await checkForExistingGroup()
                     }
                 } else {
+                    print("[DailyReset] No devices in location, skipping")
                     isLoadingSchedule = false
                 }
             }
@@ -340,8 +346,10 @@ struct LocationSettingsView: View {
     // MARK: - Reset Schedule Functions
 
     private func loadResetSchedule(groupId: String) async {
+        print("[DailyReset] Loading reset schedule for group: \(groupId)")
         do {
             if let schedule = try await apiService.fetchResetSchedule(groupId: groupId) {
+                print("[DailyReset] Found schedule: hour=\(schedule.resetHour), minute=\(schedule.resetMinute), timezone=\(schedule.timezone)")
                 await MainActor.run {
                     hasResetSchedule = true
                     // Convert hour/minute to Date
@@ -353,6 +361,7 @@ struct LocationSettingsView: View {
                     isLoadingSchedule = false
                 }
             } else {
+                print("[DailyReset] No schedule found for group \(groupId)")
                 await MainActor.run {
                     hasResetSchedule = false
                     // Default to device timezone for new schedules
@@ -361,7 +370,7 @@ struct LocationSettingsView: View {
                 }
             }
         } catch {
-            print("Error loading reset schedule: \(error)")
+            print("[DailyReset] Error loading reset schedule: \(error)")
             await MainActor.run {
                 hasResetSchedule = false
                 selectedTimezone = TimeZone.current.identifier
@@ -370,31 +379,49 @@ struct LocationSettingsView: View {
         }
     }
 
-    private func checkForExistingGroup(deviceId: String) async {
-        do {
-            let groupIds = try await apiService.fetchGroupIdsForDevice(deviceId: deviceId)
-            if let existingGroupId = groupIds.first {
-                // Found existing group on server - update local state
-                await MainActor.run {
-                    location.overcrowdingGroupId = existingGroupId
-                }
-                // Sync devices to ensure all current location devices are in the group
-                do {
-                    try await apiService.updateOvercrowdingGroup(groupId: existingGroupId, deviceIds: location.deviceIds)
-                } catch {
-                    print("Error syncing group devices: \(error)")
-                }
-                await loadResetSchedule(groupId: existingGroupId)
-            } else {
-                await MainActor.run {
-                    isLoadingSchedule = false
-                }
+    private func checkForExistingGroup() async {
+        // Check ALL devices in this location for existing group membership
+        // This ensures any user with the same location devices can see existing reset schedules
+        print("[DailyReset] Checking for existing group across \(location.deviceIds.count) devices: \(location.deviceIds)")
+
+        for deviceIdToCheck in location.deviceIds {
+            // Skip demo device
+            if deviceIdToCheck == "Demo" {
+                print("[DailyReset] Skipping Demo device")
+                continue
             }
-        } catch {
-            print("Error checking for existing group: \(error)")
-            await MainActor.run {
-                isLoadingSchedule = false
+
+            do {
+                print("[DailyReset] Checking device: \(deviceIdToCheck)")
+                let groupIds = try await apiService.fetchGroupIdsForDevice(deviceId: deviceIdToCheck)
+                print("[DailyReset] Device \(deviceIdToCheck) is in groups: \(groupIds)")
+
+                if let existingGroupId = groupIds.first {
+                    print("[DailyReset] Found existing group: \(existingGroupId)")
+                    // Found existing group on server - update local state
+                    await MainActor.run {
+                        location.overcrowdingGroupId = existingGroupId
+                    }
+                    // Sync devices to ensure all current location devices are in the group
+                    do {
+                        try await apiService.updateOvercrowdingGroup(groupId: existingGroupId, deviceIds: location.deviceIds)
+                        print("[DailyReset] Synced devices to group")
+                    } catch {
+                        print("[DailyReset] Error syncing group devices: \(error)")
+                    }
+                    await loadResetSchedule(groupId: existingGroupId)
+                    return // Found a group, stop searching
+                }
+            } catch {
+                print("[DailyReset] Error checking group for device \(deviceIdToCheck): \(error)")
+                // Continue checking other devices
             }
+        }
+
+        // No existing group found for any device
+        print("[DailyReset] No existing group found for any device")
+        await MainActor.run {
+            isLoadingSchedule = false
         }
     }
 

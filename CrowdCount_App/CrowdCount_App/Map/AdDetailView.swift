@@ -94,6 +94,7 @@ struct AdDetailView: View {
                         .font(.largeTitle)
                         .fontWeight(.bold)
                         .multilineTextAlignment(.center)
+                        .fixedSize(horizontal: false, vertical: true)
 
                     // Description
                     Text(ad.description)
@@ -150,7 +151,7 @@ struct AdDetailView: View {
                         dismiss()
                     } label: {
                         Image(systemName: "xmark")
-                            .foregroundStyle(.primary)
+                            .foregroundStyle(.primary)  
                     }
                 }
             }

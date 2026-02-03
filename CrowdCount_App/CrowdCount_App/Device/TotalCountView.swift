@@ -144,8 +144,8 @@ struct TotalCountView: View {
 
             NavigationLink(destination: AggregatedHistoricView(users: users, userPasswords: $userPasswords)) {
                 HStack {
-                    Image(systemName: "clock.arrow.trianglehead.counterclockwise.rotate.90")
-                    Text("Count History")
+                    Image(systemName: "chart.bar.xaxis")
+                    Text("Count Analytics")
                 }
                 .padding()
                 .background(Color.blue.opacity(0.75))

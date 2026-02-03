@@ -224,7 +224,7 @@ struct CounterRowView: View {
                 Divider()
                     .padding(.horizontal, 16)
 
-                NavigationLink(destination: BluetoothSetupView(
+                NavigationLink(destination: CounterPlacementGuideView(
                     wifiSSID: $wifiSSID,
                     wifiPassword: $wifiPassword,
                     bluetoothManager: bluetoothManager,

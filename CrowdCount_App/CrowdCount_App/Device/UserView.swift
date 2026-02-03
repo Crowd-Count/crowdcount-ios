@@ -207,7 +207,7 @@ struct UserView: View {
             }
 
             if isBluetoothSetupRequired {
-                NavigationLink(destination: BluetoothSetupView(
+                NavigationLink(destination: CounterPlacementGuideView(
                     wifiSSID: $wifiSSID,
                     wifiPassword: $wifiPassword,
                     bluetoothManager: bluetoothManager,

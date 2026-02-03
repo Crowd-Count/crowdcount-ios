@@ -373,7 +373,7 @@ struct BluetoothSetupView: View {
                 Text("Configuring Device...")
                     .font(.title3)
                     .padding()
-                Text("This may take up to 30 seconds")
+                Text("This may take up to 2 minutes")
                     .foregroundColor(.secondary)
             } else {
                 ProgressView()
@@ -465,15 +465,15 @@ struct BluetoothSetupView: View {
             streamName: nil
         )
 
-        // Wait for device to configure (30 seconds), then check status
-        DispatchQueue.main.asyncAfter(deadline: .now() + 30) {
+        // Wait for device to configure (120 seconds), then check status with retries
+        DispatchQueue.main.asyncAfter(deadline: .now() + 120) {
             isLoading = false
             provisioningStep = .checkingStatus
-            checkDeviceStatus()
+            checkDeviceStatus(retriesRemaining: 3)
         }
     }
 
-    func checkDeviceStatus() {
+    func checkDeviceStatus(retriesRemaining: Int = 0) {
         guard let url = URL(string: "\(AppSettings.apiBaseURL)/connection_status") else {
             self.message = "Server error, please try again later"
             self.messageColor = .red
@@ -491,10 +491,16 @@ struct BluetoothSetupView: View {
         URLSession.shared.dataTask(with: request) { data, response, error in
             DispatchQueue.main.async {
                 if let error = error {
-                    self.message = "Network error: \(error.localizedDescription)"
-                    self.messageColor = .red
-                    self.showMessage = true
-                    self.provisioningStep = .enterCredentials
+                    if retriesRemaining > 0 {
+                        DispatchQueue.main.asyncAfter(deadline: .now() + 15) {
+                            self.checkDeviceStatus(retriesRemaining: retriesRemaining - 1)
+                        }
+                    } else {
+                        self.message = "Network error: \(error.localizedDescription)"
+                        self.messageColor = .red
+                        self.showMessage = true
+                        self.provisioningStep = .enterCredentials
+                    }
                 } else if let httpResponse = response as? HTTPURLResponse, httpResponse.statusCode == 200 {
                     if let data = data,
                        let json = try? JSONSerialization.jsonObject(with: data, options: []) as? [String: Any],
@@ -502,8 +508,13 @@ struct BluetoothSetupView: View {
                         if status == "online" {
                             // Success!
                             self.provisioningStep = .complete
+                        } else if retriesRemaining > 0 {
+                            // Not online yet, retry after delay
+                            DispatchQueue.main.asyncAfter(deadline: .now() + 15) {
+                                self.checkDeviceStatus(retriesRemaining: retriesRemaining - 1)
+                            }
                         } else {
-                            // Still offline - credentials may be wrong
+                            // Still offline after all retries
                             self.message = "Device is still offline. Please check WiFi credentials and try again."
                             self.messageColor = .red
                             self.showMessage = true
@@ -516,10 +527,16 @@ struct BluetoothSetupView: View {
                         self.provisioningStep = .enterCredentials
                     }
                 } else {
-                    self.message = "Server error. Please wait and try again."
-                    self.messageColor = .red
-                    self.showMessage = true
-                    self.provisioningStep = .enterCredentials
+                    if retriesRemaining > 0 {
+                        DispatchQueue.main.asyncAfter(deadline: .now() + 15) {
+                            self.checkDeviceStatus(retriesRemaining: retriesRemaining - 1)
+                        }
+                    } else {
+                        self.message = "Server error. Please wait and try again."
+                        self.messageColor = .red
+                        self.showMessage = true
+                        self.provisioningStep = .enterCredentials
+                    }
                 }
             }
         }.resume()

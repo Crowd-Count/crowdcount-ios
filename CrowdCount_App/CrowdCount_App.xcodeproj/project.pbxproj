@@ -33,6 +33,10 @@
 		7C8F953B2EF6FE4F008FE41B /* AdDetailView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 7C8F953A2EF6FE4F008FE41B /* AdDetailView.swift */; };
 		7C8FF5692C3D47B8008D039F /* BarGraphDay.swift in Sources */ = {isa = PBXBuildFile; fileRef = 7C8FF5682C3D47B6008D039F /* BarGraphDay.swift */; };
 		7C8FF56B2C3EAAC0008D039F /* BarGraphWeek.swift in Sources */ = {isa = PBXBuildFile; fileRef = 7C8FF56A2C3EAABC008D039F /* BarGraphWeek.swift */; };
+		7C99B2B12F27F5DE00BF8CAA /* CounterPlacementGuideView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 7C99B2B02F27F5DE00BF8CAA /* CounterPlacementGuideView.swift */; };
+		7C99B2B52F27FB0100BF8CAA /* StatisticsCalculator.swift in Sources */ = {isa = PBXBuildFile; fileRef = 7C99B2B42F27FB0100BF8CAA /* StatisticsCalculator.swift */; };
+		7C99B2B62F27FB0100BF8CAA /* InsightCardView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 7C99B2B22F27FB0100BF8CAA /* InsightCardView.swift */; };
+		7C99B2B72F27FB0100BF8CAA /* InsightsView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 7C99B2B32F27FB0100BF8CAA /* InsightsView.swift */; };
 		7CA928112C373E8300233AF4 /* VisualEffectView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 7CA928102C373E7800233AF4 /* VisualEffectView.swift */; };
 		7CA928132C373E9700233AF4 /* BlurredEdgesView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 7CA928122C373E9300233AF4 /* BlurredEdgesView.swift */; };
 		7CA928152C373EA900233AF4 /* BlurredEdgesViewRepresentable.swift in Sources */ = {isa = PBXBuildFile; fileRef = 7CA928142C373EA200233AF4 /* BlurredEdgesViewRepresentable.swift */; };
@@ -105,6 +109,10 @@
 		7C8F953A2EF6FE4F008FE41B /* AdDetailView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = AdDetailView.swift; sourceTree = "<group>"; };
 		7C8FF5682C3D47B6008D039F /* BarGraphDay.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = BarGraphDay.swift; sourceTree = "<group>"; };
 		7C8FF56A2C3EAABC008D039F /* BarGraphWeek.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = BarGraphWeek.swift; sourceTree = "<group>"; };
+		7C99B2B02F27F5DE00BF8CAA /* CounterPlacementGuideView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = CounterPlacementGuideView.swift; sourceTree = "<group>"; };
+		7C99B2B22F27FB0100BF8CAA /* InsightCardView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = InsightCardView.swift; sourceTree = "<group>"; };
+		7C99B2B32F27FB0100BF8CAA /* InsightsView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = InsightsView.swift; sourceTree = "<group>"; };
+		7C99B2B42F27FB0100BF8CAA /* StatisticsCalculator.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = StatisticsCalculator.swift; sourceTree = "<group>"; };
 		7CA928102C373E7800233AF4 /* VisualEffectView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = VisualEffectView.swift; sourceTree = "<group>"; };
 		7CA928122C373E9300233AF4 /* BlurredEdgesView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = BlurredEdgesView.swift; sourceTree = "<group>"; };
 		7CA928142C373EA200233AF4 /* BlurredEdgesViewRepresentable.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = BlurredEdgesViewRepresentable.swift; sourceTree = "<group>"; };
@@ -252,6 +260,7 @@
 		7C7F1B192C4D2F43005A5D18 /* Bluetooth */ = {
 			isa = PBXGroup;
 			children = (
+				7C99B2B02F27F5DE00BF8CAA /* CounterPlacementGuideView.swift */,
 				7CBAF1752C18E400000E80E9 /* BluetoothManager.swift */,
 				7CBAF1772C19F8C2000E80E9 /* BluetoothSetupView.swift */,
 				7CF6F7E32EDE6CA900622E57 /* QRScannerView.swift */,
@@ -281,6 +290,9 @@
 		7C7F1B1B2C4D2F82005A5D18 /* Count History */ = {
 			isa = PBXGroup;
 			children = (
+				7C99B2B22F27FB0100BF8CAA /* InsightCardView.swift */,
+				7C99B2B32F27FB0100BF8CAA /* InsightsView.swift */,
+				7C99B2B42F27FB0100BF8CAA /* StatisticsCalculator.swift */,
 				7CC3BE362C3C1BF200C5DEFC /* HistoricView.swift */,
 				7C8FF5682C3D47B6008D039F /* BarGraphDay.swift */,
 				7C8FF56A2C3EAABC008D039F /* BarGraphWeek.swift */,
@@ -464,6 +476,7 @@
 				7C349C032F0F238C001A87C1 /* AllCountersListView.swift in Sources */,
 				7C8F95332EF602F5008FE41B /* AdPayView.swift in Sources */,
 				7C077D5E2E611AA70042C0AD /* LocationListView.swift in Sources */,
+				7C99B2B12F27F5DE00BF8CAA /* CounterPlacementGuideView.swift in Sources */,
 				7C349C052F0F2AE4001A87C1 /* NicknameManager.swift in Sources */,
 				7CC381202F0C11C8001C3A41 /* LocationSettingsView.swift in Sources */,
 				7CC381212F0C11C8001C3A41 /* LocationPickerView.swift in Sources */,
@@ -472,6 +485,9 @@
 				7C7F1B152C4C143F005A5D18 /* Color.swift in Sources */,
 				7CBAF1762C18E40D000E80E9 /* BluetoothManager.swift in Sources */,
 				7CA928112C373E8300233AF4 /* VisualEffectView.swift in Sources */,
+				7C99B2B52F27FB0100BF8CAA /* StatisticsCalculator.swift in Sources */,
+				7C99B2B62F27FB0100BF8CAA /* InsightCardView.swift in Sources */,
+				7C99B2B72F27FB0100BF8CAA /* InsightsView.swift in Sources */,
 				7CE8EF142EF9B85E00C1FA7C /* GetOnMapInfoView.swift in Sources */,
 				7C5A120C2C18D0BB0050C4D8 /* CrowdCount_AppApp.swift in Sources */,
 				7CD02E972C2DFB15000EAFC5 /* UserView.swift in Sources */,
@@ -658,7 +674,7 @@
 				ASSETCATALOG_COMPILER_INCLUDE_ALL_APPICON_ASSETS = YES;
 				CODE_SIGN_ENTITLEMENTS = CrowdCount_App/CrowdCount_App.entitlements;
 				CODE_SIGN_STYLE = Automatic;
-				CURRENT_PROJECT_VERSION = 6;
+				CURRENT_PROJECT_VERSION = 7;
 				DEVELOPMENT_ASSET_PATHS = "\"CrowdCount_App/Preview Content\"";
 				ENABLE_PREVIEWS = YES;
 				GENERATE_INFOPLIST_FILE = YES;
@@ -680,7 +696,7 @@
 					"$(inherited)",
 					"@executable_path/Frameworks",
 				);
-				MARKETING_VERSION = 4.0.1;
+				MARKETING_VERSION = 4.1.0;
 				PRODUCT_BUNDLE_IDENTIFIER = "CrowdCount.CrowdCount-App";
 				PRODUCT_NAME = "$(TARGET_NAME)";
 				SUPPORTED_PLATFORMS = "iphoneos iphonesimulator";
@@ -701,7 +717,7 @@
 				ASSETCATALOG_COMPILER_INCLUDE_ALL_APPICON_ASSETS = YES;
 				CODE_SIGN_ENTITLEMENTS = CrowdCount_App/CrowdCount_App.entitlements;
 				CODE_SIGN_STYLE = Automatic;
-				CURRENT_PROJECT_VERSION = 6;
+				CURRENT_PROJECT_VERSION = 7;
 				DEVELOPMENT_ASSET_PATHS = "\"CrowdCount_App/Preview Content\"";
 				ENABLE_PREVIEWS = YES;
 				GENERATE_INFOPLIST_FILE = YES;
@@ -723,7 +739,7 @@
 					"$(inherited)",
 					"@executable_path/Frameworks",
 				);
-				MARKETING_VERSION = 4.0.1;
+				MARKETING_VERSION = 4.1.0;
 				PRODUCT_BUNDLE_IDENTIFIER = "CrowdCount.CrowdCount-App";
 				PRODUCT_NAME = "$(TARGET_NAME)";
 				SUPPORTED_PLATFORMS = "iphoneos iphonesimulator";

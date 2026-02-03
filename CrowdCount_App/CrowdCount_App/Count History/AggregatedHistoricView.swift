@@ -7,6 +7,8 @@ struct AggregatedHistoricView: View {
     let users: [User]
     @Binding var userPasswords: [UUID: String]
 
+    @State private var selectedTab: HistoricViewTab = .historicCounts
+    @State private var selectedInsightsPeriod: InsightsPeriod = .today
     @State private var selectedDay: String = "Today"
     @State private var selectedWeek: WeekInfo? = nil
     @State private var selectedYear: String = "This Year"
@@ -20,6 +22,15 @@ struct AggregatedHistoricView: View {
     @State private var yearData: [String: Double] = [:]
     @State private var averageYearData: [String: Double]?
     @State private var hasInsufficientYearData: Bool = false
+
+    // Separate data for Insights (always today/this week/this year)
+    @State private var insightsTodayData: [String: Double] = [:]
+    @State private var insightsTodayAverage: [String: Double]?
+    @State private var insightsThisWeekData: [String: Double] = [:]
+    @State private var insightsThisWeekAverage: [String: Double]?
+    @State private var insightsThisYearData: [String: Double] = [:]
+    @State private var insightsThisYearAverage: [String: Double]?
+    @State private var insightsInitialLoadComplete: Bool = false
     @State private var hasDataForSelectedDay: Bool = true
     @State private var hasDataForSelectedWeek: Bool = true
     @State private var hasDataForSelectedYear: Bool = true
@@ -41,6 +52,60 @@ struct AggregatedHistoricView: View {
     private let apiService = APIService.shared
 
     var body: some View {
+        VStack(spacing: 0) {
+            // Tab Picker
+            Picker("View", selection: $selectedTab) {
+                ForEach(HistoricViewTab.allCases, id: \.self) { tab in
+                    Text(tab.rawValue).tag(tab)
+                }
+            }
+            .pickerStyle(.segmented)
+            .padding(.horizontal)
+            .padding(.top, 8)
+            .padding(.bottom, 4)
+
+            if selectedTab == .historicCounts {
+                historicCountsContent
+            } else {
+                InsightsView(
+                    selectedPeriod: $selectedInsightsPeriod,
+                    dayData: insightsTodayData,
+                    averageDayData: insightsTodayAverage,
+                    weekData: insightsThisWeekData,
+                    averageWeekData: insightsThisWeekAverage,
+                    yearData: insightsThisYearData,
+                    averageYearData: insightsThisYearAverage,
+                    isDayLoading: !insightsInitialLoadComplete,
+                    isWeekLoading: !insightsInitialLoadComplete,
+                    isYearLoading: !insightsInitialLoadComplete
+                )
+            }
+        }
+        .preferredColorScheme(appSettings.isDarkMode ? .dark : .light)
+        .navigationBarTitle("Count Analytics", displayMode: .inline)
+        .onAppear {
+            Task {
+                await loadInitialData()
+                await checkAnyDeviceOnline()
+            }
+            startAutoRefreshTimer()
+        }
+        .onDisappear {
+            stopAutoRefreshTimer()
+        }
+        .onChange(of: selectedDay) { _, newValue in
+            // Restart timer when switching days - only auto-refresh for "Today"
+            if newValue == "Today" {
+                startAutoRefreshTimer()
+            } else {
+                stopAutoRefreshTimer()
+            }
+        }
+    }
+
+    // MARK: - Historic Counts Content
+
+    private var historicCountsContent: some View {
         ScrollView {
             VStack(alignment: .leading, spacing: 20) {
                 Spacer()
@@ -278,26 +343,6 @@ struct AggregatedHistoricView: View {
                 .padding(.horizontal)
             }
         }
-        .preferredColorScheme(appSettings.isDarkMode ? .dark : .light)
-        .navigationBarTitle("Count History", displayMode: .inline)
-        .onAppear {
-            Task {
-                await loadInitialData()
-                await checkAnyDeviceOnline()
-            }
-            startAutoRefreshTimer()
-        }
-        .onDisappear {
-            stopAutoRefreshTimer()
-        }
-        .onChange(of: selectedDay) { _, newValue in
-            // Restart timer when switching days - only auto-refresh for "Today"
-            if newValue == "Today" {
-                startAutoRefreshTimer()
-            } else {
-                stopAutoRefreshTimer()
-            }
-        }
     }
 
     // MARK: - Auto-Refresh Timer
@@ -322,13 +367,36 @@ struct AggregatedHistoricView: View {
 
     @MainActor
     private func refreshTodayData() async {
-        // Silently refresh today's data and connection status
+        // Silently refresh today's data in the background (no loading indicators)
 
         // Refresh connection status
         await checkAnyDeviceOnline()
 
-        // Refresh day data using the existing method (cache will have expired after 30s)
-        await fetchAggregatedDayDataAsync(for: getCurrentDate())
+        // Build user list with passwords
+        let userList = users.compactMap { user -> (deviceId: String, password: String)? in
+            guard let password = userPasswords[user.id] else { return nil }
+            return (deviceId: user.userId, password: password)
+        }
+
+        // Silently fetch today's data
+        let utcDates = TZHelper.utcDatesForLocalDay(getCurrentDate())
+        let utcDatesToFetch = [utcDates.primary] + (utcDates.secondary.map { [$0] } ?? [])
+        let (newDayData, newAvgDayData) = await apiService.fetchAggregatedDayData(
+            users: userList,
+            utcDates: utcDatesToFetch,
+            targetLocalDate: getCurrentDate()
+        )
+
+        // Update the data silently
+        if selectedDay == "Today" {
+            dayData = newDayData
+            averageDayData = newAvgDayData.isEmpty ? nil : newAvgDayData
+            mostRecentDataTime = findMostRecentDataTime(in: newDayData)
+        }
+
+        // Always update insights data for today
+        insightsTodayData = newDayData
+        insightsTodayAverage = newAvgDayData.isEmpty ? nil : newAvgDayData
     }
 
     @MainActor
@@ -353,18 +421,35 @@ struct AggregatedHistoricView: View {
     private func loadInitialData() async {
         isLoading = true
         isDayLoading = true
+        isWeekLoading = true
         isYearLoading = true
 
         // Fetch all available dates first
         await fetchAllAvailableDatesAsync()
 
-        // Then fetch day and year data in parallel
+        // Then fetch day, week, and year data in parallel
         async let dayTask: () = fetchAggregatedDayDataAsync(for: getCurrentDate())
+        async let weekTask: () = fetchAggregatedWeekDataAsync(for: getCurrentWeekStartDate())
         async let yearTask: () = fetchAggregatedYearDataAsync(for: getCurrentYearInt())
 
         await dayTask
+        await weekTask
         await yearTask
 
+        // Store current data for Insights (always today/this week/this year)
+        insightsTodayData = dayData
+        insightsTodayAverage = averageDayData
+        insightsThisWeekData = weekData
+        insightsThisWeekAverage = averageWeekData
+        insightsThisYearData = yearData
+        insightsThisYearAverage = averageYearData
+
+        // Debug: Check what data was loaded for insights
+        print("[Insights] Today data keys: \(dayData.keys.sorted()), count: \(dayData.count)")
+        print("[Insights] Week data keys: \(weekData.keys.sorted()), count: \(weekData.count)")
+        print("[Insights] Year data keys: \(yearData.keys.sorted()), count: \(yearData.count)")
+
+        insightsInitialLoadComplete = true
         isLoading = false
     }
 
