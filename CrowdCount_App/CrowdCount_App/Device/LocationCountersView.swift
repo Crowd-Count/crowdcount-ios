@@ -442,7 +442,10 @@ struct LocationCountersView: View {
                 mapDeviceIds: Set(mapDeviceLocationNames.keys),
                 isBluetoothSetupRequired: isBluetoothSetupRequired,
                 userPasswords: userPasswords,
-                serverURL: serverURL
+                serverURL: serverURL,
+                onCountsReset: {
+                    startLiveCountUpdate()
+                }
             )
         }
         .alert("Counter Added to Different Location", isPresented: $showDeviceMovedAlert) {

@@ -17,47 +17,79 @@ struct InsightsView: View {
     let yearData: [String: Double]
     let averageYearData: [String: Double]?
 
+    // Entry data (tracks people who entered)
+    var entryDayData: [String: Double] = [:]
+    var averageEntryDayData: [String: Double]?
+    var entryWeekData: [String: Double] = [:]
+    var averageEntryWeekData: [String: Double]?
+    var entryYearData: [String: Double] = [:]
+    var averageEntryYearData: [String: Double]?
+
     // Loading states
     let isDayLoading: Bool
     let isWeekLoading: Bool
     let isYearLoading: Bool
 
     var body: some View {
-        ScrollView {
-            VStack(spacing: 16) {
-                // Period Selector
-                Picker("Period", selection: $selectedPeriod) {
-                    ForEach(InsightsPeriod.allCases, id: \.self) { period in
-                        Text(period.rawValue).tag(period)
-                    }
+        VStack(spacing: 0) {
+            // Period Selector - outside ScrollView so always visible
+            Picker("Period", selection: $selectedPeriod) {
+                ForEach(InsightsPeriod.allCases, id: \.self) { period in
+                    Text(period.rawValue).tag(period)
                 }
-                .pickerStyle(.segmented)
-                .padding(.horizontal)
-                .padding(.top, 8)
+            }
+            .pickerStyle(.segmented)
+            .padding(.horizontal)
+            .padding(.top, 8)
+            .padding(.bottom, 12)
 
-                // Content based on selected period
-                switch selectedPeriod {
+            ScrollView {
+                VStack(spacing: 16) {
+                    // Content based on selected period
+                    switch selectedPeriod {
                 case .today:
                     DayInsightsContent(
                         dayData: dayData,
                         averageDayData: averageDayData,
+                        entryDayData: entryDayData,
+                        averageEntryDayData: averageEntryDayData,
                         isLoading: isDayLoading
                     )
                 case .thisWeek:
                     WeekInsightsContent(
                         weekData: weekData,
                         averageWeekData: averageWeekData,
+                        entryWeekData: entryWeekData,
+                        averageEntryWeekData: averageEntryWeekData,
                         isLoading: isWeekLoading
                     )
                 case .thisYear:
                     YearInsightsContent(
                         yearData: yearData,
                         averageYearData: averageYearData,
+                        entryYearData: entryYearData,
+                        averageEntryYearData: averageEntryYearData,
                         isLoading: isYearLoading
                     )
                 }
 
-                Spacer(minLength: 20)
+                    // Info text explaining comparisons
+                    HStack(alignment: .top, spacing: 6) {
+                        Image(systemName: "info.circle")
+                            .font(.caption2)
+                            .foregroundColor(.secondary)
+                            .padding(.top, 1)
+                        VStack(alignment: .leading, spacing: 4) {
+                            Text("Trend arrows and \"vs Typical\" comparisons are based on historical averages. Entry comparisons are adjusted to match your current progress — only completed \(selectedPeriod == .thisWeek ? "days" : selectedPeriod == .thisYear ? "months" : "hours") are fully counted, and the current \(selectedPeriod == .thisWeek ? "day is pro-rated by hour" : selectedPeriod == .thisYear ? "month is pro-rated by day" : "data is compared as-is").")
+                        }
+                        .font(.caption2)
+                        .foregroundColor(.secondary)
+                    }
+                    .padding(.horizontal, 20)
+                    .padding(.top, 8)
+
+                    Spacer(minLength: 20)
+                }
             }
         }
     }
@@ -68,15 +100,24 @@ struct InsightsView: View {
 struct DayInsightsContent: View {
     let dayData: [String: Double]
     let averageDayData: [String: Double]?
+    var entryDayData: [String: Double] = [:]
+    var averageEntryDayData: [String: Double]?
     let isLoading: Bool
 
     private var avgOccupancy: Int? {
         StatisticsCalculator.averageDayOccupancy(from: dayData)
     }
 
+    // Only include hours that have data today for fair comparison
+    private var relevantHours: Set<String> {
+        Set(dayData.filter { $0.value > 0 }.keys)
+    }
+
     private var historicalAvgOccupancy: Int? {
         guard let avg = averageDayData else { return nil }
-        return StatisticsCalculator.averageDayOccupancy(from: avg)
+        let filtered = avg.filter { relevantHours.contains($0.key) }
+        guard !filtered.isEmpty else { return nil }
+        return StatisticsCalculator.averageDayOccupancy(from: filtered)
     }
 
     private var vsAveragePercentage: Double? {
@@ -86,6 +127,24 @@ struct DayInsightsContent: View {
 
     private var hasData: Bool {
         avgOccupancy != nil
+    }
+
+    private var totalEntries: Int {
+        StatisticsCalculator.totalDayEntries(from: entryDayData)
+    }
+
+    private var historicalAvgTotalEntries: Int? {
+        guard let avg = averageEntryDayData else { return nil }
+        let relevantEntryHours = Set(entryDayData.filter { $0.value > 0 }.keys)
+        let filtered = avg.filter { relevantEntryHours.contains($0.key) }
+        guard !filtered.isEmpty else { return nil }
+        let total = StatisticsCalculator.totalDayEntries(from: filtered)
+        return total > 0 ? total : nil
+    }
+
+    private var entryVsAveragePercentage: Double? {
+        guard totalEntries > 0, let historical = historicalAvgTotalEntries else { return nil }
+        return StatisticsCalculator.vsAveragePercentage(current: Double(totalEntries), average: Double(historical))
     }
 
     var body: some View {
@@ -116,6 +175,41 @@ struct DayInsightsContent: View {
                             label: "Avg Occupancy",
                             value: StatisticsCalculator.formatNumber(avg)
                         )
+                    }
+                }
+
+                // Entries Card
+                if totalEntries > 0 {
+                    InsightCard(title: "Entries", icon: "person.fill.badge.plus") {
+                        LargeStatDisplay(
+                            value: StatisticsCalculator.formatNumber(totalEntries),
+                            label: "Total Entries Today",
+                            trend: trendDirection(from: entryVsAveragePercentage),
+                            trendValue: entryVsAveragePercentage.map { StatisticsCalculator.formatPercentage($0) }
+                        )
+
+                        if let peak = StatisticsCalculator.peakEntryHour(from: entryDayData) {
+                            Divider()
+                            StatRow(
+                                label: "Peak Entry Hour",
+                                value: "\(StatisticsCalculator.formatHour(peak.hour)) (\(StatisticsCalculator.formatNumber(peak.count)))"
+                            )
+                        }
+
+                        if let avg = StatisticsCalculator.avgHourlyEntries(from: entryDayData) {
+                            StatRow(
+                                label: "Avg Hourly Entries",
+                                value: StatisticsCalculator.formatNumber(avg)
+                            )
+                        }
+
+                        if let busiestWindow = StatisticsCalculator.busiestEntryPeriod(from: entryDayData) {
+                            Divider()
+                            StatRow(
+                                label: "Busiest Window",
+                                value: "\(StatisticsCalculator.formatHourRange(start: busiestWindow.startHour, end: busiestWindow.endHour)) (\(StatisticsCalculator.formatNumber(busiestWindow.totalEntries)))"
+                            )
+                        }
                     }
                 }
 
@@ -170,6 +264,17 @@ struct DayInsightsContent: View {
                             rightValue: StatisticsCalculator.formatNumber(comparison.afternoonAvg),
                             highlightLeft: comparison.morningAvg > comparison.afternoonAvg
                         )
+
+                        if let entryComp = StatisticsCalculator.entryMorningAfternoonTotals(from: entryDayData) {
+                            Divider()
+                            ComparisonRow(
+                                leftLabel: "Morning Entries",
+                                leftValue: StatisticsCalculator.formatNumber(entryComp.morningTotal),
+                                rightLabel: "Afternoon Entries",
+                                rightValue: StatisticsCalculator.formatNumber(entryComp.afternoonTotal),
+                                highlightLeft: entryComp.morningTotal > entryComp.afternoonTotal
+                            )
+                        }
                     }
                 }
 
@@ -184,6 +289,18 @@ struct DayInsightsContent: View {
                         Text("Typical avg occupancy: \(StatisticsCalculator.formatNumber(historical))")
                             .font(.caption)
                             .foregroundColor(.secondary)
+
+                        if let histEntries = historicalAvgTotalEntries, let entryPct = entryVsAveragePercentage {
+                            Divider()
+                            StatRow(
+                                label: "Entries vs Historical",
+                                value: StatisticsCalculator.formatPercentage(entryPct),
+                                trend: trendDirection(from: entryPct)
+                            )
+                            Text("Typical total entries: \(StatisticsCalculator.formatNumber(histEntries))")
+                                .font(.caption)
+                                .foregroundColor(.secondary)
+                        }
                     }
                 }
             }
@@ -198,15 +315,24 @@ struct DayInsightsContent: View {
 struct WeekInsightsContent: View {
     let weekData: [String: Double]
     let averageWeekData: [String: Double]?
+    var entryWeekData: [String: Double] = [:]
+    var averageEntryWeekData: [String: Double]?
     let isLoading: Bool
 
     private var avgOccupancy: Int? {
         StatisticsCalculator.averageWeekOccupancy(from: weekData)
     }
 
+    // Only include days that have data in the current week for fair comparison
+    private var relevantDays: Set<String> {
+        Set(weekData.filter { $0.value > 0 }.keys)
+    }
+
     private var historicalAvgOccupancy: Int? {
         guard let avg = averageWeekData else { return nil }
-        return StatisticsCalculator.averageWeekOccupancy(from: avg)
+        let filtered = avg.filter { relevantDays.contains($0.key) }
+        guard !filtered.isEmpty else { return nil }
+        return StatisticsCalculator.averageWeekOccupancy(from: filtered)
     }
 
     private var vsAveragePercentage: Double? {
@@ -216,6 +342,43 @@ struct WeekInsightsContent: View {
 
     private var hasData: Bool {
         avgOccupancy != nil
+    }
+
+    private var totalEntries: Int {
+        StatisticsCalculator.totalWeekEntries(from: entryWeekData)
+    }
+
+    private var historicalAvgTotalEntries: Int? {
+        guard let avg = averageEntryWeekData else { return nil }
+        let allDays = ["Monday", "Tuesday", "Wednesday", "Thursday", "Friday", "Saturday", "Sunday"]
+        let calendar = Calendar.current
+        let now = Date()
+        // weekday: 1=Sunday, 2=Monday, ..., 7=Saturday
+        let weekday = calendar.component(.weekday, from: now)
+        // Convert to Monday-based index: Mon=0, Tue=1, ..., Sun=6
+        let todayIndex = (weekday + 5) % 7
+        let currentHour = calendar.component(.hour, from: now)
+        let hourFraction = Double(currentHour) / 24.0
+
+        var total: Double = 0
+        for (index, day) in allDays.enumerated() {
+            guard let historicalValue = avg[day] else { continue }
+            if index < todayIndex {
+                // Completed day - include fully
+                total += historicalValue
+            } else if index == todayIndex {
+                // Today - pro-rate by hour of day
+                total += historicalValue * hourFraction
+            }
+            // Future days - skip
+        }
+        let result = Int(total.rounded())
+        return result > 0 ? result : nil
+    }
+
+    private var entryVsAveragePercentage: Double? {
+        guard totalEntries > 0, let historical = historicalAvgTotalEntries else { return nil }
+        return StatisticsCalculator.vsAveragePercentage(current: Double(totalEntries), average: Double(historical))
     }
 
     var body: some View {
@@ -240,6 +403,40 @@ struct WeekInsightsContent: View {
                             label: "Weekly Avg Occupancy",
                             value: StatisticsCalculator.formatNumber(avg)
                         )
+                    }
+                }
+
+                // Entries Card
+                if totalEntries > 0 {
+                    InsightCard(title: "Entries", icon: "person.fill.badge.plus") {
+                        LargeStatDisplay(
+                            value: StatisticsCalculator.formatNumber(totalEntries),
+                            label: "Total Entries This Week",
+                            trend: trendDirection(from: entryVsAveragePercentage),
+                            trendValue: entryVsAveragePercentage.map { StatisticsCalculator.formatPercentage($0) }
+                        )
+
+                        if let avg = StatisticsCalculator.avgDailyEntries(from: entryWeekData) {
+                            Divider()
+                            StatRow(
+                                label: "Avg Daily Entries",
+                                value: StatisticsCalculator.formatNumber(avg)
+                            )
+                        }
+
+                        if let busiest = StatisticsCalculator.busiestEntryDay(from: entryWeekData) {
+                            StatRow(
+                                label: "Most Entries",
+                                value: "\(busiest.day) (\(StatisticsCalculator.formatNumber(busiest.totalEntries)))"
+                            )
+                        }
+
+                        if let slowest = StatisticsCalculator.slowestEntryDay(from: entryWeekData) {
+                            StatRow(
+                                label: "Fewest Entries",
+                                value: "\(slowest.day) (\(StatisticsCalculator.formatNumber(slowest.totalEntries)))"
+                            )
+                        }
                     }
                 }
 
@@ -300,6 +497,17 @@ struct WeekInsightsContent: View {
                             rightValue: StatisticsCalculator.formatNumber(comparison.weekendAvg),
                             highlightLeft: comparison.weekdayAvg > comparison.weekendAvg
                         )
+
+                        if let entryComp = StatisticsCalculator.entryWeekendWeekdayTotals(from: entryWeekData) {
+                            Divider()
+                            ComparisonRow(
+                                leftLabel: "Weekday Entries",
+                                leftValue: StatisticsCalculator.formatNumber(entryComp.weekdayTotal),
+                                rightLabel: "Weekend Entries",
+                                rightValue: StatisticsCalculator.formatNumber(entryComp.weekendTotal),
+                                highlightLeft: entryComp.weekdayTotal > entryComp.weekendTotal
+                            )
+                        }
                     }
                 }
 
@@ -314,6 +522,18 @@ struct WeekInsightsContent: View {
                         Text("Typical weekly avg: \(StatisticsCalculator.formatNumber(historical))")
                             .font(.caption)
                             .foregroundColor(.secondary)
+
+                        if let histEntries = historicalAvgTotalEntries, let entryPct = entryVsAveragePercentage {
+                            Divider()
+                            StatRow(
+                                label: "Entries vs Historical",
+                                value: StatisticsCalculator.formatPercentage(entryPct),
+                                trend: trendDirection(from: entryPct)
+                            )
+                            Text("Typical total entries: \(StatisticsCalculator.formatNumber(histEntries))")
+                                .font(.caption)
+                                .foregroundColor(.secondary)
+                        }
                     }
                 }
             }
@@ -328,15 +548,24 @@ struct WeekInsightsContent: View {
 struct YearInsightsContent: View {
     let yearData: [String: Double]
     let averageYearData: [String: Double]?
+    var entryYearData: [String: Double] = [:]
+    var averageEntryYearData: [String: Double]?
     let isLoading: Bool
 
     private var avgOccupancy: Int? {
         StatisticsCalculator.averageYearOccupancy(from: yearData)
     }
 
+    // Only include months that have data in the current year for fair comparison
+    private var relevantMonths: Set<String> {
+        Set(yearData.filter { $0.value > 0 }.keys)
+    }
+
     private var historicalAvgOccupancy: Int? {
         guard let avg = averageYearData else { return nil }
-        return StatisticsCalculator.averageYearOccupancy(from: avg)
+        let filtered = avg.filter { relevantMonths.contains($0.key) }
+        guard !filtered.isEmpty else { return nil }
+        return StatisticsCalculator.averageYearOccupancy(from: filtered)
     }
 
     private var vsAveragePercentage: Double? {
@@ -346,6 +575,43 @@ struct YearInsightsContent: View {
 
     private var hasData: Bool {
         avgOccupancy != nil
+    }
+
+    private var totalEntries: Int {
+        StatisticsCalculator.totalYearEntries(from: entryYearData)
+    }
+
+    private var historicalAvgTotalEntries: Int? {
+        guard let avg = averageEntryYearData else { return nil }
+        let allMonths = ["January", "February", "March", "April", "May", "June",
+                         "July", "August", "September", "October", "November", "December"]
+        let calendar = Calendar.current
+        let now = Date()
+        let currentMonth = calendar.component(.month, from: now) // 1-based
+        let currentDay = calendar.component(.day, from: now)
+        let daysInMonth = calendar.range(of: .day, in: .month, for: now)?.count ?? 30
+        let dayFraction = Double(currentDay) / Double(daysInMonth)
+
+        var total: Double = 0
+        for (index, month) in allMonths.enumerated() {
+            guard let historicalValue = avg[month] else { continue }
+            let monthNumber = index + 1
+            if monthNumber < currentMonth {
+                // Completed month - include fully
+                total += historicalValue
+            } else if monthNumber == currentMonth {
+                // Current month - pro-rate by day of month
+                total += historicalValue * dayFraction
+            }
+            // Future months - skip
+        }
+        let result = Int(total.rounded())
+        return result > 0 ? result : nil
+    }
+
+    private var entryVsAveragePercentage: Double? {
+        guard totalEntries > 0, let historical = historicalAvgTotalEntries else { return nil }
+        return StatisticsCalculator.vsAveragePercentage(current: Double(totalEntries), average: Double(historical))
     }
 
     var body: some View {
@@ -370,6 +636,40 @@ struct YearInsightsContent: View {
                             label: "Yearly Avg Occupancy",
                             value: StatisticsCalculator.formatNumber(avg)
                         )
+                    }
+                }
+
+                // Entries Card
+                if totalEntries > 0 {
+                    InsightCard(title: "Entries", icon: "person.fill.badge.plus") {
+                        LargeStatDisplay(
+                            value: StatisticsCalculator.formatNumber(totalEntries),
+                            label: "Total Entries This Year",
+                            trend: trendDirection(from: entryVsAveragePercentage),
+                            trendValue: entryVsAveragePercentage.map { StatisticsCalculator.formatPercentage($0) }
+                        )
+
+                        if let avg = StatisticsCalculator.avgMonthlyEntries(from: entryYearData) {
+                            Divider()
+                            StatRow(
+                                label: "Avg Monthly Entries",
+                                value: StatisticsCalculator.formatNumber(avg)
+                            )
+                        }
+
+                        if let busiest = StatisticsCalculator.busiestEntryMonth(from: entryYearData) {
+                            StatRow(
+                                label: "Most Entries",
+                                value: "\(StatisticsCalculator.abbreviatedMonth(busiest.month)) (\(StatisticsCalculator.formatNumber(busiest.totalEntries)))"
+                            )
+                        }
+
+                        if let slowest = StatisticsCalculator.slowestEntryMonth(from: entryYearData) {
+                            StatRow(
+                                label: "Fewest Entries",
+                                value: "\(StatisticsCalculator.abbreviatedMonth(slowest.month)) (\(StatisticsCalculator.formatNumber(slowest.totalEntries)))"
+                            )
+                        }
                     }
                 }
 
@@ -431,6 +731,18 @@ struct YearInsightsContent: View {
                         Text("Previous years avg: \(StatisticsCalculator.formatNumber(historical))")
                             .font(.caption)
                             .foregroundColor(.secondary)
+
+                        if let histEntries = historicalAvgTotalEntries, let entryPct = entryVsAveragePercentage {
+                            Divider()
+                            StatRow(
+                                label: "Entries vs Historical",
+                                value: StatisticsCalculator.formatPercentage(entryPct),
+                                trend: trendDirection(from: entryPct)
+                            )
+                            Text("Previous years entries: \(StatisticsCalculator.formatNumber(histEntries))")
+                                .font(.caption)
+                                .foregroundColor(.secondary)
+                        }
                     }
                 }
             }

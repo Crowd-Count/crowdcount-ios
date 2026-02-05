@@ -30,6 +30,12 @@ struct AggregatedHistoricView: View {
     @State private var insightsThisWeekAverage: [String: Double]?
     @State private var insightsThisYearData: [String: Double] = [:]
     @State private var insightsThisYearAverage: [String: Double]?
+    @State private var insightsEntryTodayData: [String: Double] = [:]
+    @State private var insightsEntryThisWeekData: [String: Double] = [:]
+    @State private var insightsEntryThisYearData: [String: Double] = [:]
+    @State private var insightsAvgEntryTodayData: [String: Double]?
+    @State private var insightsAvgEntryThisWeekData: [String: Double]?
+    @State private var insightsAvgEntryThisYearData: [String: Double]?
     @State private var insightsInitialLoadComplete: Bool = false
     @State private var hasDataForSelectedDay: Bool = true
     @State private var hasDataForSelectedWeek: Bool = true
@@ -41,6 +47,23 @@ struct AggregatedHistoricView: View {
     @State private var isWeekLoading: Bool = false
     @State private var isYearLoading: Bool = false
     @State private var isAnyDeviceOnline: Bool = false
+
+    // Data type toggle (Population vs Entries)
+    @State private var selectedGraphDataType: GraphDataType = .population
+
+    // Entry data (tracks people who entered, not population)
+    @State private var entryDayData: [String: Double] = [:]
+    @State private var averageEntryDayData: [String: Double]?
+    @State private var entryWeekData: [String: Double] = [:]
+    @State private var averageEntryWeekData: [String: Double]?
+    @State private var entryYearData: [String: Double] = [:]
+    @State private var averageEntryYearData: [String: Double]?
+    @State private var hasDataForSelectedDayEntries: Bool = true
+    @State private var hasDataForSelectedWeekEntries: Bool = true
+    @State private var hasDataForSelectedYearEntries: Bool = true
+    @State private var isEntryDayLoading: Bool = false
+    @State private var isEntryWeekLoading: Bool = false
+    @State private var isEntryYearLoading: Bool = false
 
     // Auto-refresh timer for live data (30 seconds)
     @State private var refreshTimer: Timer? = nil
@@ -65,7 +88,27 @@ struct AggregatedHistoricView: View {
             .padding(.bottom, 4)
 
             if selectedTab == .historicCounts {
-                historicCountsContent
+                VStack(spacing: 0) {
+                    // Data type picker (Population vs Entries)
+                    Picker("Data Type", selection: $selectedGraphDataType) {
+                        ForEach(GraphDataType.allCases, id: \.self) { type in
+                            Text(type.rawValue).tag(type)
+                        }
+                    }
+                    .pickerStyle(.segmented)
+                    .padding(.horizontal)
+                    .padding(.top, 8)
+                    .padding(.bottom, 12)
+                    .onChange(of: selectedGraphDataType) { _, newValue in
+                        if newValue == .entries {
+                            Task {
+                                await fetchEntryDataForCurrentSelections()
+                            }
+                        }
+                    }
+
+                    historicCountsContent
+                }
             } else {
                 InsightsView(
                     selectedPeriod: $selectedInsightsPeriod,
@@ -75,6 +118,12 @@ struct AggregatedHistoricView: View {
                     averageWeekData: insightsThisWeekAverage,
                     yearData: insightsThisYearData,
                     averageYearData: insightsThisYearAverage,
+                    entryDayData: insightsEntryTodayData,
+                    averageEntryDayData: insightsAvgEntryTodayData,
+                    entryWeekData: insightsEntryThisWeekData,
+                    averageEntryWeekData: insightsAvgEntryThisWeekData,
+                    entryYearData: insightsEntryThisYearData,
+                    averageEntryYearData: insightsAvgEntryThisYearData,
                     isDayLoading: !insightsInitialLoadComplete,
                     isWeekLoading: !insightsInitialLoadComplete,
                     isYearLoading: !insightsInitialLoadComplete
@@ -108,7 +157,14 @@ struct AggregatedHistoricView: View {
     private var historicCountsContent: some View {
         ScrollView {
             VStack(alignment: .leading, spacing: 20) {
-                Spacer()
+                Text(selectedGraphDataType == .population
+                     ? "Population shows the number of people present at each point in time."
+                     : "Entries shows the total number of people who entered during each period.")
+                    .font(.caption)
+                    .foregroundColor(.secondary)
+                    .multilineTextAlignment(.center)
+                    .frame(maxWidth: .infinity)
+                    .padding(.horizontal)
 
                 // Day view
                 VStack {
@@ -119,6 +175,11 @@ struct AggregatedHistoricView: View {
                                 Button(displayDate, action: {
                                     selectedDay = displayDate
                                     fetchAggregatedDayData(for: date)
+                                    if selectedGraphDataType == .entries {
+                                        Task {
+                                            await fetchAggregatedEntryDayDataAsync(for: date)
+                                        }
+                                    }
                                 })
                             }
                         } label: {
@@ -147,33 +208,62 @@ struct AggregatedHistoricView: View {
                     }
 
                     ZStack {
-                        if hasDataForSelectedDay {
-                            BarGraphDay(
-                                dayData: dayData,
-                                averageDayData: averageDayData,
-                                isTodayView: selectedDay == "Today",
-                                selectedDate: selectedDay,
-                                isDeviceOnline: isAnyDeviceOnline,
-                                mostRecentDataTime: mostRecentDataTime
-                            )
-                                .frame(height: 250)
-                        } else {
-                            Rectangle()
-                                .fill(Color.secondary.opacity(0.1))
-                                .cornerRadius(25)
-                                .frame(height: 250)
-                                .overlay(
-                                    VStack {
-                                        Text("No data for today")
-                                            .foregroundColor(.primary)
-                                            .bold()
-                                        Text("Please select another day")
-                                            .foregroundColor(.secondary)
-                                    }
+                        if selectedGraphDataType == .population {
+                            if hasDataForSelectedDay {
+                                BarGraphDay(
+                                    dayData: dayData,
+                                    averageDayData: averageDayData,
+                                    isTodayView: selectedDay == "Today",
+                                    selectedDate: selectedDay,
+                                    isDeviceOnline: isAnyDeviceOnline,
+                                    mostRecentDataTime: mostRecentDataTime
                                 )
+                                    .frame(height: 250)
+                            } else {
+                                Rectangle()
+                                    .fill(Color.secondary.opacity(0.1))
+                                    .cornerRadius(25)
+                                    .frame(height: 250)
+                                    .overlay(
+                                        VStack {
+                                            Text("No data for today")
+                                                .foregroundColor(.primary)
+                                                .bold()
+                                            Text("Please select another day")
+                                                .foregroundColor(.secondary)
+                                        }
+                                    )
+                            }
+                        } else {
+                            // Entries view
+                            if hasDataForSelectedDayEntries {
+                                BarGraphDay(
+                                    dayData: entryDayData,
+                                    averageDayData: averageEntryDayData,
+                                    isTodayView: selectedDay == "Today",
+                                    selectedDate: selectedDay,
+                                    isDeviceOnline: isAnyDeviceOnline,
+                                    mostRecentDataTime: findMostRecentDataTime(in: entryDayData)
+                                )
+                                    .frame(height: 250)
+                            } else {
+                                Rectangle()
+                                    .fill(Color.secondary.opacity(0.1))
+                                    .cornerRadius(25)
+                                    .frame(height: 250)
+                                    .overlay(
+                                        VStack {
+                                            Text("No entry data for today")
+                                                .foregroundColor(.primary)
+                                                .bold()
+                                            Text("Please select another day")
+                                                .foregroundColor(.secondary)
+                                        }
+                                    )
+                            }
                         }
 
-                        if isDayLoading {
+                        if isDayLoading || (selectedGraphDataType == .entries && isEntryDayLoading) {
                             RoundedRectangle(cornerRadius: 25)
                                 .fill(Color(UIColor.secondarySystemBackground).opacity(0.9))
                                 .frame(height: 250)
@@ -197,6 +287,11 @@ struct AggregatedHistoricView: View {
                                 Button(week.label, action: {
                                     selectedWeek = week
                                     fetchAggregatedWeekData(for: week.startDate)
+                                    if selectedGraphDataType == .entries {
+                                        Task {
+                                            await fetchAggregatedEntryWeekDataAsync(for: week.startDate)
+                                        }
+                                    }
                                 })
                             }
                         } label: {
@@ -225,30 +320,56 @@ struct AggregatedHistoricView: View {
                     }
 
                     ZStack {
-                        if hasDataForSelectedWeek {
-                            BarGraphWeek(
-                                weekData: weekData,
-                                averageWeekData: averageWeekData ?? [:],
-                                selectedDate: selectedWeek?.label ?? ""
-                            )
-                                .frame(height: 250)
-                        } else {
-                            Rectangle()
-                                .fill(Color.secondary.opacity(0.1))
-                                .cornerRadius(25)
-                                .frame(height: 250)
-                                .overlay(
-                                    VStack {
-                                        Text("No data for this week")
-                                            .foregroundColor(.primary)
-                                            .bold()
-                                        Text("Please select another week")
-                                            .foregroundColor(.secondary)
-                                    }
+                        if selectedGraphDataType == .population {
+                            if hasDataForSelectedWeek {
+                                BarGraphWeek(
+                                    weekData: weekData,
+                                    averageWeekData: averageWeekData ?? [:],
+                                    selectedDate: selectedWeek?.label ?? ""
                                 )
+                                    .frame(height: 250)
+                            } else {
+                                Rectangle()
+                                    .fill(Color.secondary.opacity(0.1))
+                                    .cornerRadius(25)
+                                    .frame(height: 250)
+                                    .overlay(
+                                        VStack {
+                                            Text("No data for this week")
+                                                .foregroundColor(.primary)
+                                                .bold()
+                                            Text("Please select another week")
+                                                .foregroundColor(.secondary)
+                                        }
+                                    )
+                            }
+                        } else {
+                            // Entries view
+                            if hasDataForSelectedWeekEntries {
+                                BarGraphWeek(
+                                    weekData: entryWeekData,
+                                    averageWeekData: averageEntryWeekData ?? [:],
+                                    selectedDate: selectedWeek?.label ?? ""
+                                )
+                                    .frame(height: 250)
+                            } else {
+                                Rectangle()
+                                    .fill(Color.secondary.opacity(0.1))
+                                    .cornerRadius(25)
+                                    .frame(height: 250)
+                                    .overlay(
+                                        VStack {
+                                            Text("No entry data for this week")
+                                                .foregroundColor(.primary)
+                                                .bold()
+                                            Text("Please select another week")
+                                                .foregroundColor(.secondary)
+                                        }
+                                    )
+                            }
                         }
 
-                        if isWeekLoading {
+                        if isWeekLoading || (selectedGraphDataType == .entries && isEntryWeekLoading) {
                             RoundedRectangle(cornerRadius: 25)
                                 .fill(Color(UIColor.secondarySystemBackground).opacity(0.9))
                                 .frame(height: 250)
@@ -274,6 +395,11 @@ struct AggregatedHistoricView: View {
                                     selectedYear = displayYear
                                     let yearInt = (year == getCurrentYear()) ? getCurrentYearInt() : Int(year) ?? getCurrentYearInt()
                                     fetchAggregatedYearData(for: yearInt)
+                                    if selectedGraphDataType == .entries {
+                                        Task {
+                                            await fetchAggregatedEntryYearDataAsync(for: yearInt)
+                                        }
+                                    }
                                 })
                             }
                         } label: {
@@ -302,31 +428,58 @@ struct AggregatedHistoricView: View {
                     }
 
                     ZStack {
-                        if hasDataForSelectedYear {
-                            BarGraphYear(
-                                yearData: yearData,
-                                averageYearData: averageYearData,
-                                selectedYear: selectedYear,
-                                hasInsufficientData: hasInsufficientYearData
-                            )
-                            .frame(height: 250)
-                        } else {
-                            Rectangle()
-                                .fill(Color.secondary.opacity(0.1))
-                                .cornerRadius(25)
-                                .frame(height: 250)
-                                .overlay(
-                                    VStack {
-                                        Text("No data for this year")
-                                            .foregroundColor(.primary)
-                                            .bold()
-                                        Text("Please select another year")
-                                            .foregroundColor(.secondary)
-                                    }
+                        if selectedGraphDataType == .population {
+                            if hasDataForSelectedYear {
+                                BarGraphYear(
+                                    yearData: yearData,
+                                    averageYearData: averageYearData,
+                                    selectedYear: selectedYear,
+                                    hasInsufficientData: hasInsufficientYearData
                                 )
+                                .frame(height: 250)
+                            } else {
+                                Rectangle()
+                                    .fill(Color.secondary.opacity(0.1))
+                                    .cornerRadius(25)
+                                    .frame(height: 250)
+                                    .overlay(
+                                        VStack {
+                                            Text("No data for this year")
+                                                .foregroundColor(.primary)
+                                                .bold()
+                                            Text("Please select another year")
+                                                .foregroundColor(.secondary)
+                                        }
+                                    )
+                            }
+                        } else {
+                            // Entries view
+                            if hasDataForSelectedYearEntries {
+                                BarGraphYear(
+                                    yearData: entryYearData,
+                                    averageYearData: averageEntryYearData,
+                                    selectedYear: selectedYear,
+                                    hasInsufficientData: averageEntryYearData == nil
+                                )
+                                .frame(height: 250)
+                            } else {
+                                Rectangle()
+                                    .fill(Color.secondary.opacity(0.1))
+                                    .cornerRadius(25)
+                                    .frame(height: 250)
+                                    .overlay(
+                                        VStack {
+                                            Text("No entry data for this year")
+                                                .foregroundColor(.primary)
+                                                .bold()
+                                            Text("Please select another year")
+                                                .foregroundColor(.secondary)
+                                        }
+                                    )
+                            }
                         }
 
-                        if isYearLoading {
+                        if isYearLoading || (selectedGraphDataType == .entries && isEntryYearLoading) {
                             RoundedRectangle(cornerRadius: 25)
                                 .fill(Color(UIColor.secondarySystemBackground).opacity(0.9))
                                 .frame(height: 250)
@@ -427,14 +580,20 @@ struct AggregatedHistoricView: View {
         // Fetch all available dates first
         await fetchAllAvailableDatesAsync()
 
-        // Then fetch day, week, and year data in parallel
+        // Then fetch day, week, and year data in parallel (population and entries)
         async let dayTask: () = fetchAggregatedDayDataAsync(for: getCurrentDate())
         async let weekTask: () = fetchAggregatedWeekDataAsync(for: getCurrentWeekStartDate())
         async let yearTask: () = fetchAggregatedYearDataAsync(for: getCurrentYearInt())
+        async let entryDayTask: () = fetchAggregatedEntryDayDataAsync(for: getCurrentDate())
+        async let entryWeekTask: () = fetchAggregatedEntryWeekDataAsync(for: getCurrentWeekStartDate())
+        async let entryYearTask: () = fetchAggregatedEntryYearDataAsync(for: getCurrentYearInt())
 
         await dayTask
         await weekTask
         await yearTask
+        await entryDayTask
+        await entryWeekTask
+        await entryYearTask
 
         // Store current data for Insights (always today/this week/this year)
         insightsTodayData = dayData
@@ -443,6 +602,12 @@ struct AggregatedHistoricView: View {
         insightsThisWeekAverage = averageWeekData
         insightsThisYearData = yearData
         insightsThisYearAverage = averageYearData
+        insightsEntryTodayData = entryDayData
+        insightsEntryThisWeekData = entryWeekData
+        insightsEntryThisYearData = entryYearData
+        insightsAvgEntryTodayData = averageEntryDayData
+        insightsAvgEntryThisWeekData = averageEntryWeekData
+        insightsAvgEntryThisYearData = averageEntryYearData
 
         // Debug: Check what data was loaded for insights
         print("[Insights] Today data keys: \(dayData.keys.sorted()), count: \(dayData.count)")
@@ -586,6 +751,103 @@ struct AggregatedHistoricView: View {
         self.hasInsufficientYearData = aggregatedAverageData == nil
     }
 
+    // MARK: - Entry Data Fetching
+
+    /// Fetch entry data for all current selections when switching to entries view
+    @MainActor
+    private func fetchEntryDataForCurrentSelections() async {
+        // Capture values on main actor before async let
+        let dayDate = selectedDay == "Today" ? getCurrentDate() : formattedDateshort(from: selectedDay)
+        let weekStartDate = selectedWeek?.startDate ?? getCurrentWeekStartDate()
+        let yearInt = selectedYear == "This Year" ? getCurrentYearInt() : Int(selectedYear) ?? getCurrentYearInt()
+
+        async let dayTask: () = fetchAggregatedEntryDayDataAsync(for: dayDate)
+        async let weekTask: () = fetchAggregatedEntryWeekDataAsync(for: weekStartDate)
+        async let yearTask: () = fetchAggregatedEntryYearDataAsync(for: yearInt)
+
+        await dayTask
+        await weekTask
+        await yearTask
+    }
+
+    @MainActor
+    private func fetchAggregatedEntryDayDataAsync(for localDate: String) async {
+        isEntryDayLoading = true
+        defer { isEntryDayLoading = false }
+
+        // Get the UTC dates that cover this local day
+        let utcDates = TZHelper.utcDatesForLocalDay(localDate)
+        let utcDatesToFetch = [utcDates.primary] + (utcDates.secondary.map { [$0] } ?? [])
+
+        // Build user list with passwords
+        let userList = users.compactMap { user -> (deviceId: String, password: String)? in
+            guard let password = userPasswords[user.id] else { return nil }
+            return (deviceId: user.userId, password: password)
+        }
+
+        // Fetch all data in parallel using the optimized APIService
+        let (aggregatedData, aggregatedAverageData) = await apiService.fetchAggregatedEntryDayData(
+            users: userList,
+            utcDates: utcDatesToFetch,
+            targetLocalDate: localDate
+        )
+
+        self.hasDataForSelectedDayEntries = !aggregatedData.isEmpty
+        self.entryDayData = aggregatedData
+        self.averageEntryDayData = aggregatedAverageData.isEmpty ? nil : aggregatedAverageData
+    }
+
+    @MainActor
+    private func fetchAggregatedEntryWeekDataAsync(for startDate: String) async {
+        isEntryWeekLoading = true
+        defer { isEntryWeekLoading = false }
+
+        let formattedStartDate: String
+        if startDate.isEmpty || startDate == "This Week" {
+            formattedStartDate = getCurrentWeekStartDate()
+        } else {
+            formattedStartDate = formattedDateshort(from: startDate)
+        }
+
+        // Build user list with passwords
+        let userList = users.compactMap { user -> (deviceId: String, password: String)? in
+            guard let password = userPasswords[user.id] else { return nil }
+            return (deviceId: user.userId, password: password)
+        }
+
+        // Fetch all data in parallel using the optimized APIService
+        let (aggregatedData, aggregatedAverageData) = await apiService.fetchAggregatedEntryWeekData(
+            users: userList,
+            date: formattedStartDate
+        )
+
+        self.hasDataForSelectedWeekEntries = !aggregatedData.isEmpty
+        self.entryWeekData = aggregatedData
+        self.averageEntryWeekData = aggregatedAverageData.isEmpty ? nil : aggregatedAverageData
+    }
+
+    @MainActor
+    private func fetchAggregatedEntryYearDataAsync(for year: Int) async {
+        isEntryYearLoading = true
+        defer { isEntryYearLoading = false }
+
+        // Build user list with passwords
+        let userList = users.compactMap { user -> (deviceId: String, password: String)? in
+            guard let password = userPasswords[user.id] else { return nil }
+            return (deviceId: user.userId, password: password)
+        }
+
+        // Fetch all data in parallel using the optimized APIService
+        let (aggregatedData, aggregatedAverageData) = await apiService.fetchAggregatedEntryYearData(
+            users: userList,
+            year: year
+        )
+
+        self.hasDataForSelectedYearEntries = !aggregatedData.isEmpty
+        self.entryYearData = aggregatedData
+        self.averageEntryYearData = aggregatedAverageData.isEmpty ? nil : aggregatedAverageData
+    }
+
     // MARK: - Helper Functions (copied from HistoricView)
     func findMostRecentDataTime(in data: [String: Double]) -> String? {
         let nonZeroEntries = data.filter { $0.value > 0 }
@@ -717,7 +979,11 @@ struct AggregatedHistoricView: View {
     // MARK: - Download Functions
 
     func downloadAggregatedDayDataAsCSV() {
-        guard !dayData.isEmpty else {
+        let dataToExport = selectedGraphDataType == .population ? dayData : entryDayData
+        let averageToExport = selectedGraphDataType == .population ? averageDayData : averageEntryDayData
+        let dataTypeLabel = selectedGraphDataType == .population ? "population" : "entries"
+
+        guard !dataToExport.isEmpty else {
             print("No day data available to download")
             return
         }
@@ -727,8 +993,8 @@ struct AggregatedHistoricView: View {
         // Hours 0-23
         for hour in 0..<24 {
             let hourKey = String(hour)
-            let aggregatedCount = dayData[hourKey] ?? 0
-            let average = averageDayData?[hourKey]
+            let aggregatedCount = dataToExport[hourKey] ?? 0
+            let average = averageToExport?[hourKey]
             let averageString = average != nil ? String(format: "%.1f", average!) : ""
             csvContent += "\(hour),\(String(format: "%.1f", aggregatedCount)),\(averageString)\n"
         }
@@ -739,7 +1005,7 @@ struct AggregatedHistoricView: View {
         }
 
         let dateValue = selectedDay == "Today" ? getCurrentDate() : formattedDateshort(from: selectedDay)
-        let fileName = "aggregated_day_\(dateValue)_\(users.count)_counters.csv"
+        let fileName = "aggregated_day_\(dataTypeLabel)_\(dateValue)_\(users.count)_counters.csv"
 
         if let topController = UIApplication.shared.topViewController() {
             presentShareSheet(data: csvData, fileName: fileName, from: topController)
@@ -747,7 +1013,11 @@ struct AggregatedHistoricView: View {
     }
 
     func downloadAggregatedWeekDataAsCSV() {
-        guard !weekData.isEmpty else {
+        let dataToExport = selectedGraphDataType == .population ? weekData : entryWeekData
+        let averageToExport = selectedGraphDataType == .population ? averageWeekData : averageEntryWeekData
+        let dataTypeLabel = selectedGraphDataType == .population ? "population" : "entries"
+
+        guard !dataToExport.isEmpty else {
             print("No week data available to download")
             return
         }
@@ -757,8 +1027,8 @@ struct AggregatedHistoricView: View {
         var csvContent = "Day,Aggregated Total,Aggregated Average\n"
 
         for day in weekdayOrder {
-            let count = weekData[day] ?? 0
-            let average = averageWeekData?[day]
+            let count = dataToExport[day] ?? 0
+            let average = averageToExport?[day]
             let averageString = average != nil ? String(format: "%.1f", average!) : ""
             csvContent += "\(day),\(String(format: "%.1f", count)),\(averageString)\n"
         }
@@ -769,7 +1039,7 @@ struct AggregatedHistoricView: View {
         }
 
         let weekLabel = selectedWeek?.startDate ?? "unknown"
-        let fileName = "aggregated_week_\(weekLabel)_\(users.count)_counters.csv"
+        let fileName = "aggregated_week_\(dataTypeLabel)_\(weekLabel)_\(users.count)_counters.csv"
 
         if let topController = UIApplication.shared.topViewController() {
             presentShareSheet(data: csvData, fileName: fileName, from: topController)
@@ -777,7 +1047,11 @@ struct AggregatedHistoricView: View {
     }
 
     func downloadAggregatedYearDataAsCSV() {
-        guard !yearData.isEmpty else {
+        let dataToExport = selectedGraphDataType == .population ? yearData : entryYearData
+        let averageToExport = selectedGraphDataType == .population ? averageYearData : averageEntryYearData
+        let dataTypeLabel = selectedGraphDataType == .population ? "population" : "entries"
+
+        guard !dataToExport.isEmpty else {
             print("No year data available to download")
             return
         }
@@ -788,8 +1062,8 @@ struct AggregatedHistoricView: View {
         var csvContent = "Month,Aggregated Total,Aggregated Average\n"
 
         for month in monthOrder {
-            if let count = yearData[month] {
-                let average = averageYearData?[month]
+            if let count = dataToExport[month] {
+                let average = averageToExport?[month]
                 let averageString = average != nil ? String(format: "%.1f", average!) : ""
                 csvContent += "\(month),\(String(format: "%.1f", count)),\(averageString)\n"
             }
@@ -801,7 +1075,7 @@ struct AggregatedHistoricView: View {
         }
 
         let yearValue = selectedYear == "This Year" ? getCurrentYear() : selectedYear
-        let fileName = "aggregated_year_\(yearValue)_\(users.count)_counters.csv"
+        let fileName = "aggregated_year_\(dataTypeLabel)_\(yearValue)_\(users.count)_counters.csv"
 
         if let topController = UIApplication.shared.topViewController() {
             presentShareSheet(data: csvData, fileName: fileName, from: topController)

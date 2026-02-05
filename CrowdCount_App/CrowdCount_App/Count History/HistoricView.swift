@@ -59,6 +59,37 @@ struct ConnectionStatusResponse: Decodable {
     let status: String
 }
 
+// Entry data response models (entries track people who entered, not population)
+struct EntryDayDataResponse: Decodable {
+    let entry_day_data: [String: Double]
+}
+
+struct AverageEntryDayDataResponse: Decodable {
+    let average_entry_day_data: [String: Double]
+}
+
+struct EntryWeekDataResponse: Decodable {
+    let entry_week_data: [String: Double]
+}
+
+struct AverageEntryWeekDataResponse: Decodable {
+    let average_entry_week_data: [String: Double]
+}
+
+struct EntryYearDataResponse: Decodable {
+    let entry_year_data: [String: Double]
+}
+
+struct AverageEntryYearDataResponse: Decodable {
+    let average_entry_year_data: [String: Double]
+}
+
+// Data type toggle for graphs
+enum GraphDataType: String, CaseIterable {
+    case population = "Population"
+    case entries = "Entries"
+}
+
 struct WeekInfo: Identifiable {
     var id = UUID()
     var label: String
@@ -82,6 +113,7 @@ struct HistoricView: View {
     @Binding var userPasswords: [UUID: String]
     @State private var selectedTab: HistoricViewTab = .historicCounts
     @State private var selectedInsightsPeriod: InsightsPeriod = .today
+    @State private var selectedGraphDataType: GraphDataType = .population
     @State private var selectedDay: String = "Today"
     @State private var selectedWeek: WeekInfo? = nil
     @State private var selectedYear: String = "This Year"
@@ -96,6 +128,20 @@ struct HistoricView: View {
     @State private var averageYearData: [String: Double]?
     @State private var hasInsufficientYearData: Bool = false
 
+    // Entry data (tracks people who entered, not population)
+    @State private var entryDayData: [String: Double] = [:]
+    @State private var averageEntryDayData: [String: Double]?
+    @State private var entryWeekData: [String: Double] = [:]
+    @State private var averageEntryWeekData: [String: Double]?
+    @State private var entryYearData: [String: Double] = [:]
+    @State private var averageEntryYearData: [String: Double]?
+    @State private var hasDataForSelectedDayEntries: Bool = true
+    @State private var hasDataForSelectedWeekEntries: Bool = true
+    @State private var hasDataForSelectedYearEntries: Bool = true
+    @State private var isEntryDayLoading: Bool = false
+    @State private var isEntryWeekLoading: Bool = false
+    @State private var isEntryYearLoading: Bool = false
+
     // Separate data for Insights (always today/this week/this year)
     @State private var insightsTodayData: [String: Double] = [:]
     @State private var insightsTodayAverage: [String: Double]?
@@ -103,6 +149,12 @@ struct HistoricView: View {
     @State private var insightsThisWeekAverage: [String: Double]?
     @State private var insightsThisYearData: [String: Double] = [:]
     @State private var insightsThisYearAverage: [String: Double]?
+    @State private var insightsEntryTodayData: [String: Double] = [:]
+    @State private var insightsEntryThisWeekData: [String: Double] = [:]
+    @State private var insightsEntryThisYearData: [String: Double] = [:]
+    @State private var insightsAvgEntryTodayData: [String: Double]?
+    @State private var insightsAvgEntryThisWeekData: [String: Double]?
+    @State private var insightsAvgEntryThisYearData: [String: Double]?
     @State private var insightsInitialLoadComplete: Bool = false
     @State private var isDeviceOnline: Bool = false
     @State private var hasDataForSelectedDay: Bool = true
@@ -138,7 +190,108 @@ struct HistoricView: View {
             .padding(.bottom, 4)
 
             if selectedTab == .historicCounts {
-                historicCountsContent
+                VStack(spacing: 0) {
+                    // Data type picker (Population vs Entries) - directly in body like InsightsView
+                    Picker("Data Type", selection: $selectedGraphDataType) {
+                        ForEach(GraphDataType.allCases, id: \.self) { type in
+                            Text(type.rawValue).tag(type)
+                        }
+                    }
+                    .pickerStyle(.segmented)
+                    .padding(.horizontal)
+                    .padding(.top, 8)
+                    .padding(.bottom, 12)
+                    .onChange(of: selectedGraphDataType) { _, newValue in
+                        if newValue == .entries {
+                            Task {
+                                await fetchEntryDataForCurrentSelections()
+                            }
+                        }
+                    }
+
+                    HistoricCountsContentView(
+                        selectedGraphDataType: $selectedGraphDataType,
+                        selectedDay: $selectedDay,
+                        availableDates: availableDates,
+                        dayData: dayData,
+                        averageDayData: averageDayData,
+                        hasDataForSelectedDay: hasDataForSelectedDay,
+                        isDayLoading: isDayLoading,
+                        isDeviceOnline: isDeviceOnline,
+                        mostRecentDataTime: mostRecentDataTime,
+                        entryDayData: entryDayData,
+                        averageEntryDayData: averageEntryDayData,
+                        hasDataForSelectedDayEntries: hasDataForSelectedDayEntries,
+                        isEntryDayLoading: isEntryDayLoading,
+                        selectedWeek: $selectedWeek,
+                        availableWeeks: availableWeeks,
+                        weekData: weekData,
+                        averageWeekData: averageWeekData,
+                        hasDataForSelectedWeek: hasDataForSelectedWeek,
+                        isWeekLoading: isWeekLoading,
+                        entryWeekData: entryWeekData,
+                        averageEntryWeekData: averageEntryWeekData,
+                        hasDataForSelectedWeekEntries: hasDataForSelectedWeekEntries,
+                        isEntryWeekLoading: isEntryWeekLoading,
+                        selectedYear: $selectedYear,
+                        availableYears: availableYears,
+                        yearData: yearData,
+                        averageYearData: averageYearData,
+                        hasDataForSelectedYear: hasDataForSelectedYear,
+                        isYearLoading: isYearLoading,
+                        hasInsufficientYearData: hasInsufficientYearData,
+                        entryYearData: entryYearData,
+                        averageEntryYearData: averageEntryYearData,
+                        hasDataForSelectedYearEntries: hasDataForSelectedYearEntries,
+                        isEntryYearLoading: isEntryYearLoading,
+                        onDaySelected: { date in
+                            let displayDate = (date == getCurrentDate()) ? "Today" : formattedDatelong(from: date)
+                            selectedDay = displayDate
+                            checkAndFetchDayData(for: date)
+                            if selectedGraphDataType == .entries {
+                                Task {
+                                    await fetchEntryDayDataAsync(for: date)
+                                }
+                            }
+                            if date == getCurrentDate() {
+                                fetchConnectionStatus()
+                            }
+                        },
+                        onWeekSelected: { week in
+                            selectedWeek = week
+                            checkAndFetchWeekData(for: week.startDate)
+                            if selectedGraphDataType == .entries {
+                                Task {
+                                    await fetchEntryWeekDataAsync(for: week.startDate)
+                                }
+                            }
+                        },
+                        onYearSelected: { year in
+                            let displayYear = (year == getCurrentYear()) ? "This Year" : year
+                            selectedYear = displayYear
+                            let yearInt = (year == getCurrentYear()) ? getCurrentYearInt() : Int(year) ?? getCurrentYearInt()
+                            fetchYearData(for: yearInt)
+                            if selectedGraphDataType == .entries {
+                                Task {
+                                    await fetchEntryYearDataAsync(for: yearInt)
+                                }
+                            }
+                        },
+                        onDownloadDay: {
+                            checkAndDownloadData(for: selectedDay, period: "day")
+                        },
+                        onDownloadWeek: {
+                            downloadWeekDataAsCSV()
+                        },
+                        onDownloadYear: {
+                            downloadYearDataAsCSV()
+                        },
+                        getCurrentDate: getCurrentDate,
+                        getCurrentYear: getCurrentYear,
+                        formattedDateLong: formattedDatelong,
+                        findMostRecentDataTime: findMostRecentDataTime
+                    )
+                }
             } else {
                 InsightsView(
                     selectedPeriod: $selectedInsightsPeriod,
@@ -148,6 +301,12 @@ struct HistoricView: View {
                     averageWeekData: insightsThisWeekAverage,
                     yearData: insightsThisYearData,
                     averageYearData: insightsThisYearAverage,
+                    entryDayData: insightsEntryTodayData,
+                    averageEntryDayData: insightsAvgEntryTodayData,
+                    entryWeekData: insightsEntryThisWeekData,
+                    averageEntryWeekData: insightsAvgEntryThisWeekData,
+                    entryYearData: insightsEntryThisYearData,
+                    averageEntryYearData: insightsAvgEntryThisYearData,
                     isDayLoading: !insightsInitialLoadComplete,
                     isWeekLoading: !insightsInitialLoadComplete,
                     isYearLoading: !insightsInitialLoadComplete
@@ -171,277 +330,6 @@ struct HistoricView: View {
                 startAutoRefreshTimer()
             } else {
                 stopAutoRefreshTimer()
-            }
-        }
-    }
-
-    // MARK: - Historic Counts Content
-
-    private var historicCountsContent: some View {
-        ScrollView {
-            VStack(alignment: .leading, spacing: 20) {
-                Spacer()
-                // Day view with chart and download button
-                VStack {
-                    HStack {
-                        Menu {
-                            ForEach(availableDates.sorted(by: >), id: \.self) { date in
-                                let displayDate = (date == getCurrentDate()) ? "Today" : formattedDatelong(from: date)
-                                Button(displayDate, action: {
-                                    selectedDay = displayDate
-                                    checkAndFetchDayData(for: date)
-                                    if date == getCurrentDate() {
-                                        fetchConnectionStatus()
-                                    }
-                                })
-                            }
-                        } label: {
-                            HStack {
-                                Text(selectedDay)
-                                    .font(.title)
-                                    .bold()
-                                    .foregroundColor(.primary)
-                                Image(systemName: "chevron.down")
-                                    .foregroundColor(.primary)
-                            }
-                        }
-                        .padding()
-
-                        Spacer()
-
-                        Button(action: {
-                            checkAndDownloadData(for: selectedDay, period: "day")
-                        }) {
-                            Image(systemName: "square.and.arrow.down")
-                                .font(.title2)
-                                .foregroundColor(.primary)
-                                .offset(y: -3)
-                        }
-                        .padding()
-                    }
-
-                    ZStack {
-                        if hasDataForSelectedDay {
-                            BarGraphDay(
-                                dayData: dayData,
-                                averageDayData: averageDayData,
-                                isTodayView: selectedDay == "Today",
-                                selectedDate: selectedDay,
-                                isDeviceOnline: isDeviceOnline,
-                                mostRecentDataTime: mostRecentDataTime
-                            )
-                                .frame(height: 250)
-                        } else {
-                            Rectangle()
-                                .fill(Color.secondary.opacity(0.1))
-                                .cornerRadius(25)
-                                .frame(height: 250)
-                                .overlay(
-                                    VStack {
-                                        Text("No data for today")
-                                            .foregroundColor(.primary)
-                                            .bold()
-                                        Text("Please select another day")
-                                            .foregroundColor(.secondary)
-                                    }
-                                )
-                        }
-
-                        if isDayLoading {
-                            RoundedRectangle(cornerRadius: 10)
-                                .fill(Color(UIColor.secondarySystemBackground).opacity(0.9))
-                                .frame(height: 250)
-                                .overlay(
-                                    ProgressView()
-                                        .scaleEffect(1.2)
-                                )
-                        }
-                    }
-                }
-                .padding()
-                .background(Color.primary.opacity(0.1))
-                .cornerRadius(25)
-                .padding(.horizontal)
-                .id("dayView")
-
-                // Weekly chart view with download button
-                VStack {
-                    HStack {
-                        Menu {
-                            ForEach(availableWeeks) { week in
-                                Button(week.label, action: {
-                                    selectedWeek = week
-                                    checkAndFetchWeekData(for: week.startDate)
-                                })
-                            }
-                        } label: {
-                            HStack {
-                                Text(selectedWeek?.label ?? "Select Week")
-                                    .font(.title)
-                                    .bold()
-                                    .foregroundColor(.primary)
-                                Image(systemName: "chevron.down")
-                                    .foregroundColor(.primary)
-                            }
-                        }
-                        .padding()
-
-                        Spacer()
-
-                        Button(action: {
-                            downloadWeekDataAsCSV()
-                        }) {
-                            Image(systemName: "square.and.arrow.down")
-                                .font(.title2)
-                                .foregroundColor(.primary)
-                                .offset(y: -3)
-                        }
-                        .padding()
-                    }
-
-                    ZStack {
-                        if hasDataForSelectedWeek {
-                            BarGraphWeek(
-                                weekData: weekData,
-                                averageWeekData: averageWeekData ?? [:],
-                                selectedDate: selectedWeek?.label ?? ""
-                            )
-                                .frame(height: 250)
-                        } else {
-                            Rectangle()
-                                .fill(Color.secondary.opacity(0.1))
-                                .cornerRadius(25)
-                                .frame(height: 250)
-                                .overlay(
-                                    VStack {
-                                        Text("No data for this week")
-                                            .foregroundColor(.primary)
-                                            .bold()
-                                        Text("Please select another week")
-                                            .foregroundColor(.secondary)
-                                    }
-                                )
-                        }
-
-                        if isWeekLoading {
-                            RoundedRectangle(cornerRadius: 10)
-                                .fill(Color(UIColor.secondarySystemBackground).opacity(0.9))
-                                .frame(height: 250)
-                                .overlay(
-                                    ProgressView()
-                                        .scaleEffect(1.2)
-                                )
-                        }
-                    }
-                }
-                .padding()
-                .background(Color.primary.opacity(0.1))
-                .cornerRadius(30)
-                .padding(.horizontal)
-                .id("weekView")
-
-                // UPDATED: Yearly chart view with actual functionality
-                VStack {
-                    HStack {
-                        Menu {
-                            ForEach(availableYears, id: \.self) { year in
-                                let displayYear = (year == getCurrentYear()) ? "This Year" : year
-                                Button(displayYear, action: {
-                                    selectedYear = displayYear
-                                    let yearInt = (year == getCurrentYear()) ? getCurrentYearInt() : Int(year) ?? getCurrentYearInt()
-                                    fetchYearData(for: yearInt)
-                                })
-                            }
-                        } label: {
-                            HStack {
-                                Text(selectedYear)
-                                    .font(.title)
-                                    .bold()
-                                    .foregroundColor(.primary)
-                                Image(systemName: "chevron.down")
-                                    .foregroundColor(.primary)
-                            }
-                        }
-                        .padding()
-
-                        Spacer()
-
-                        Button(action: {
-                            downloadYearDataAsCSV()
-                        }) {
-                            Image(systemName: "square.and.arrow.down")
-                                .font(.title2)
-                                .foregroundColor(.primary)
-                                .offset(y: -3)
-                        }
-                        .padding()
-                    }
-
-                    ZStack {
-                        if hasDataForSelectedYear {
-                            BarGraphYear(
-                                yearData: yearData,
-                                averageYearData: averageYearData,
-                                selectedYear: selectedYear,
-                                hasInsufficientData: hasInsufficientYearData
-                            )
-                            .frame(height: 250)
-                        } else {
-                            Rectangle()
-                                .fill(Color.secondary.opacity(0.1))
-                                .cornerRadius(25)
-                                .frame(height: 250)
-                                .overlay(
-                                    VStack {
-                                        Text("No data for this year")
-                                            .foregroundColor(.primary)
-                                            .bold()
-                                        Text("Please select another year")
-                                            .foregroundColor(.secondary)
-                                    }
-                                )
-                        }
-
-                        if isYearLoading {
-                            RoundedRectangle(cornerRadius: 10)
-                                .fill(Color(UIColor.secondarySystemBackground).opacity(0.9))
-                                .frame(height: 250)
-                                .overlay(
-                                    ProgressView()
-                                        .scaleEffect(1.2)
-                                )
-                        }
-                    }
-                }
-                .padding()
-                .background(Color.primary.opacity(0.1))
-                .cornerRadius(30)
-                .padding(.horizontal)
-                .id("yearView")
-// Removed entirely for now, not needed, keeping here though in case I want to bring it back
-//                VStack {
-//                    Text("Issues with this page?")
-//                        .bold()
-//                        .foregroundColor(.primary)
-//                        .padding(10)
-//                    Text("We're still working on this, so feel free to report anything by sending us a message!")
-//                        .foregroundColor(.secondary)
-//                        .multilineTextAlignment(.center)
-//                    Text("help@crowdcount.tech")
-//                        .font(.body)
-//                        .padding()
-//                        .onTapGesture {
-//                            if let url = URL(string: "mailto:help@crowdcount.tech") {
-//                                UIApplication.shared.open(url)
-//                            }
-//                        }
-//
-//                }
-//                .padding()
-//                .background(Color.primary.opacity(0.1))
-//                .cornerRadius(30)
-//                .padding(.horizontal)
-//                .frame(maxWidth: .infinity)
             }
         }
     }
@@ -509,15 +397,21 @@ struct HistoricView: View {
         // Fetch available dates first
         await fetchAvailableDatesAsync()
 
-        // Then fetch day data, week data, year data, and connection status in parallel
+        // Then fetch day data, week data, year data, entry data, and connection status in parallel
         async let dayTask: () = checkAndFetchDayDataAsync(for: getCurrentDate())
         async let weekTask: () = checkAndFetchWeekDataAsync(for: getCurrentWeekStartDate())
         async let yearTask: () = fetchYearDataAsync(for: getCurrentYearInt())
+        async let entryDayTask: () = fetchEntryDayDataAsync(for: getCurrentDate())
+        async let entryWeekTask: () = fetchEntryWeekDataAsync(for: getCurrentWeekStartDate())
+        async let entryYearTask: () = fetchEntryYearDataAsync(for: getCurrentYearInt())
         async let statusTask: () = fetchConnectionStatusAsync()
 
         await dayTask
         await weekTask
         await yearTask
+        await entryDayTask
+        await entryWeekTask
+        await entryYearTask
         await statusTask
 
         // Store current data for Insights (always today/this week/this year)
@@ -527,21 +421,109 @@ struct HistoricView: View {
         insightsThisWeekAverage = averageWeekData
         insightsThisYearData = yearData
         insightsThisYearAverage = averageYearData
+        insightsEntryTodayData = entryDayData
+        insightsEntryThisWeekData = entryWeekData
+        insightsEntryThisYearData = entryYearData
+        insightsAvgEntryTodayData = averageEntryDayData
+        insightsAvgEntryThisWeekData = averageEntryWeekData
+        insightsAvgEntryThisYearData = averageEntryYearData
 
         insightsInitialLoadComplete = true
         isLoading = false
     }
 
-    private func viewContainer<Content: View>(title: String, @ViewBuilder content: () -> Content) -> some View {
-        VStack(alignment: .leading, spacing: 10) {
-            Text(title)
-                .font(.title2)
-                .bold()
-            content()
-                .background(RoundedRectangle(cornerRadius: 10).fill(Color.secondary.opacity(0.1)))
-                .padding(.bottom)
+    // MARK: - Entry Data Fetching
+
+    /// Fetch entry data for all current selections when switching to entries view
+    @MainActor
+    private func fetchEntryDataForCurrentSelections() async {
+        // Capture values on main actor before async let
+        let dayDate = selectedDay == "Today" ? getCurrentDate() : formattedDateshort(from: selectedDay)
+        let weekStartDate = selectedWeek?.startDate ?? getCurrentWeekStartDate()
+        let yearInt = selectedYear == "This Year" ? getCurrentYearInt() : Int(selectedYear) ?? getCurrentYearInt()
+
+        async let dayTask: () = fetchEntryDayDataAsync(for: dayDate)
+        async let weekTask: () = fetchEntryWeekDataAsync(for: weekStartDate)
+        async let yearTask: () = fetchEntryYearDataAsync(for: yearInt)
+
+        await dayTask
+        await weekTask
+        await yearTask
+    }
+
+    @MainActor
+    private func fetchEntryDayDataAsync(for date: String) async {
+        isEntryDayLoading = true
+        defer { isEntryDayLoading = false }
+
+        guard let password = userPasswords[userUUID] else {
+            print("Password not found for user \(userUUID)")
+            return
         }
-        .padding()
+
+        let localDate = (date == getCurrentDate()) ? getCurrentDate() : date
+        let utcDates = TZHelper.utcDatesForLocalDay(localDate)
+        let utcDatesToFetch = [utcDates.primary] + (utcDates.secondary.map { [$0] } ?? [])
+
+        let userList = [(deviceId: userId, password: password)]
+        let (aggregatedData, aggregatedAvgData) = await apiService.fetchAggregatedEntryDayData(
+            users: userList,
+            utcDates: utcDatesToFetch,
+            targetLocalDate: localDate
+        )
+
+        self.hasDataForSelectedDayEntries = !aggregatedData.isEmpty
+        self.entryDayData = aggregatedData
+        self.averageEntryDayData = aggregatedAvgData.isEmpty ? nil : aggregatedAvgData
+    }
+
+    @MainActor
+    private func fetchEntryWeekDataAsync(for startDate: String) async {
+        isEntryWeekLoading = true
+        defer { isEntryWeekLoading = false }
+
+        guard let password = userPasswords[userUUID] else {
+            print("Password not found for user \(userUUID)")
+            return
+        }
+
+        let formattedStartDate: String
+        if startDate.isEmpty || startDate == "This Week" {
+            formattedStartDate = getCurrentWeekStartDate()
+        } else {
+            formattedStartDate = startDate
+        }
+
+        let userList = [(deviceId: userId, password: password)]
+        let (aggregatedData, aggregatedAvgData) = await apiService.fetchAggregatedEntryWeekData(
+            users: userList,
+            date: formattedStartDate
+        )
+
+        self.hasDataForSelectedWeekEntries = !aggregatedData.isEmpty
+        self.entryWeekData = aggregatedData
+        self.averageEntryWeekData = aggregatedAvgData.isEmpty ? nil : aggregatedAvgData
+    }
+
+    @MainActor
+    private func fetchEntryYearDataAsync(for year: Int) async {
+        isEntryYearLoading = true
+        defer { isEntryYearLoading = false }
+
+        guard let password = userPasswords[userUUID] else {
+            print("Password not found for user \(userUUID)")
+            return
+        }
+
+        let userList = [(deviceId: userId, password: password)]
+        let (aggregatedData, aggregatedAvgData) = await apiService.fetchAggregatedEntryYearData(
+            users: userList,
+            year: year
+        )
+
+        self.hasDataForSelectedYearEntries = !aggregatedData.isEmpty
+        self.entryYearData = aggregatedData
+        self.averageEntryYearData = aggregatedAvgData.isEmpty ? nil : aggregatedAvgData
     }
 
     func fetchAvailableDates() {

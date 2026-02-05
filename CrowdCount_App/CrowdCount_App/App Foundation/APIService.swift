@@ -548,6 +548,98 @@ class APIService: ObservableObject {
         }
     }
 
+    // MARK: - Entry Data (tracks people who entered, summed per period)
+
+    func fetchEntryDayData(deviceId: String, password: String, utcDate: String) async throws -> [String: Double] {
+        let cacheKey = "entrydaydata:\(deviceId):\(utcDate)"
+
+        let data = try await request(
+            endpoint: "get_entry_day_data",
+            method: "POST",
+            body: ["device_id": deviceId, "password": password, "date": utcDate],
+            cacheKey: cacheKey,
+            cacheTTL: CacheManager.TTL.dayData
+        )
+
+        let response = try JSONDecoder().decode(EntryDayDataResponse.self, from: data)
+        return response.entry_day_data
+    }
+
+    func fetchAverageEntryDayData(deviceId: String, password: String, utcDate: String) async throws -> [String: Double] {
+        let cacheKey = "avgEntrydaydata:\(deviceId):\(utcDate)"
+
+        let data = try await request(
+            endpoint: "get_average_entry_day_data",
+            method: "POST",
+            body: ["device_id": deviceId, "password": password, "date": utcDate],
+            cacheKey: cacheKey,
+            cacheTTL: CacheManager.TTL.dayData
+        )
+
+        let response = try JSONDecoder().decode(AverageEntryDayDataResponse.self, from: data)
+        return response.average_entry_day_data
+    }
+
+    func fetchEntryWeekData(deviceId: String, password: String, date: String) async throws -> [String: Double] {
+        let cacheKey = "entryweekdata:\(deviceId):\(date)"
+
+        let data = try await request(
+            endpoint: "get_entry_week_data",
+            method: "POST",
+            body: ["device_id": deviceId, "password": password, "date": date],
+            cacheKey: cacheKey,
+            cacheTTL: CacheManager.TTL.weekData
+        )
+
+        let response = try JSONDecoder().decode(EntryWeekDataResponse.self, from: data)
+        return response.entry_week_data
+    }
+
+    func fetchAverageEntryWeekData(deviceId: String, password: String, date: String) async throws -> [String: Double] {
+        let cacheKey = "avgentryweekdata:\(deviceId):\(date)"
+
+        let data = try await request(
+            endpoint: "get_average_entry_week_data",
+            method: "POST",
+            body: ["device_id": deviceId, "password": password, "date": date],
+            cacheKey: cacheKey,
+            cacheTTL: CacheManager.TTL.weekData
+        )
+
+        let response = try JSONDecoder().decode(AverageEntryWeekDataResponse.self, from: data)
+        return response.average_entry_week_data
+    }
+
+    func fetchEntryYearData(deviceId: String, password: String, year: Int) async throws -> [String: Double] {
+        let cacheKey = "entryyeardata:\(deviceId):\(year)"
+
+        let data = try await request(
+            endpoint: "get_entry_year_data",
+            method: "POST",
+            body: ["device_id": deviceId, "password": password, "year": year],
+            cacheKey: cacheKey,
+            cacheTTL: CacheManager.TTL.yearData
+        )
+
+        let response = try JSONDecoder().decode(EntryYearDataResponse.self, from: data)
+        return response.entry_year_data
+    }
+
+    func fetchAverageEntryYearData(deviceId: String, password: String, year: Int) async throws -> [String: Double] {
+        let cacheKey = "avgentryyeardata:\(deviceId):\(year)"
+
+        let data = try await request(
+            endpoint: "get_average_entry_year_data",
+            method: "POST",
+            body: ["device_id": deviceId, "password": password, "year": year],
+            cacheKey: cacheKey,
+            cacheTTL: CacheManager.TTL.yearData
+        )
+
+        let response = try JSONDecoder().decode(AverageEntryYearDataResponse.self, from: data)
+        return response.average_entry_year_data
+    }
+
     // MARK: - Alert Check
     func checkForAlert() async throws -> Bool {
         let cacheKey = "alertcheck"
@@ -908,6 +1000,133 @@ class APIService: ObservableObject {
         }
 
         return (yearDataResults, hasAnyAvgData ? avgDataResults : nil)
+    }
+
+    /// Fetch entry day data for multiple users in parallel and aggregate
+    func fetchAggregatedEntryDayData(
+        users: [(deviceId: String, password: String)],
+        utcDates: [String],
+        targetLocalDate: String
+    ) async -> (entryData: [String: Double], averageData: [String: Double]) {
+
+        let results = await withTaskGroup(of: ([String: Double], [String: Double]).self) { group -> [([String: Double], [String: Double])] in
+            for user in users {
+                for utcDate in utcDates {
+                    group.addTask {
+                        async let entryTask = self.fetchEntryDayData(deviceId: user.deviceId, password: user.password, utcDate: utcDate)
+                        async let avgTask = self.fetchAverageEntryDayData(deviceId: user.deviceId, password: user.password, utcDate: utcDate)
+
+                        let entryData = (try? await entryTask) ?? [:]
+                        let avgData = (try? await avgTask) ?? [:]
+
+                        // Shift to local time
+                        let localEntryData = TZHelper.shiftHourlyBinsUTCtoLocal(forUTCDate: utcDate, bins: entryData, targetLocalDate: targetLocalDate)
+                        let localAvgData = TZHelper.shiftHourlyBinsUTCtoLocal(forUTCDate: utcDate, bins: avgData, targetLocalDate: targetLocalDate)
+
+                        return (localEntryData, localAvgData)
+                    }
+                }
+            }
+
+            var collected: [([String: Double], [String: Double])] = []
+            for await result in group {
+                collected.append(result)
+            }
+            return collected
+        }
+
+        var entryDataResults: [String: Double] = [:]
+        var avgDataResults: [String: Double] = [:]
+        for (entryData, avgData) in results {
+            for (hour, count) in entryData {
+                entryDataResults[hour, default: 0] += count
+            }
+            for (hour, count) in avgData {
+                avgDataResults[hour, default: 0] += count
+            }
+        }
+
+        return (entryDataResults, avgDataResults)
+    }
+
+    /// Fetch entry week data for multiple users in parallel and aggregate
+    func fetchAggregatedEntryWeekData(
+        users: [(deviceId: String, password: String)],
+        date: String
+    ) async -> (entryData: [String: Double], averageData: [String: Double]) {
+
+        let results = await withTaskGroup(of: ([String: Double], [String: Double]).self) { group -> [([String: Double], [String: Double])] in
+            for user in users {
+                group.addTask {
+                    async let entryTask = self.fetchEntryWeekData(deviceId: user.deviceId, password: user.password, date: date)
+                    async let avgTask = self.fetchAverageEntryWeekData(deviceId: user.deviceId, password: user.password, date: date)
+
+                    let entryData = (try? await entryTask) ?? [:]
+                    let avgData = (try? await avgTask) ?? [:]
+
+                    return (entryData, avgData)
+                }
+            }
+
+            var collected: [([String: Double], [String: Double])] = []
+            for await result in group {
+                collected.append(result)
+            }
+            return collected
+        }
+
+        var entryDataResults: [String: Double] = [:]
+        var avgDataResults: [String: Double] = [:]
+        for (entryData, avgData) in results {
+            for (day, count) in entryData {
+                entryDataResults[day, default: 0] += count
+            }
+            for (day, count) in avgData {
+                avgDataResults[day, default: 0] += count
+            }
+        }
+
+        return (entryDataResults, avgDataResults)
+    }
+
+    /// Fetch entry year data for multiple users in parallel and aggregate
+    func fetchAggregatedEntryYearData(
+        users: [(deviceId: String, password: String)],
+        year: Int
+    ) async -> (entryData: [String: Double], averageData: [String: Double]) {
+
+        let results = await withTaskGroup(of: ([String: Double], [String: Double]).self) { group -> [([String: Double], [String: Double])] in
+            for user in users {
+                group.addTask {
+                    async let entryTask = self.fetchEntryYearData(deviceId: user.deviceId, password: user.password, year: year)
+                    async let avgTask = self.fetchAverageEntryYearData(deviceId: user.deviceId, password: user.password, year: year)
+
+                    let entryData = (try? await entryTask) ?? [:]
+                    let avgData = (try? await avgTask) ?? [:]
+
+                    return (entryData, avgData)
+                }
+            }
+
+            var collected: [([String: Double], [String: Double])] = []
+            for await result in group {
+                collected.append(result)
+            }
+            return collected
+        }
+
+        var entryDataResults: [String: Double] = [:]
+        var avgDataResults: [String: Double] = [:]
+        for (entryData, avgData) in results {
+            for (month, count) in entryData {
+                entryDataResults[month, default: 0] += count
+            }
+            for (month, count) in avgData {
+                avgDataResults[month, default: 0] += count
+            }
+        }
+
+        return (entryDataResults, avgDataResults)
     }
 }
 

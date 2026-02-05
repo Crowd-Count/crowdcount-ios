@@ -448,17 +448,26 @@ struct AdPayView: View {
     @State private var paymentHandler = PaymentHandler()
     @State private var showDefaultPagePreview = false
     @State private var showPreviewSafari = false
+    @State private var hasActivePromotion = false
     @Environment(\.colorScheme) private var colorScheme
     @Environment(\.dismiss) private var dismiss
 
-    /// Users filtered to only include devices that are on the map
+    /// Users filtered to only include devices that are on the map (or Demo for preview)
     private var usersOnMap: [User] {
-        users.filter { $0.userId != "Demo" && deviceLocationNames.keys.contains($0.userId) }
+        users.filter { $0.userId == "Demo" || deviceLocationNames.keys.contains($0.userId) }
+    }
+
+    /// Check if the selected device is the Demo device
+    private var isDemoDevice: Bool {
+        viewModel.selectedDeviceId == "Demo" || users.contains { $0.userId == "Demo" }
     }
 
     /// The location name for the currently selected device
     private var selectedLocationName: String {
         guard !viewModel.selectedDeviceId.isEmpty else { return "" }
+        if viewModel.selectedDeviceId == "Demo" {
+            return "Demo"
+        }
         return deviceLocationNames[viewModel.selectedDeviceId] ?? viewModel.selectedDeviceId
     }
 
@@ -479,6 +488,16 @@ struct AdPayView: View {
             VStack(spacing: 20) {
                 // Header
                 headerSection
+
+                if hasActivePromotion {
+                    HStack(spacing: 6) {
+                        Text("This location already has an active promotion.")
+                            .font(.caption)
+                            .foregroundColor(.orange)
+                            .bold()
+                    }
+                    .padding(.horizontal, 30)
+                }
 
                 // Form Fields
                 titleField
@@ -515,6 +534,7 @@ struct AdPayView: View {
         }
         .task {
             await viewModel.loadPricing()
+            await checkForActivePromotion()
         }
         .onAppear {
             // Auto-select location if preselected device ID is provided
@@ -524,6 +544,11 @@ struct AdPayView: View {
                 if let locationName = deviceLocationNames[preselected] {
                     viewModel.title = locationName
                 }
+            }
+            // Handle Demo device - auto-select and set default name
+            if viewModel.selectedDeviceId.isEmpty && users.contains(where: { $0.userId == "Demo" }) {
+                viewModel.selectedDeviceId = "Demo"
+                viewModel.title = "McCrowd's Pub"  // Demo location name
             }
         }
     }
@@ -944,7 +969,37 @@ struct AdPayView: View {
                 .multilineTextAlignment(.center)
                 .padding(.horizontal, 30)
 
-            if canMakePayments {
+            if hasActivePromotion {
+                VStack(spacing: 6) {
+                    Image(systemName: "exclamationmark.triangle.fill")
+                        .foregroundColor(.orange)
+                    Text("This location has a live promotion. If this new promotion is approved, it will replace the existing one. You will not be refunded for the current live promotion.")
+                        .font(.caption)
+                        .foregroundColor(.orange)
+                        .multilineTextAlignment(.center)
+                }
+                .padding(.horizontal, 16)
+                .padding(.vertical, 6)
+                .background(Color.orange.opacity(0.1))
+                .cornerRadius(10)
+                .padding(.horizontal, 20)
+            }
+
+            if isDemoDevice {
+                // Demo mode - show disabled Apple Pay button with explanation
+                PayWithApplePayButton {
+                    // No-op, button is disabled
+                }
+                .frame(height: 50)
+                .cornerRadius(25)
+                .padding(.horizontal, 20)
+                .disabled(true)
+                .opacity(0.5)
+
+                Text("Payments are disabled in demo mode")
+                    .font(.caption)
+                    .foregroundColor(.orange)
+            } else if canMakePayments {
                 PayWithApplePayButton {
                     if viewModel.formIsValid && !viewModel.isProcessingPayment {
                         processPayment()
@@ -962,7 +1017,7 @@ struct AdPayView: View {
                     .padding()
             }
 
-            if !viewModel.formIsValid {
+            if !viewModel.formIsValid && !isDemoDevice {
                 Text("Please fill in all fields to continue")
                     .font(.caption)
                     .foregroundColor(.secondary)
@@ -1068,6 +1123,30 @@ struct AdPayView: View {
                 print("Ad submitted for review - Status: \(httpResponse.statusCode)")
             }
         }.resume()
+    }
+
+    // MARK: - Check Active Promotion
+
+    private func checkForActivePromotion() async {
+        let deviceId = selectedPrimaryDevice.isEmpty ? viewModel.selectedDeviceId : selectedPrimaryDevice
+        guard !deviceId.isEmpty, deviceId != "Demo" else { return }
+
+        let urlString = "\(AppSettings.apiBaseURL)/get-active-ads-for-device/\(deviceId)"
+        guard let url = URL(string: urlString) else { return }
+
+        do {
+            let (data, response) = try await URLSession.shared.data(from: url)
+            guard let httpResponse = response as? HTTPURLResponse, httpResponse.statusCode == 200 else { return }
+
+            if let json = try? JSONSerialization.jsonObject(with: data) as? [String: Any],
+               let ads = json["ads"] as? [[String: Any]] {
+                await MainActor.run {
+                    hasActivePromotion = !ads.isEmpty
+                }
+            }
+        } catch {
+            print("Failed to check for active promotions: \(error)")
+        }
     }
 }
 

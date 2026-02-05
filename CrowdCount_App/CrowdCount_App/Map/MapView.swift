@@ -88,6 +88,15 @@ struct MapContentView: View {
                 }
             }
             .onMapCameraChange { context in
+                // Detect if user has manually navigated (zoomed in from initial wide view)
+                // Initial view has span ~50 degrees; if much smaller, user has navigated
+                if !viewModel.userHasNavigated && !viewModel.hasSetInitialPosition {
+                    let span = context.region.span
+                    if span.latitudeDelta < 40 || span.longitudeDelta < 40 {
+                        viewModel.userHasNavigated = true
+                    }
+                }
+
                 // Check if map is still centered on user location
                 if let userLocation = locationManager.userLocation {
                     let mapCenter = context.region.center
@@ -211,7 +220,7 @@ struct MapContentView: View {
             }
         }
         .sheet(isPresented: $showingListView) {
-            LocationListView(viewModel: viewModel, adService: adService)
+            LocationListView(viewModel: viewModel, adService: adService, userLocation: locationManager.userLocation)
         }
     }
 }
@@ -296,6 +305,7 @@ class MapViewModel: ObservableObject {
     @Published var isLoading = true
     @Published var isMapCenteredOnUser = false
     @Published var hasSetInitialPosition = false  // Track if we've set the initial map position
+    @Published var userHasNavigated = false  // Track if user has manually navigated the map
 
     init() {
         refreshLocations()
@@ -306,7 +316,7 @@ class MapViewModel: ObservableObject {
             cameraPosition = .region(
                 MKCoordinateRegion(
                     center: coordinate,
-                    span: MKCoordinateSpan(latitudeDelta: 0.02, longitudeDelta: 0.02)
+                    span: MKCoordinateSpan(latitudeDelta: 0.005, longitudeDelta: 0.005)
                 )
             )
             isMapCenteredOnUser = true
@@ -353,6 +363,10 @@ class MapViewModel: ObservableObject {
     /// Set initial map position based on user location or fall back to fitting all markers
     func setInitialPosition(userLocation: CLLocationCoordinate2D?) {
         guard !hasSetInitialPosition else { return }
+        guard !userHasNavigated else {
+            hasSetInitialPosition = true  // Mark as set so we don't keep trying
+            return
+        }
         hasSetInitialPosition = true
 
         if let userLocation = userLocation {

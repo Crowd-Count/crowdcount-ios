@@ -13,30 +13,63 @@ enum ListTab: String, CaseIterable {
 struct LocationListView: View {
     @ObservedObject var viewModel: MapViewModel
     @ObservedObject var adService: AdService
+    var userLocation: CLLocationCoordinate2D?
     @State private var searchText = ""
     @State private var selectedTab: ListTab = .locations
     @Environment(\.dismiss) private var dismiss
     @Environment(\.colorScheme) private var colorScheme
 
     var filteredLocations: [Location] {
+        let base: [Location]
         if searchText.isEmpty {
-            return viewModel.locations
+            base = viewModel.locations
         } else {
-            return viewModel.locations.filter { location in
+            base = viewModel.locations.filter { location in
                 location.name.localizedCaseInsensitiveContains(searchText)
             }
+        }
+        if let userLocation = userLocation {
+            let userCLLocation = CLLocation(latitude: userLocation.latitude, longitude: userLocation.longitude)
+            return base.sorted { a, b in
+                let distA = CLLocation(latitude: a.coordinate.latitude, longitude: a.coordinate.longitude).distance(from: userCLLocation)
+                let distB = CLLocation(latitude: b.coordinate.latitude, longitude: b.coordinate.longitude).distance(from: userCLLocation)
+                return distA < distB
+            }
+        } else {
+            return base.sorted { $0.name.localizedCaseInsensitiveCompare($1.name) == .orderedAscending }
         }
     }
 
     var filteredAds: [ServerAd] {
+        let base: [ServerAd]
         if searchText.isEmpty {
-            return adService.activeAds
+            base = adService.activeAds
         } else {
-            return adService.activeAds.filter { ad in
+            base = adService.activeAds.filter { ad in
                 ad.title.localizedCaseInsensitiveContains(searchText) ||
                 ad.description.localizedCaseInsensitiveContains(searchText)
             }
         }
+        if let userLocation = userLocation {
+            let userCLLocation = CLLocation(latitude: userLocation.latitude, longitude: userLocation.longitude)
+            return base.sorted { a, b in
+                let distA = distanceToAd(a, from: userCLLocation)
+                let distB = distanceToAd(b, from: userCLLocation)
+                return distA < distB
+            }
+        } else {
+            return base.sorted { $0.title.localizedCaseInsensitiveCompare($1.title) == .orderedAscending }
+        }
+    }
+
+    private func distanceToAd(_ ad: ServerAd, from userCLLocation: CLLocation) -> CLLocationDistance {
+        if let demoCoord = ad.demoCoordinate {
+            return CLLocation(latitude: demoCoord.latitude, longitude: demoCoord.longitude).distance(from: userCLLocation)
+        }
+        guard let location = viewModel.locations.first(where: { $0.userId == ad.locationDeviceId }) else {
+            return .infinity
+        }
+        return CLLocation(latitude: location.coordinate.latitude, longitude: location.coordinate.longitude).distance(from: userCLLocation)
     }
 
     var body: some View {

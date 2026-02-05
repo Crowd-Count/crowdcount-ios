@@ -9,6 +9,7 @@ struct LocationSettingsView: View {
     let isBluetoothSetupRequired: [UUID: Bool]  // Offline status for each device
     let userPasswords: [UUID: String]  // Passwords for each user
     let serverURL: String
+    var onCountsReset: (() -> Void)? = nil
 
     @Environment(\.dismiss) var dismiss
     @EnvironmentObject var appSettings: AppSettings
@@ -315,7 +316,7 @@ struct LocationSettingsView: View {
             } message: {
                 Text("This will permanently delete all history and data for \(location.deviceIds.count) counter\(location.deviceIds.count == 1 ? "" : "s") in this location. This cannot be undone.")
             }
-            .alert("Reset Complete", isPresented: $showResetAllResult) {
+            .alert("Reset Result", isPresented: $showResetAllResult) {
                 Button("OK", role: .cancel) { }
             } message: {
                 Text(resetAllResult ?? "")
@@ -532,7 +533,8 @@ struct LocationSettingsView: View {
         }
 
         var successCount = 0
-        var failCount = 0
+        var missingCredentials: [String] = []
+        var apiErrors: [String] = []
 
         for deviceId in location.deviceIds {
             // Skip demo device
@@ -543,7 +545,7 @@ struct LocationSettingsView: View {
             // Find the user and their password
             guard let user = users.first(where: { $0.userId == deviceId }),
                   let password = userPasswords[user.id] else {
-                failCount += 1
+                missingCredentials.append(NicknameManager.shared.displayName(for: deviceId))
                 continue
             }
 
@@ -552,20 +554,39 @@ struct LocationSettingsView: View {
             if success {
                 successCount += 1
             } else {
-                failCount += 1
+                apiErrors.append(NicknameManager.shared.displayName(for: deviceId))
             }
         }
 
+        let failCount = missingCredentials.count + apiErrors.count
+
         await MainActor.run {
             isResettingAll = false
-            if failCount == 0 {
-                resetAllResult = "Successfully reset \(successCount) counter\(successCount == 1 ? "" : "s")."
-            } else if successCount == 0 {
-                resetAllResult = "Failed to reset counters. Please check your connection and try again."
-            } else {
-                resetAllResult = "Reset \(successCount) counter\(successCount == 1 ? "" : "s"). \(failCount) failed."
+
+            var lines: [String] = []
+
+            if successCount > 0 {
+                lines.append("Successfully reset \(successCount) counter\(successCount == 1 ? "" : "s").")
             }
+
+            if !missingCredentials.isEmpty {
+                lines.append("Missing credentials for: \(missingCredentials.joined(separator: ", ")). Try logging out and back in.")
+            }
+
+            if !apiErrors.isEmpty {
+                lines.append("Server error for: \(apiErrors.joined(separator: ", ")). Check your connection and try again.")
+            }
+
+            if failCount == 0 && successCount == 0 {
+                lines.append("No counters to reset.")
+            }
+
+            resetAllResult = lines.joined(separator: "\n\n")
             showResetAllResult = true
+
+            if successCount > 0 {
+                onCountsReset?()
+            }
         }
     }
 

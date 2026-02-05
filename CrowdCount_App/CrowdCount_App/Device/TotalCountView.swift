@@ -21,14 +21,12 @@ struct TotalCountView: View {
     @State private var isLocationOnMap: Bool = false
     @State private var deviceLocationNames: [String: String] = [:]
     @State private var devicePrimaryDevices: [String: String] = [:]
-    @State private var showDemoAdAlert: Bool = false
 
     // Overcrowding state
     @State private var showOvercrowdingSheet: Bool = false
     @State private var newOvercrowdingLimit: String = ""
     @State private var isOvercrowdingEnabled: Bool = false
     @State private var isOvercrowdingNotificationEnabled: Bool = false
-    @State private var showDemoAlert: Bool = false
     @State private var isLoadingOvercrowding: Bool = false
 
     // Check if this location has a demo device
@@ -156,17 +154,13 @@ struct TotalCountView: View {
 
             // Overcrowding button
             Button(action: {
-                if hasDemoDevice {
-                    showDemoAlert = true
+                // Initialize the text field with current limit
+                if let limit = location.overcrowdingLimit, limit > 0 {
+                    newOvercrowdingLimit = String(limit)
                 } else {
-                    // Initialize the text field with current limit
-                    if let limit = location.overcrowdingLimit, limit > 0 {
-                        newOvercrowdingLimit = String(limit)
-                    } else {
-                        newOvercrowdingLimit = ""
-                    }
-                    showOvercrowdingSheet = true
+                    newOvercrowdingLimit = ""
                 }
+                showOvercrowdingSheet = true
             }) {
                 HStack(spacing: 8) {
                     if isOvercrowdingEnabled && isOvercrowdingNotificationEnabled {
@@ -184,11 +178,6 @@ struct TotalCountView: View {
                 .cornerRadius(20)
             }
             .padding(.top, 10)
-            .alert("Demo Mode", isPresented: $showDemoAlert) {
-                Button("OK", role: .cancel) { }
-            } message: {
-                Text("Sorry, but you can't set overcrowding limits in demo mode.")
-            }
             .sheet(isPresented: $showOvercrowdingSheet) {
                 OvercrowdingSettingsSheet(
                     isPresented: $showOvercrowdingSheet,
@@ -221,29 +210,7 @@ struct TotalCountView: View {
             }
 
             // Ad/Map buttons
-            if hasDemoDevice {
-                Button(action: {
-                    showDemoAdAlert = true
-                }) {
-                    HStack {
-                        Image(systemName: "megaphone.fill")
-                        Text("Create a Promo")
-                    }
-                    .padding()
-                    .background(Color.orange.opacity(0.75))
-                    .foregroundColor(.primary)
-                    .cornerRadius(20)
-                    .padding(.horizontal, 16)
-                }
-                .padding(.top, 10)
-                .alert(isPresented: $showDemoAdAlert) {
-                    Alert(
-                        title: Text("Demo Mode"),
-                        message: Text("You can't create a promotion with the demo.\n\nBut you can still give us money if you want... would be cool... please. Our venmo is @CrowdCount :)"),
-                        dismissButton: .default(Text("Got it!"))
-                    )
-                }
-            } else if isLocationOnMap {
+            if isLocationOnMap || hasDemoDevice {
                 let hasOfflineCounters = !offlineCounters.isEmpty
                 let preselectedDevice = location.mapPrimaryDevice ?? users.first(where: { deviceLocationNames.keys.contains($0.userId) })?.userId
 

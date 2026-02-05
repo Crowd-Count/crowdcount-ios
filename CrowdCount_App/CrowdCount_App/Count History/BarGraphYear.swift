@@ -14,7 +14,7 @@ struct BarGraphYear: View {
                 lineMarks()
             }
             .chartXAxis {
-                AxisMarks(values: getAvailableMonths()) { value in
+                AxisMarks(values: getAllMonths()) { value in
                     AxisValueLabel {
                         Text(getAbbreviatedMonthName(from: value.as(String.self) ?? ""))
                             .font(.caption)
@@ -48,25 +48,23 @@ struct BarGraphYear: View {
     
     @ChartContentBuilder
     private func barMarks() -> some ChartContent {
-        let availableMonths = getAvailableMonths()
-        ForEach(Array(availableMonths.enumerated()), id: \.element) { index, month in
-            if let count = yearData[month] {
-                BarMark(
-                    x: .value("Month", month),
-                    y: .value("Count", max(0, count))
-                )
-                .foregroundStyle(.blue)
-                .opacity(index % 2 == 0 ? 0.8 : 0.6)
-                .cornerRadius(3)
-            }
+        let allMonths = getAllMonths()
+        ForEach(Array(allMonths.enumerated()), id: \.element) { index, month in
+            BarMark(
+                x: .value("Month", month),
+                y: .value("Count", max(0, yearData[month] ?? 0))
+            )
+            .foregroundStyle(.blue)
+            .opacity(index % 2 == 0 ? 0.8 : 0.6)
+            .cornerRadius(3)
         }
     }
-    
+
     @ChartContentBuilder
     private func lineMarks() -> some ChartContent {
         if let averageYearData = averageYearData {
-            let availableMonths = getAvailableMonths()
-            ForEach(availableMonths, id: \.self) { month in
+            let allMonths = getAllMonths()
+            ForEach(allMonths, id: \.self) { month in
                 if let averageCount = averageYearData[month] {
                     LineMark(
                         x: .value("Month", month),
@@ -79,13 +77,9 @@ struct BarGraphYear: View {
         }
     }
 
-    // UPDATED: Only return months that have data
-    private func getAvailableMonths() -> [String] {
-        let allMonths = ["January", "February", "March", "April", "May", "June",
-                        "July", "August", "September", "October", "November", "December"]
-        
-        // Filter to only include months that have data, maintaining order
-        return allMonths.filter { yearData.keys.contains($0) }
+    private func getAllMonths() -> [String] {
+        return ["January", "February", "March", "April", "May", "June",
+                "July", "August", "September", "October", "November", "December"]
     }
 
     private func getAbbreviatedMonthName(from month: String) -> String {

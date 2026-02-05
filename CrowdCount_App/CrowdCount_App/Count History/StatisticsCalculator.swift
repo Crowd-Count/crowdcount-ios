@@ -221,6 +221,200 @@ struct StatisticsCalculator {
         return nil
     }
 
+    // MARK: - Daily Entry Statistics (hourly entry counts)
+
+    /// Total entries across all hours
+    static func totalDayEntries(from entryData: [String: Double]) -> Int {
+        Int(entryData.values.reduce(0, +))
+    }
+
+    /// Average entries per active hour
+    static func avgHourlyEntries(from entryData: [String: Double]) -> Int? {
+        let nonZero = entryData.values.filter { $0 > 0 }
+        guard !nonZero.isEmpty else { return nil }
+        return Int(nonZero.reduce(0, +) / Double(nonZero.count))
+    }
+
+    /// Find peak entry hour (hour with the most entries)
+    static func peakEntryHour(from entryData: [String: Double]) -> (hour: Int, count: Int)? {
+        let nonZero = entryData.filter { $0.value > 0 }
+        guard !nonZero.isEmpty else { return nil }
+        if let maxEntry = nonZero.max(by: { $0.value < $1.value }),
+           let hour = Int(maxEntry.key) {
+            return (hour, Int(maxEntry.value))
+        }
+        return nil
+    }
+
+    /// Morning (6am-12pm) vs afternoon (12pm-6pm) total entries
+    static func entryMorningAfternoonTotals(from entryData: [String: Double]) -> (morningTotal: Int, afternoonTotal: Int)? {
+        var morningTotal: Double = 0
+        var afternoonTotal: Double = 0
+        var hasAny = false
+
+        for (hourStr, count) in entryData {
+            guard let hour = Int(hourStr), count > 0 else { continue }
+            hasAny = true
+            if hour >= 6 && hour < 12 {
+                morningTotal += count
+            } else if hour >= 12 && hour < 18 {
+                afternoonTotal += count
+            }
+        }
+
+        guard hasAny else { return nil }
+        return (Int(morningTotal), Int(afternoonTotal))
+    }
+
+    /// Find the busiest 3-hour entry window (by total entries, not average)
+    static func busiestEntryPeriod(from entryData: [String: Double]) -> (startHour: Int, endHour: Int, totalEntries: Int)? {
+        guard !entryData.isEmpty else { return nil }
+        let nonZeroHours = entryData.filter { $0.value > 0 }.keys.compactMap { Int($0) }.sorted()
+        guard nonZeroHours.count >= 3 else { return nil }
+
+        var maxTotal: Double = 0
+        var maxStartHour = 0
+
+        for startHour in 0..<22 {
+            var windowTotal: Double = 0
+            for h in startHour..<min(startHour + 3, 24) {
+                if let value = entryData[String(h)], value > 0 {
+                    windowTotal += value
+                }
+            }
+            if windowTotal > maxTotal {
+                maxTotal = windowTotal
+                maxStartHour = startHour
+            }
+        }
+
+        guard maxTotal > 0 else { return nil }
+        return (maxStartHour, min(maxStartHour + 3, 24), Int(maxTotal))
+    }
+
+    /// Find the slowest 3-hour entry window (within operating hours)
+    static func slowestEntryPeriod(from entryData: [String: Double]) -> (startHour: Int, endHour: Int, totalEntries: Int)? {
+        guard !entryData.isEmpty else { return nil }
+        let nonZeroHours = entryData.filter { $0.value > 0 }.keys.compactMap { Int($0) }.sorted()
+        guard nonZeroHours.count >= 3 else { return nil }
+
+        let minHour = nonZeroHours.min() ?? 0
+        let maxHour = nonZeroHours.max() ?? 23
+
+        var minTotal: Double = Double.infinity
+        var minStartHour = minHour
+
+        for startHour in minHour..<max(minHour + 1, maxHour - 1) {
+            var windowTotal: Double = 0
+            var hasData = false
+            for h in startHour..<min(startHour + 3, maxHour + 1) {
+                if let value = entryData[String(h)], value > 0 {
+                    windowTotal += value
+                    hasData = true
+                }
+            }
+            guard hasData else { continue }
+            if windowTotal < minTotal {
+                minTotal = windowTotal
+                minStartHour = startHour
+            }
+        }
+
+        guard minTotal != Double.infinity else { return nil }
+        return (minStartHour, min(minStartHour + 3, 24), Int(minTotal))
+    }
+
+    // MARK: - Weekly Entry Statistics (daily entry counts)
+
+    /// Total entries across the week
+    static func totalWeekEntries(from entryData: [String: Double]) -> Int {
+        Int(entryData.values.reduce(0, +))
+    }
+
+    /// Average entries per active day
+    static func avgDailyEntries(from entryData: [String: Double]) -> Int? {
+        let nonZero = entryData.values.filter { $0 > 0 }
+        guard !nonZero.isEmpty else { return nil }
+        return Int(nonZero.reduce(0, +) / Double(nonZero.count))
+    }
+
+    /// Find day with the most entries
+    static func busiestEntryDay(from entryData: [String: Double]) -> (day: String, totalEntries: Int)? {
+        let nonZero = entryData.filter { $0.value > 0 }
+        guard !nonZero.isEmpty else { return nil }
+        if let maxEntry = nonZero.max(by: { $0.value < $1.value }) {
+            return (maxEntry.key, Int(maxEntry.value))
+        }
+        return nil
+    }
+
+    /// Find day with the fewest entries
+    static func slowestEntryDay(from entryData: [String: Double]) -> (day: String, totalEntries: Int)? {
+        let nonZero = entryData.filter { $0.value > 0 }
+        guard !nonZero.isEmpty else { return nil }
+        if let minEntry = nonZero.min(by: { $0.value < $1.value }) {
+            return (minEntry.key, Int(minEntry.value))
+        }
+        return nil
+    }
+
+    /// Weekday total entries vs weekend total entries
+    static func entryWeekendWeekdayTotals(from entryData: [String: Double]) -> (weekdayTotal: Int, weekendTotal: Int)? {
+        let weekdays = ["Monday", "Tuesday", "Wednesday", "Thursday", "Friday"]
+        let weekends = ["Saturday", "Sunday"]
+
+        var weekdayTotal: Double = 0
+        var weekendTotal: Double = 0
+        var hasAny = false
+
+        for (day, count) in entryData {
+            guard count > 0 else { continue }
+            hasAny = true
+            if weekdays.contains(day) {
+                weekdayTotal += count
+            } else if weekends.contains(day) {
+                weekendTotal += count
+            }
+        }
+
+        guard hasAny else { return nil }
+        return (Int(weekdayTotal), Int(weekendTotal))
+    }
+
+    // MARK: - Yearly Entry Statistics (monthly entry counts)
+
+    /// Total entries across the year
+    static func totalYearEntries(from entryData: [String: Double]) -> Int {
+        Int(entryData.values.reduce(0, +))
+    }
+
+    /// Average entries per active month
+    static func avgMonthlyEntries(from entryData: [String: Double]) -> Int? {
+        let nonZero = entryData.values.filter { $0 > 0 }
+        guard !nonZero.isEmpty else { return nil }
+        return Int(nonZero.reduce(0, +) / Double(nonZero.count))
+    }
+
+    /// Find month with the most entries
+    static func busiestEntryMonth(from entryData: [String: Double]) -> (month: String, totalEntries: Int)? {
+        let nonZero = entryData.filter { $0.value > 0 }
+        guard !nonZero.isEmpty else { return nil }
+        if let maxEntry = nonZero.max(by: { $0.value < $1.value }) {
+            return (maxEntry.key, Int(maxEntry.value))
+        }
+        return nil
+    }
+
+    /// Find month with the fewest entries
+    static func slowestEntryMonth(from entryData: [String: Double]) -> (month: String, totalEntries: Int)? {
+        let nonZero = entryData.filter { $0.value > 0 }
+        guard !nonZero.isEmpty else { return nil }
+        if let minEntry = nonZero.min(by: { $0.value < $1.value }) {
+            return (minEntry.key, Int(minEntry.value))
+        }
+        return nil
+    }
+
     // MARK: - Helper Functions
 
     /// Format hour as display string (e.g., "2pm", "11am")
