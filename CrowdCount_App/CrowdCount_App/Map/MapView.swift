@@ -28,6 +28,14 @@ struct MapContentView: View {
         previewLocations ?? viewModel.locations
     }
 
+    private var displayMapItems: [MapItem] {
+        // In preview mode, show all locations as singles (no clustering)
+        if let previewLocs = previewLocations {
+            return previewLocs.map { .single($0) }
+        }
+        return viewModel.mapItems
+    }
+
     // Get the bottom safe area inset
     private var bottomSafeAreaInset: CGFloat {
         if let windowScene = UIApplication.shared.connectedScenes
@@ -58,32 +66,44 @@ struct MapContentView: View {
     var body: some View {
         ZStack {
             Map(position: $viewModel.cameraPosition) {
-                ForEach(displayLocations) { location in
-                    Marker(location.name, systemImage: location.icon, coordinate: location.coordinate)
-                        .tint(Color.fromString(location.color))
-                    Annotation("", coordinate: location.coordinate) {
-                        VStack {
-                            Text("\(location.name)")
-                                .font(.caption)
-                                .bold()
-                            HStack(spacing: 0) {
-                                Text("Count: \(location.currentCount)")
-                                    .font(.caption)
-                                if location.comparison != "neutral" {
-                                    Text(location.comparisonSymbol)
+                ForEach(displayMapItems) { item in
+                    switch item {
+                    case .single(let location):
+                        Marker(location.name, systemImage: location.icon, coordinate: location.coordinate)
+                            .tint(Color.fromString(location.color))
+                        Annotation("", coordinate: location.coordinate) {
+                            FadeInView {
+                                VStack {
+                                    Text("\(location.name)")
                                         .font(.caption)
-                                        .foregroundColor(location.comparisonColor)
+                                        .bold()
+                                    HStack(spacing: 0) {
+                                        Text("Count: \(location.currentCount)")
+                                            .font(.caption)
+                                        if location.comparison != "neutral" {
+                                            Text(location.comparisonSymbol)
+                                                .font(.caption)
+                                                .foregroundColor(location.comparisonColor)
+                                        }
+                                        if let overcrowding = location.overcrowding {
+                                            Text(" / \(overcrowding)")
+                                                .font(.caption)
+                                                .foregroundColor(.secondary)
+                                        }
+                                    }
+                                    .offset(y: -2)
                                 }
-                                if let overcrowding = location.overcrowding {
-                                    Text(" / \(overcrowding)")
-                                        .font(.caption)
-                                        .foregroundColor(.secondary)
-                                }
+                                .shadow(color: appSettings.isDarkMode ? .black : .white, radius: 1)
+                                .offset(y: 16)
                             }
-                            .offset(y: -2)
                         }
-                        .shadow(color: appSettings.isDarkMode ? .black : .white, radius: 1)
-                        .offset(y: 16)
+                    case .cluster(_, let coordinate, let locations):
+                        Annotation("", coordinate: coordinate) {
+                            ClusterMarkerView(locations: locations)
+                                .onTapGesture {
+                                    viewModel.zoomToFit(locations)
+                                }
+                        }
                     }
                 }
             }
@@ -111,6 +131,11 @@ struct MapContentView: View {
                     viewModel.isMapCenteredOnUser = distance < 100
                 } else {
                     viewModel.isMapCenteredOnUser = false
+                }
+
+                // Update clustering based on zoom level
+                if previewLocations == nil {
+                    viewModel.scheduleClusterUpdate(for: context.region.span)
                 }
             }
             .onAppear {
@@ -220,7 +245,10 @@ struct MapContentView: View {
             }
         }
         .sheet(isPresented: $showingListView) {
-            LocationListView(viewModel: viewModel, adService: adService, userLocation: locationManager.userLocation)
+            LocationListView(viewModel: viewModel, adService: adService, userLocation: locationManager.userLocation) { location in
+                showingListView = false
+                viewModel.centerOnLocation(location.coordinate)
+            }
         }
     }
 }
@@ -291,6 +319,31 @@ class LocationManager: NSObject, ObservableObject, CLLocationManagerDelegate {
     }
 }
 
+// MARK: - MapItem
+
+enum MapItem: Identifiable {
+    case single(Location)
+    case cluster(id: String, coordinate: CLLocationCoordinate2D, locations: [Location])
+
+    var id: String {
+        switch self {
+        case .single(let location):
+            return location.id
+        case .cluster(let id, _, _):
+            return id
+        }
+    }
+
+    var coordinate: CLLocationCoordinate2D {
+        switch self {
+        case .single(let location):
+            return location.coordinate
+        case .cluster(_, let coordinate, _):
+            return coordinate
+        }
+    }
+}
+
 // MARK: - MapViewModel
 
 @MainActor
@@ -306,6 +359,9 @@ class MapViewModel: ObservableObject {
     @Published var isMapCenteredOnUser = false
     @Published var hasSetInitialPosition = false  // Track if we've set the initial map position
     @Published var userHasNavigated = false  // Track if user has manually navigated the map
+    @Published private(set) var mapItems: [MapItem] = []
+    private var lastClusteredSpan: MKCoordinateSpan?
+    private var clusterDebounceWork: DispatchWorkItem?
 
     init() {
         refreshLocations()
@@ -320,6 +376,44 @@ class MapViewModel: ObservableObject {
                 )
             )
             isMapCenteredOnUser = true
+        }
+    }
+
+    func centerOnLocation(_ coordinate: CLLocationCoordinate2D) {
+        withAnimation {
+            cameraPosition = .region(
+                MKCoordinateRegion(
+                    center: coordinate,
+                    span: MKCoordinateSpan(latitudeDelta: 0.002, longitudeDelta: 0.002)
+                )
+            )
+        }
+    }
+
+    /// Zoom to fit a set of locations (e.g. from a tapped cluster)
+    func zoomToFit(_ locations: [Location]) {
+        guard !locations.isEmpty else { return }
+        var minLat = locations[0].coordinate.latitude
+        var maxLat = minLat
+        var minLon = locations[0].coordinate.longitude
+        var maxLon = minLon
+        for loc in locations {
+            minLat = min(minLat, loc.coordinate.latitude)
+            maxLat = max(maxLat, loc.coordinate.latitude)
+            minLon = min(minLon, loc.coordinate.longitude)
+            maxLon = max(maxLon, loc.coordinate.longitude)
+        }
+        let centerLat = (minLat + maxLat) / 2
+        let centerLon = (minLon + maxLon) / 2
+        let spanLat = max((maxLat - minLat) * 1.5, 0.005)
+        let spanLon = max((maxLon - minLon) * 1.5, 0.005)
+        withAnimation(.easeInOut(duration: 0.4)) {
+            cameraPosition = .region(
+                MKCoordinateRegion(
+                    center: CLLocationCoordinate2D(latitude: centerLat, longitude: centerLon),
+                    span: MKCoordinateSpan(latitudeDelta: spanLat, longitudeDelta: spanLon)
+                )
+            )
         }
     }
 
@@ -455,8 +549,88 @@ class MapViewModel: ObservableObject {
             await MainActor.run {
                 self.locations = uniqueLocations
                 self.isLoading = false
+                self.updateClusters(for: self.lastClusteredSpan)
             }
         }
+    }
+
+    func updateClusters(for span: MKCoordinateSpan?) {
+        let span = span ?? MKCoordinateSpan(latitudeDelta: 50, longitudeDelta: 50)
+
+        // Skip recomputation if span hasn't changed by >10%
+        if let last = lastClusteredSpan, !mapItems.isEmpty {
+            let latRatio = abs(span.latitudeDelta - last.latitudeDelta) / max(last.latitudeDelta, 0.001)
+            let lonRatio = abs(span.longitudeDelta - last.longitudeDelta) / max(last.longitudeDelta, 0.001)
+            if latRatio < 0.1 && lonRatio < 0.1 {
+                return
+            }
+        }
+
+        lastClusteredSpan = span
+
+        // Zoomed in enough → show all as singles
+        if span.latitudeDelta < 0.5 {
+            mapItems = locations.map { .single($0) }
+            return
+        }
+
+        // Distance-based clustering: merge any locations within radius of each other
+        let clusterRadius = span.latitudeDelta * 0.15
+        var assigned = [Bool](repeating: false, count: locations.count)
+        var items: [MapItem] = []
+
+        for i in 0..<locations.count {
+            guard !assigned[i] else { continue }
+            assigned[i] = true
+
+            // Seed a cluster from this location
+            var group = [locations[i]]
+            var centerLat = locations[i].coordinate.latitude
+            var centerLon = locations[i].coordinate.longitude
+
+            // Pull in all unassigned locations within radius of the running center
+            var changed = true
+            while changed {
+                changed = false
+                for j in 0..<locations.count {
+                    guard !assigned[j] else { continue }
+                    let loc = locations[j]
+                    let avgLat = centerLat / Double(group.count)
+                    let avgLon = centerLon / Double(group.count)
+                    let dLat = loc.coordinate.latitude - avgLat
+                    let dLon = loc.coordinate.longitude - avgLon
+                    if dLat * dLat + dLon * dLon <= clusterRadius * clusterRadius {
+                        assigned[j] = true
+                        group.append(loc)
+                        centerLat += loc.coordinate.latitude
+                        centerLon += loc.coordinate.longitude
+                        changed = true
+                    }
+                }
+            }
+
+            if group.count == 1 {
+                items.append(.single(group[0]))
+            } else {
+                let avgLat = centerLat / Double(group.count)
+                let avgLon = centerLon / Double(group.count)
+                let coord = CLLocationCoordinate2D(latitude: avgLat, longitude: avgLon)
+                items.append(.cluster(id: "cluster_\(i)", coordinate: coord, locations: group))
+            }
+        }
+
+        mapItems = items
+    }
+
+    func scheduleClusterUpdate(for span: MKCoordinateSpan) {
+        clusterDebounceWork?.cancel()
+        let work = DispatchWorkItem { [weak self] in
+            Task { @MainActor in
+                self?.updateClusters(for: span)
+            }
+        }
+        clusterDebounceWork = work
+        DispatchQueue.main.asyncAfter(deadline: .now() + 0.15, execute: work)
     }
 }
 
@@ -546,6 +720,65 @@ struct Location: Identifiable {
             overcrowding: 100
         )
     ]
+}
+
+// MARK: - FadeInView
+
+private struct FadeInView<Content: View>: View {
+    let content: Content
+    @State private var visible = false
+
+    init(@ViewBuilder content: () -> Content) {
+        self.content = content()
+    }
+
+    var body: some View {
+        content
+            .opacity(visible ? 1 : 0)
+            .scaleEffect(visible ? 1 : 0.6)
+            .animation(.easeOut(duration: 0.25), value: visible)
+            .onAppear { visible = true }
+    }
+}
+
+// MARK: - ClusterMarkerView
+
+private struct ClusterMarkerView: View {
+    let locations: [Location]
+
+    private var locationCount: Int { locations.count }
+    private var totalPeople: Int { locations.reduce(0) { $0 + $1.currentCount } }
+
+    // Scale circle size from 36pt (2 locations) to 60pt (10+ locations)
+    private var circleSize: CGFloat {
+        let minSize: CGFloat = 36
+        let maxSize: CGFloat = 60
+        let t = min(Double(locationCount - 2) / 8.0, 1.0)
+        return minSize + CGFloat(t) * (maxSize - minSize)
+    }
+
+    @State private var visible = false
+
+    var body: some View {
+        VStack(spacing: 1) {
+            Text("\(locationCount)")
+                .font(.system(size: 15, weight: .bold))
+            Text("\(totalPeople)")
+                .font(.system(size: 10))
+                .opacity(0.85)
+        }
+        .frame(width: circleSize, height: circleSize)
+        .background(
+            Circle()
+                .fill(Color.blue)
+                .shadow(color: .black.opacity(0.25), radius: 3, x: 0, y: 1)
+        )
+        .foregroundColor(.white)
+        .opacity(visible ? 1 : 0)
+        .scaleEffect(visible ? 1 : 0.3)
+        .animation(.spring(response: 0.3, dampingFraction: 0.7), value: visible)
+        .onAppear { visible = true }
+    }
 }
 
 // MARK: - RefreshButtonOverlay

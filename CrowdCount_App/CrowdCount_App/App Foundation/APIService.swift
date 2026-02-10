@@ -119,13 +119,22 @@ class APIService: ObservableObject {
         self.session = URLSession(configuration: config)
     }
 
+    /// Headers that identify this app version to the server for alert targeting.
+    private var versionHeaders: [String: String] {
+        let version = Bundle.main.infoDictionary?["CFBundleShortVersionString"] as? String ?? "0.0.0"
+        return ["X-App-Version": version]
+    }
+
     // MARK: - Core Request Method
     private func request(
         endpoint: String,
         method: String = "GET",
         body: [String: Any]? = nil,
         cacheKey: String? = nil,
-        cacheTTL: TimeInterval? = nil
+        cacheTTL: TimeInterval? = nil,
+        credentials: (deviceId: String, password: String)? = nil,
+        idempotent: Bool = false,
+        additionalHeaders: [String: String]? = nil
     ) async throws -> Data {
         // Check cache first
         if let key = cacheKey, cacheTTL != nil {
@@ -144,9 +153,41 @@ class APIService: ObservableObject {
             var request = URLRequest(url: url)
             request.httpMethod = method
 
+            var bodyStr = ""
             if let body = body {
-                request.httpBody = try? JSONSerialization.data(withJSONObject: body)
+                let bodyData = try? JSONSerialization.data(withJSONObject: body)
+                request.httpBody = bodyData
                 request.setValue("application/json", forHTTPHeaderField: "Content-Type")
+                if let bodyData = bodyData {
+                    bodyStr = String(data: bodyData, encoding: .utf8) ?? ""
+                }
+            }
+
+            // Sign request if credentials provided
+            if let creds = credentials {
+                let path = url.path
+                let sigHeaders = CryptoHelper.signRequest(
+                    deviceId: creds.deviceId,
+                    password: creds.password,
+                    method: method,
+                    path: path.isEmpty ? "/\(endpoint)" : path,
+                    body: bodyStr
+                )
+                for (key, value) in sigHeaders {
+                    request.setValue(value, forHTTPHeaderField: key)
+                }
+            }
+
+            // Add idempotency key for mutating requests
+            if idempotent {
+                request.setValue(CryptoHelper.generateIdempotencyKey(), forHTTPHeaderField: "Idempotency-Key")
+            }
+
+            // Add any extra headers (e.g. X-App-Version)
+            if let additionalHeaders = additionalHeaders {
+                for (key, value) in additionalHeaders {
+                    request.setValue(value, forHTTPHeaderField: key)
+                }
             }
 
             let (data, response) = try await self.session.data(for: request)
@@ -225,7 +266,9 @@ class APIService: ObservableObject {
         _ = try await request(
             endpoint: "setcount",
             method: "POST",
-            body: ["device_id": deviceId, "password": password, "new_count": newCount]
+            body: ["device_id": deviceId, "password": password, "new_count": newCount],
+            credentials: (deviceId, password),
+            idempotent: true
         )
 
         // Clear the last known count so next fetch sees it as "changed"
@@ -284,7 +327,8 @@ class APIService: ObservableObject {
         let data = try await request(
             endpoint: "create_overcrowding_group",
             method: "POST",
-            body: body
+            body: body,
+            idempotent: true
         )
 
         guard let json = try? JSONSerialization.jsonObject(with: data) as? [String: Any],
@@ -308,7 +352,8 @@ class APIService: ObservableObject {
         _ = try await request(
             endpoint: "update_overcrowding_group",
             method: "POST",
-            body: body
+            body: body,
+            idempotent: true
         )
 
         // Invalidate cache for this group
@@ -320,7 +365,8 @@ class APIService: ObservableObject {
         _ = try await request(
             endpoint: "delete_overcrowding_group",
             method: "POST",
-            body: ["group_id": groupId]
+            body: ["group_id": groupId],
+            idempotent: true
         )
 
         // Invalidate cache for this group
@@ -338,7 +384,7 @@ class APIService: ObservableObject {
         )
 
         guard let json = try? JSONSerialization.jsonObject(with: data) as? [String: Any],
-              let limit = json["overcrowding_limit"] as? Int,
+              let limit = json["limit"] as? Int,
               let total = json["current_total"] as? Int,
               let devices = json["device_ids"] as? [String] else {
             throw APIError.decodingError
@@ -357,7 +403,8 @@ class APIService: ObservableObject {
         _ = try await request(
             endpoint: "register_group_notification",
             method: "POST",
-            body: ["group_id": groupId, "app_id": appId]
+            body: ["group_id": groupId, "app_id": appId],
+            idempotent: true
         )
     }
 
@@ -366,7 +413,8 @@ class APIService: ObservableObject {
         _ = try await request(
             endpoint: "unregister_group_notification",
             method: "POST",
-            body: ["group_id": groupId, "app_id": appId]
+            body: ["group_id": groupId, "app_id": appId],
+            idempotent: true
         )
     }
 
@@ -423,7 +471,8 @@ class APIService: ObservableObject {
         let data = try await request(
             endpoint: "check_password",
             method: "POST",
-            body: ["device_id": deviceId, "password": password]
+            body: ["device_id": deviceId, "password": password],
+            credentials: (deviceId, password)
         )
 
         guard let json = try? JSONSerialization.jsonObject(with: data) as? [String: Any],
@@ -443,7 +492,8 @@ class APIService: ObservableObject {
             method: "POST",
             body: ["device_id": deviceId, "password": password],
             cacheKey: cacheKey,
-            cacheTTL: CacheManager.TTL.availableDates
+            cacheTTL: CacheManager.TTL.availableDates,
+            credentials: (deviceId, password)
         )
 
         let response = try JSONDecoder().decode(AvailableDatesResponse.self, from: data)
@@ -459,7 +509,8 @@ class APIService: ObservableObject {
             method: "POST",
             body: ["device_id": deviceId, "password": password, "date": utcDate],
             cacheKey: cacheKey,
-            cacheTTL: CacheManager.TTL.dayData
+            cacheTTL: CacheManager.TTL.dayData,
+            credentials: (deviceId, password)
         )
 
         let response = try JSONDecoder().decode(DayDataResponse.self, from: data)
@@ -474,7 +525,8 @@ class APIService: ObservableObject {
             method: "POST",
             body: ["device_id": deviceId, "password": password, "date": utcDate],
             cacheKey: cacheKey,
-            cacheTTL: CacheManager.TTL.dayData
+            cacheTTL: CacheManager.TTL.dayData,
+            credentials: (deviceId, password)
         )
 
         let response = try JSONDecoder().decode(AverageDayDataResponse.self, from: data)
@@ -490,7 +542,8 @@ class APIService: ObservableObject {
             method: "POST",
             body: ["device_id": deviceId, "password": password, "date": date],
             cacheKey: cacheKey,
-            cacheTTL: CacheManager.TTL.weekData
+            cacheTTL: CacheManager.TTL.weekData,
+            credentials: (deviceId, password)
         )
 
         let response = try JSONDecoder().decode(WeekDataResponse.self, from: data)
@@ -505,7 +558,8 @@ class APIService: ObservableObject {
             method: "POST",
             body: ["device_id": deviceId, "password": password, "date": date],
             cacheKey: cacheKey,
-            cacheTTL: CacheManager.TTL.weekData
+            cacheTTL: CacheManager.TTL.weekData,
+            credentials: (deviceId, password)
         )
 
         let response = try JSONDecoder().decode(AverageWeekDataResponse.self, from: data)
@@ -521,7 +575,8 @@ class APIService: ObservableObject {
             method: "POST",
             body: ["device_id": deviceId, "password": password, "year": year],
             cacheKey: cacheKey,
-            cacheTTL: CacheManager.TTL.yearData
+            cacheTTL: CacheManager.TTL.yearData,
+            credentials: (deviceId, password)
         )
 
         let response = try JSONDecoder().decode(YearDataResponse.self, from: data)
@@ -536,7 +591,8 @@ class APIService: ObservableObject {
             method: "POST",
             body: ["device_id": deviceId, "password": password, "year": year],
             cacheKey: cacheKey,
-            cacheTTL: CacheManager.TTL.yearData
+            cacheTTL: CacheManager.TTL.yearData,
+            credentials: (deviceId, password)
         )
 
         let response = try JSONDecoder().decode(AverageYearDataResponse.self, from: data)
@@ -558,7 +614,8 @@ class APIService: ObservableObject {
             method: "POST",
             body: ["device_id": deviceId, "password": password, "date": utcDate],
             cacheKey: cacheKey,
-            cacheTTL: CacheManager.TTL.dayData
+            cacheTTL: CacheManager.TTL.dayData,
+            credentials: (deviceId, password)
         )
 
         let response = try JSONDecoder().decode(EntryDayDataResponse.self, from: data)
@@ -573,7 +630,8 @@ class APIService: ObservableObject {
             method: "POST",
             body: ["device_id": deviceId, "password": password, "date": utcDate],
             cacheKey: cacheKey,
-            cacheTTL: CacheManager.TTL.dayData
+            cacheTTL: CacheManager.TTL.dayData,
+            credentials: (deviceId, password)
         )
 
         let response = try JSONDecoder().decode(AverageEntryDayDataResponse.self, from: data)
@@ -588,7 +646,8 @@ class APIService: ObservableObject {
             method: "POST",
             body: ["device_id": deviceId, "password": password, "date": date],
             cacheKey: cacheKey,
-            cacheTTL: CacheManager.TTL.weekData
+            cacheTTL: CacheManager.TTL.weekData,
+            credentials: (deviceId, password)
         )
 
         let response = try JSONDecoder().decode(EntryWeekDataResponse.self, from: data)
@@ -603,7 +662,8 @@ class APIService: ObservableObject {
             method: "POST",
             body: ["device_id": deviceId, "password": password, "date": date],
             cacheKey: cacheKey,
-            cacheTTL: CacheManager.TTL.weekData
+            cacheTTL: CacheManager.TTL.weekData,
+            credentials: (deviceId, password)
         )
 
         let response = try JSONDecoder().decode(AverageEntryWeekDataResponse.self, from: data)
@@ -618,7 +678,8 @@ class APIService: ObservableObject {
             method: "POST",
             body: ["device_id": deviceId, "password": password, "year": year],
             cacheKey: cacheKey,
-            cacheTTL: CacheManager.TTL.yearData
+            cacheTTL: CacheManager.TTL.yearData,
+            credentials: (deviceId, password)
         )
 
         let response = try JSONDecoder().decode(EntryYearDataResponse.self, from: data)
@@ -633,7 +694,8 @@ class APIService: ObservableObject {
             method: "POST",
             body: ["device_id": deviceId, "password": password, "year": year],
             cacheKey: cacheKey,
-            cacheTTL: CacheManager.TTL.yearData
+            cacheTTL: CacheManager.TTL.yearData,
+            credentials: (deviceId, password)
         )
 
         let response = try JSONDecoder().decode(AverageEntryYearDataResponse.self, from: data)
@@ -647,7 +709,8 @@ class APIService: ObservableObject {
         let data = try await request(
             endpoint: "check_if_alert",
             cacheKey: cacheKey,
-            cacheTTL: CacheManager.TTL.alertCheck
+            cacheTTL: CacheManager.TTL.alertCheck,
+            additionalHeaders: versionHeaders
         )
 
         guard let json = try? JSONSerialization.jsonObject(with: data) as? [String: Any],
@@ -659,15 +722,18 @@ class APIService: ObservableObject {
     }
 
     func fetchAlertInfo() async throws -> (type: String, title: String, body: String, alertId: String)? {
-        let data = try await request(endpoint: "get_active_alert")
+        let data = try await request(
+            endpoint: "get_active_alert",
+            additionalHeaders: versionHeaders
+        )
 
         guard let json = try? JSONSerialization.jsonObject(with: data) as? [String: Any],
-              let alertArray = json["alert_info"] as? [[String: String]],
+              let alertArray = json["alert_info"] as? [[String: Any]],
               let alert = alertArray.first,
-              let type = alert["alert_type"],
-              let title = alert["title"],
-              let body = alert["body"],
-              let alertId = alert["alert_id"] else {
+              let type = alert["alert_type"] as? String,
+              let title = alert["title"] as? String,
+              let body = alert["body"] as? String,
+              let alertId = alert["alert_id"] as? String else {
             return nil
         }
 
@@ -743,7 +809,8 @@ class APIService: ObservableObject {
                 "reset_hour": hour,
                 "reset_minute": minute,
                 "timezone": timezone
-            ]
+            ],
+            idempotent: true
         )
 
         guard let json = try? JSONSerialization.jsonObject(with: data) as? [String: Any],
@@ -767,24 +834,37 @@ class APIService: ObservableObject {
     func deleteResetSchedule(groupId: String) async throws {
         _ = try await request(
             endpoint: "reset-schedule/\(groupId)",
-            method: "DELETE"
+            method: "DELETE",
+            idempotent: true
         )
     }
 
     // MARK: - App Registration & Heartbeat
     func registerApp(appId: String) async {
+        var body: [String: Any] = ["app_id": appId]
+        // Include device token if already available from a previous session
+        if let deviceToken = UserDefaults.standard.string(forKey: "deviceToken") {
+            body["device_token"] = deviceToken
+        }
         _ = try? await request(
             endpoint: "register",
             method: "POST",
-            body: ["app_id": appId]
+            body: body,
+            idempotent: true
         )
     }
 
     func sendHeartbeat(appId: String) async {
+        var body: [String: Any] = ["app_id": appId]
+        // Include device token in heartbeat so server stays up-to-date
+        if let deviceToken = UserDefaults.standard.string(forKey: "deviceToken") {
+            body["device_token"] = deviceToken
+        }
         _ = try? await request(
             endpoint: "heartbeat",
             method: "POST",
-            body: ["app_id": appId]
+            body: body,
+            idempotent: true
         )
     }
 

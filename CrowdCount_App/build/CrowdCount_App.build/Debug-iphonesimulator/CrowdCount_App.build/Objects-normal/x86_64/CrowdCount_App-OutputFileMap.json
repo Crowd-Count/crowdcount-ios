@@ -1,0 +1,479 @@
+{
+  "" : {
+    "diagnostics" : "/Users/elkanbruha/Documents/CrowdCount/crowdcount-ios/CrowdCount_App/build/CrowdCount_App.build/Debug-iphonesimulator/CrowdCount_App.build/Objects-normal/x86_64/CrowdCount_App-primary.dia",
+    "emit-module-dependencies" : "/Users/elkanbruha/Documents/CrowdCount/crowdcount-ios/CrowdCount_App/build/CrowdCount_App.build/Debug-iphonesimulator/CrowdCount_App.build/Objects-normal/x86_64/CrowdCount_App-primary-emit-module.d",
+    "emit-module-diagnostics" : "/Users/elkanbruha/Documents/CrowdCount/crowdcount-ios/CrowdCount_App/build/CrowdCount_App.build/Debug-iphonesimulator/CrowdCount_App.build/Objects-normal/x86_64/CrowdCount_App-primary-emit-module.dia",
+    "pch" : "/Users/elkanbruha/Documents/CrowdCount/crowdcount-ios/CrowdCount_App/build/CrowdCount_App.build/Debug-iphonesimulator/CrowdCount_App.build/Objects-normal/x86_64/CrowdCount_App-primary-Bridging-header.pch",
+    "swift-dependencies" : "/Users/elkanbruha/Documents/CrowdCount/crowdcount-ios/CrowdCount_App/build/CrowdCount_App.build/Debug-iphonesimulator/CrowdCount_App.build/Objects-normal/x86_64/CrowdCount_App-primary.swiftdeps"
+  },
+  "/Users/elkanbruha/Documents/CrowdCount/crowdcount-ios/CrowdCount_App/CrowdCount_App/App Foundation/APIService.swift" : {
+    "const-values" : "/Users/elkanbruha/Documents/CrowdCount/crowdcount-ios/CrowdCount_App/build/CrowdCount_App.build/Debug-iphonesimulator/CrowdCount_App.build/Objects-normal/x86_64/APIService.swiftconstvalues",
+    "dependencies" : "/Users/elkanbruha/Documents/CrowdCount/crowdcount-ios/CrowdCount_App/build/CrowdCount_App.build/Debug-iphonesimulator/CrowdCount_App.build/Objects-normal/x86_64/APIService.d",
+    "diagnostics" : "/Users/elkanbruha/Documents/CrowdCount/crowdcount-ios/CrowdCount_App/build/CrowdCount_App.build/Debug-iphonesimulator/CrowdCount_App.build/Objects-normal/x86_64/APIService.dia",
+    "index-unit-output-path" : "/CrowdCount_App.build/Debug-iphonesimulator/CrowdCount_App.build/Objects-normal/x86_64/APIService.o",
+    "llvm-bc" : "/Users/elkanbruha/Documents/CrowdCount/crowdcount-ios/CrowdCount_App/build/CrowdCount_App.build/Debug-iphonesimulator/CrowdCount_App.build/Objects-normal/x86_64/APIService.bc",
+    "object" : "/Users/elkanbruha/Documents/CrowdCount/crowdcount-ios/CrowdCount_App/build/CrowdCount_App.build/Debug-iphonesimulator/CrowdCount_App.build/Objects-normal/x86_64/APIService.o",
+    "swift-dependencies" : "/Users/elkanbruha/Documents/CrowdCount/crowdcount-ios/CrowdCount_App/build/CrowdCount_App.build/Debug-iphonesimulator/CrowdCount_App.build/Objects-normal/x86_64/APIService.swiftdeps",
+    "swiftmodule" : "/Users/elkanbruha/Documents/CrowdCount/crowdcount-ios/CrowdCount_App/build/CrowdCount_App.build/Debug-iphonesimulator/CrowdCount_App.build/Objects-normal/x86_64/APIService~partial.swiftmodule"
+  },
+  "/Users/elkanbruha/Documents/CrowdCount/crowdcount-ios/CrowdCount_App/CrowdCount_App/App Foundation/AppDelegate.swift" : {
+    "const-values" : "/Users/elkanbruha/Documents/CrowdCount/crowdcount-ios/CrowdCount_App/build/CrowdCount_App.build/Debug-iphonesimulator/CrowdCount_App.build/Objects-normal/x86_64/AppDelegate.swiftconstvalues",
+    "dependencies" : "/Users/elkanbruha/Documents/CrowdCount/crowdcount-ios/CrowdCount_App/build/CrowdCount_App.build/Debug-iphonesimulator/CrowdCount_App.build/Objects-normal/x86_64/AppDelegate.d",
+    "diagnostics" : "/Users/elkanbruha/Documents/CrowdCount/crowdcount-ios/CrowdCount_App/build/CrowdCount_App.build/Debug-iphonesimulator/CrowdCount_App.build/Objects-normal/x86_64/AppDelegate.dia",
+    "index-unit-output-path" : "/CrowdCount_App.build/Debug-iphonesimulator/CrowdCount_App.build/Objects-normal/x86_64/AppDelegate.o",
+    "llvm-bc" : "/Users/elkanbruha/Documents/CrowdCount/crowdcount-ios/CrowdCount_App/build/CrowdCount_App.build/Debug-iphonesimulator/CrowdCount_App.build/Objects-normal/x86_64/AppDelegate.bc",
+    "object" : "/Users/elkanbruha/Documents/CrowdCount/crowdcount-ios/CrowdCount_App/build/CrowdCount_App.build/Debug-iphonesimulator/CrowdCount_App.build/Objects-normal/x86_64/AppDelegate.o",
+    "swift-dependencies" : "/Users/elkanbruha/Documents/CrowdCount/crowdcount-ios/CrowdCount_App/build/CrowdCount_App.build/Debug-iphonesimulator/CrowdCount_App.build/Objects-normal/x86_64/AppDelegate.swiftdeps",
+    "swiftmodule" : "/Users/elkanbruha/Documents/CrowdCount/crowdcount-ios/CrowdCount_App/build/CrowdCount_App.build/Debug-iphonesimulator/CrowdCount_App.build/Objects-normal/x86_64/AppDelegate~partial.swiftmodule"
+  },
+  "/Users/elkanbruha/Documents/CrowdCount/crowdcount-ios/CrowdCount_App/CrowdCount_App/App Foundation/AppSettings.swift" : {
+    "const-values" : "/Users/elkanbruha/Documents/CrowdCount/crowdcount-ios/CrowdCount_App/build/CrowdCount_App.build/Debug-iphonesimulator/CrowdCount_App.build/Objects-normal/x86_64/AppSettings.swiftconstvalues",
+    "dependencies" : "/Users/elkanbruha/Documents/CrowdCount/crowdcount-ios/CrowdCount_App/build/CrowdCount_App.build/Debug-iphonesimulator/CrowdCount_App.build/Objects-normal/x86_64/AppSettings.d",
+    "diagnostics" : "/Users/elkanbruha/Documents/CrowdCount/crowdcount-ios/CrowdCount_App/build/CrowdCount_App.build/Debug-iphonesimulator/CrowdCount_App.build/Objects-normal/x86_64/AppSettings.dia",
+    "index-unit-output-path" : "/CrowdCount_App.build/Debug-iphonesimulator/CrowdCount_App.build/Objects-normal/x86_64/AppSettings.o",
+    "llvm-bc" : "/Users/elkanbruha/Documents/CrowdCount/crowdcount-ios/CrowdCount_App/build/CrowdCount_App.build/Debug-iphonesimulator/CrowdCount_App.build/Objects-normal/x86_64/AppSettings.bc",
+    "object" : "/Users/elkanbruha/Documents/CrowdCount/crowdcount-ios/CrowdCount_App/build/CrowdCount_App.build/Debug-iphonesimulator/CrowdCount_App.build/Objects-normal/x86_64/AppSettings.o",
+    "swift-dependencies" : "/Users/elkanbruha/Documents/CrowdCount/crowdcount-ios/CrowdCount_App/build/CrowdCount_App.build/Debug-iphonesimulator/CrowdCount_App.build/Objects-normal/x86_64/AppSettings.swiftdeps",
+    "swiftmodule" : "/Users/elkanbruha/Documents/CrowdCount/crowdcount-ios/CrowdCount_App/build/CrowdCount_App.build/Debug-iphonesimulator/CrowdCount_App.build/Objects-normal/x86_64/AppSettings~partial.swiftmodule"
+  },
+  "/Users/elkanbruha/Documents/CrowdCount/crowdcount-ios/CrowdCount_App/CrowdCount_App/App Foundation/CrowdCount_AppApp.swift" : {
+    "const-values" : "/Users/elkanbruha/Documents/CrowdCount/crowdcount-ios/CrowdCount_App/build/CrowdCount_App.build/Debug-iphonesimulator/CrowdCount_App.build/Objects-normal/x86_64/CrowdCount_AppApp.swiftconstvalues",
+    "dependencies" : "/Users/elkanbruha/Documents/CrowdCount/crowdcount-ios/CrowdCount_App/build/CrowdCount_App.build/Debug-iphonesimulator/CrowdCount_App.build/Objects-normal/x86_64/CrowdCount_AppApp.d",
+    "diagnostics" : "/Users/elkanbruha/Documents/CrowdCount/crowdcount-ios/CrowdCount_App/build/CrowdCount_App.build/Debug-iphonesimulator/CrowdCount_App.build/Objects-normal/x86_64/CrowdCount_AppApp.dia",
+    "index-unit-output-path" : "/CrowdCount_App.build/Debug-iphonesimulator/CrowdCount_App.build/Objects-normal/x86_64/CrowdCount_AppApp.o",
+    "llvm-bc" : "/Users/elkanbruha/Documents/CrowdCount/crowdcount-ios/CrowdCount_App/build/CrowdCount_App.build/Debug-iphonesimulator/CrowdCount_App.build/Objects-normal/x86_64/CrowdCount_AppApp.bc",
+    "object" : "/Users/elkanbruha/Documents/CrowdCount/crowdcount-ios/CrowdCount_App/build/CrowdCount_App.build/Debug-iphonesimulator/CrowdCount_App.build/Objects-normal/x86_64/CrowdCount_AppApp.o",
+    "swift-dependencies" : "/Users/elkanbruha/Documents/CrowdCount/crowdcount-ios/CrowdCount_App/build/CrowdCount_App.build/Debug-iphonesimulator/CrowdCount_App.build/Objects-normal/x86_64/CrowdCount_AppApp.swiftdeps",
+    "swiftmodule" : "/Users/elkanbruha/Documents/CrowdCount/crowdcount-ios/CrowdCount_App/build/CrowdCount_App.build/Debug-iphonesimulator/CrowdCount_App.build/Objects-normal/x86_64/CrowdCount_AppApp~partial.swiftmodule"
+  },
+  "/Users/elkanbruha/Documents/CrowdCount/crowdcount-ios/CrowdCount_App/CrowdCount_App/App Foundation/CryptoHelper.swift" : {
+    "const-values" : "/Users/elkanbruha/Documents/CrowdCount/crowdcount-ios/CrowdCount_App/build/CrowdCount_App.build/Debug-iphonesimulator/CrowdCount_App.build/Objects-normal/x86_64/CryptoHelper.swiftconstvalues",
+    "dependencies" : "/Users/elkanbruha/Documents/CrowdCount/crowdcount-ios/CrowdCount_App/build/CrowdCount_App.build/Debug-iphonesimulator/CrowdCount_App.build/Objects-normal/x86_64/CryptoHelper.d",
+    "diagnostics" : "/Users/elkanbruha/Documents/CrowdCount/crowdcount-ios/CrowdCount_App/build/CrowdCount_App.build/Debug-iphonesimulator/CrowdCount_App.build/Objects-normal/x86_64/CryptoHelper.dia",
+    "index-unit-output-path" : "/CrowdCount_App.build/Debug-iphonesimulator/CrowdCount_App.build/Objects-normal/x86_64/CryptoHelper.o",
+    "llvm-bc" : "/Users/elkanbruha/Documents/CrowdCount/crowdcount-ios/CrowdCount_App/build/CrowdCount_App.build/Debug-iphonesimulator/CrowdCount_App.build/Objects-normal/x86_64/CryptoHelper.bc",
+    "object" : "/Users/elkanbruha/Documents/CrowdCount/crowdcount-ios/CrowdCount_App/build/CrowdCount_App.build/Debug-iphonesimulator/CrowdCount_App.build/Objects-normal/x86_64/CryptoHelper.o",
+    "swift-dependencies" : "/Users/elkanbruha/Documents/CrowdCount/crowdcount-ios/CrowdCount_App/build/CrowdCount_App.build/Debug-iphonesimulator/CrowdCount_App.build/Objects-normal/x86_64/CryptoHelper.swiftdeps",
+    "swiftmodule" : "/Users/elkanbruha/Documents/CrowdCount/crowdcount-ios/CrowdCount_App/build/CrowdCount_App.build/Debug-iphonesimulator/CrowdCount_App.build/Objects-normal/x86_64/CryptoHelper~partial.swiftmodule"
+  },
+  "/Users/elkanbruha/Documents/CrowdCount/crowdcount-ios/CrowdCount_App/CrowdCount_App/App Foundation/NicknameManager.swift" : {
+    "const-values" : "/Users/elkanbruha/Documents/CrowdCount/crowdcount-ios/CrowdCount_App/build/CrowdCount_App.build/Debug-iphonesimulator/CrowdCount_App.build/Objects-normal/x86_64/NicknameManager.swiftconstvalues",
+    "dependencies" : "/Users/elkanbruha/Documents/CrowdCount/crowdcount-ios/CrowdCount_App/build/CrowdCount_App.build/Debug-iphonesimulator/CrowdCount_App.build/Objects-normal/x86_64/NicknameManager.d",
+    "diagnostics" : "/Users/elkanbruha/Documents/CrowdCount/crowdcount-ios/CrowdCount_App/build/CrowdCount_App.build/Debug-iphonesimulator/CrowdCount_App.build/Objects-normal/x86_64/NicknameManager.dia",
+    "index-unit-output-path" : "/CrowdCount_App.build/Debug-iphonesimulator/CrowdCount_App.build/Objects-normal/x86_64/NicknameManager.o",
+    "llvm-bc" : "/Users/elkanbruha/Documents/CrowdCount/crowdcount-ios/CrowdCount_App/build/CrowdCount_App.build/Debug-iphonesimulator/CrowdCount_App.build/Objects-normal/x86_64/NicknameManager.bc",
+    "object" : "/Users/elkanbruha/Documents/CrowdCount/crowdcount-ios/CrowdCount_App/build/CrowdCount_App.build/Debug-iphonesimulator/CrowdCount_App.build/Objects-normal/x86_64/NicknameManager.o",
+    "swift-dependencies" : "/Users/elkanbruha/Documents/CrowdCount/crowdcount-ios/CrowdCount_App/build/CrowdCount_App.build/Debug-iphonesimulator/CrowdCount_App.build/Objects-normal/x86_64/NicknameManager.swiftdeps",
+    "swiftmodule" : "/Users/elkanbruha/Documents/CrowdCount/crowdcount-ios/CrowdCount_App/build/CrowdCount_App.build/Debug-iphonesimulator/CrowdCount_App.build/Objects-normal/x86_64/NicknameManager~partial.swiftmodule"
+  },
+  "/Users/elkanbruha/Documents/CrowdCount/crowdcount-ios/CrowdCount_App/CrowdCount_App/Background/BlurredEdgesView.swift" : {
+    "const-values" : "/Users/elkanbruha/Documents/CrowdCount/crowdcount-ios/CrowdCount_App/build/CrowdCount_App.build/Debug-iphonesimulator/CrowdCount_App.build/Objects-normal/x86_64/BlurredEdgesView.swiftconstvalues",
+    "dependencies" : "/Users/elkanbruha/Documents/CrowdCount/crowdcount-ios/CrowdCount_App/build/CrowdCount_App.build/Debug-iphonesimulator/CrowdCount_App.build/Objects-normal/x86_64/BlurredEdgesView.d",
+    "diagnostics" : "/Users/elkanbruha/Documents/CrowdCount/crowdcount-ios/CrowdCount_App/build/CrowdCount_App.build/Debug-iphonesimulator/CrowdCount_App.build/Objects-normal/x86_64/BlurredEdgesView.dia",
+    "index-unit-output-path" : "/CrowdCount_App.build/Debug-iphonesimulator/CrowdCount_App.build/Objects-normal/x86_64/BlurredEdgesView.o",
+    "llvm-bc" : "/Users/elkanbruha/Documents/CrowdCount/crowdcount-ios/CrowdCount_App/build/CrowdCount_App.build/Debug-iphonesimulator/CrowdCount_App.build/Objects-normal/x86_64/BlurredEdgesView.bc",
+    "object" : "/Users/elkanbruha/Documents/CrowdCount/crowdcount-ios/CrowdCount_App/build/CrowdCount_App.build/Debug-iphonesimulator/CrowdCount_App.build/Objects-normal/x86_64/BlurredEdgesView.o",
+    "swift-dependencies" : "/Users/elkanbruha/Documents/CrowdCount/crowdcount-ios/CrowdCount_App/build/CrowdCount_App.build/Debug-iphonesimulator/CrowdCount_App.build/Objects-normal/x86_64/BlurredEdgesView.swiftdeps",
+    "swiftmodule" : "/Users/elkanbruha/Documents/CrowdCount/crowdcount-ios/CrowdCount_App/build/CrowdCount_App.build/Debug-iphonesimulator/CrowdCount_App.build/Objects-normal/x86_64/BlurredEdgesView~partial.swiftmodule"
+  },
+  "/Users/elkanbruha/Documents/CrowdCount/crowdcount-ios/CrowdCount_App/CrowdCount_App/Background/BlurredEdgesViewRepresentable.swift" : {
+    "const-values" : "/Users/elkanbruha/Documents/CrowdCount/crowdcount-ios/CrowdCount_App/build/CrowdCount_App.build/Debug-iphonesimulator/CrowdCount_App.build/Objects-normal/x86_64/BlurredEdgesViewRepresentable.swiftconstvalues",
+    "dependencies" : "/Users/elkanbruha/Documents/CrowdCount/crowdcount-ios/CrowdCount_App/build/CrowdCount_App.build/Debug-iphonesimulator/CrowdCount_App.build/Objects-normal/x86_64/BlurredEdgesViewRepresentable.d",
+    "diagnostics" : "/Users/elkanbruha/Documents/CrowdCount/crowdcount-ios/CrowdCount_App/build/CrowdCount_App.build/Debug-iphonesimulator/CrowdCount_App.build/Objects-normal/x86_64/BlurredEdgesViewRepresentable.dia",
+    "index-unit-output-path" : "/CrowdCount_App.build/Debug-iphonesimulator/CrowdCount_App.build/Objects-normal/x86_64/BlurredEdgesViewRepresentable.o",
+    "llvm-bc" : "/Users/elkanbruha/Documents/CrowdCount/crowdcount-ios/CrowdCount_App/build/CrowdCount_App.build/Debug-iphonesimulator/CrowdCount_App.build/Objects-normal/x86_64/BlurredEdgesViewRepresentable.bc",
+    "object" : "/Users/elkanbruha/Documents/CrowdCount/crowdcount-ios/CrowdCount_App/build/CrowdCount_App.build/Debug-iphonesimulator/CrowdCount_App.build/Objects-normal/x86_64/BlurredEdgesViewRepresentable.o",
+    "swift-dependencies" : "/Users/elkanbruha/Documents/CrowdCount/crowdcount-ios/CrowdCount_App/build/CrowdCount_App.build/Debug-iphonesimulator/CrowdCount_App.build/Objects-normal/x86_64/BlurredEdgesViewRepresentable.swiftdeps",
+    "swiftmodule" : "/Users/elkanbruha/Documents/CrowdCount/crowdcount-ios/CrowdCount_App/build/CrowdCount_App.build/Debug-iphonesimulator/CrowdCount_App.build/Objects-normal/x86_64/BlurredEdgesViewRepresentable~partial.swiftmodule"
+  },
+  "/Users/elkanbruha/Documents/CrowdCount/crowdcount-ios/CrowdCount_App/CrowdCount_App/Background/VisualEffectView.swift" : {
+    "const-values" : "/Users/elkanbruha/Documents/CrowdCount/crowdcount-ios/CrowdCount_App/build/CrowdCount_App.build/Debug-iphonesimulator/CrowdCount_App.build/Objects-normal/x86_64/VisualEffectView.swiftconstvalues",
+    "dependencies" : "/Users/elkanbruha/Documents/CrowdCount/crowdcount-ios/CrowdCount_App/build/CrowdCount_App.build/Debug-iphonesimulator/CrowdCount_App.build/Objects-normal/x86_64/VisualEffectView.d",
+    "diagnostics" : "/Users/elkanbruha/Documents/CrowdCount/crowdcount-ios/CrowdCount_App/build/CrowdCount_App.build/Debug-iphonesimulator/CrowdCount_App.build/Objects-normal/x86_64/VisualEffectView.dia",
+    "index-unit-output-path" : "/CrowdCount_App.build/Debug-iphonesimulator/CrowdCount_App.build/Objects-normal/x86_64/VisualEffectView.o",
+    "llvm-bc" : "/Users/elkanbruha/Documents/CrowdCount/crowdcount-ios/CrowdCount_App/build/CrowdCount_App.build/Debug-iphonesimulator/CrowdCount_App.build/Objects-normal/x86_64/VisualEffectView.bc",
+    "object" : "/Users/elkanbruha/Documents/CrowdCount/crowdcount-ios/CrowdCount_App/build/CrowdCount_App.build/Debug-iphonesimulator/CrowdCount_App.build/Objects-normal/x86_64/VisualEffectView.o",
+    "swift-dependencies" : "/Users/elkanbruha/Documents/CrowdCount/crowdcount-ios/CrowdCount_App/build/CrowdCount_App.build/Debug-iphonesimulator/CrowdCount_App.build/Objects-normal/x86_64/VisualEffectView.swiftdeps",
+    "swiftmodule" : "/Users/elkanbruha/Documents/CrowdCount/crowdcount-ios/CrowdCount_App/build/CrowdCount_App.build/Debug-iphonesimulator/CrowdCount_App.build/Objects-normal/x86_64/VisualEffectView~partial.swiftmodule"
+  },
+  "/Users/elkanbruha/Documents/CrowdCount/crowdcount-ios/CrowdCount_App/CrowdCount_App/Base and Start Page/Alert.swift" : {
+    "const-values" : "/Users/elkanbruha/Documents/CrowdCount/crowdcount-ios/CrowdCount_App/build/CrowdCount_App.build/Debug-iphonesimulator/CrowdCount_App.build/Objects-normal/x86_64/Alert.swiftconstvalues",
+    "dependencies" : "/Users/elkanbruha/Documents/CrowdCount/crowdcount-ios/CrowdCount_App/build/CrowdCount_App.build/Debug-iphonesimulator/CrowdCount_App.build/Objects-normal/x86_64/Alert.d",
+    "diagnostics" : "/Users/elkanbruha/Documents/CrowdCount/crowdcount-ios/CrowdCount_App/build/CrowdCount_App.build/Debug-iphonesimulator/CrowdCount_App.build/Objects-normal/x86_64/Alert.dia",
+    "index-unit-output-path" : "/CrowdCount_App.build/Debug-iphonesimulator/CrowdCount_App.build/Objects-normal/x86_64/Alert.o",
+    "llvm-bc" : "/Users/elkanbruha/Documents/CrowdCount/crowdcount-ios/CrowdCount_App/build/CrowdCount_App.build/Debug-iphonesimulator/CrowdCount_App.build/Objects-normal/x86_64/Alert.bc",
+    "object" : "/Users/elkanbruha/Documents/CrowdCount/crowdcount-ios/CrowdCount_App/build/CrowdCount_App.build/Debug-iphonesimulator/CrowdCount_App.build/Objects-normal/x86_64/Alert.o",
+    "swift-dependencies" : "/Users/elkanbruha/Documents/CrowdCount/crowdcount-ios/CrowdCount_App/build/CrowdCount_App.build/Debug-iphonesimulator/CrowdCount_App.build/Objects-normal/x86_64/Alert.swiftdeps",
+    "swiftmodule" : "/Users/elkanbruha/Documents/CrowdCount/crowdcount-ios/CrowdCount_App/build/CrowdCount_App.build/Debug-iphonesimulator/CrowdCount_App.build/Objects-normal/x86_64/Alert~partial.swiftmodule"
+  },
+  "/Users/elkanbruha/Documents/CrowdCount/crowdcount-ios/CrowdCount_App/CrowdCount_App/Base and Start Page/ContentView.swift" : {
+    "const-values" : "/Users/elkanbruha/Documents/CrowdCount/crowdcount-ios/CrowdCount_App/build/CrowdCount_App.build/Debug-iphonesimulator/CrowdCount_App.build/Objects-normal/x86_64/ContentView.swiftconstvalues",
+    "dependencies" : "/Users/elkanbruha/Documents/CrowdCount/crowdcount-ios/CrowdCount_App/build/CrowdCount_App.build/Debug-iphonesimulator/CrowdCount_App.build/Objects-normal/x86_64/ContentView.d",
+    "diagnostics" : "/Users/elkanbruha/Documents/CrowdCount/crowdcount-ios/CrowdCount_App/build/CrowdCount_App.build/Debug-iphonesimulator/CrowdCount_App.build/Objects-normal/x86_64/ContentView.dia",
+    "index-unit-output-path" : "/CrowdCount_App.build/Debug-iphonesimulator/CrowdCount_App.build/Objects-normal/x86_64/ContentView.o",
+    "llvm-bc" : "/Users/elkanbruha/Documents/CrowdCount/crowdcount-ios/CrowdCount_App/build/CrowdCount_App.build/Debug-iphonesimulator/CrowdCount_App.build/Objects-normal/x86_64/ContentView.bc",
+    "object" : "/Users/elkanbruha/Documents/CrowdCount/crowdcount-ios/CrowdCount_App/build/CrowdCount_App.build/Debug-iphonesimulator/CrowdCount_App.build/Objects-normal/x86_64/ContentView.o",
+    "swift-dependencies" : "/Users/elkanbruha/Documents/CrowdCount/crowdcount-ios/CrowdCount_App/build/CrowdCount_App.build/Debug-iphonesimulator/CrowdCount_App.build/Objects-normal/x86_64/ContentView.swiftdeps",
+    "swiftmodule" : "/Users/elkanbruha/Documents/CrowdCount/crowdcount-ios/CrowdCount_App/build/CrowdCount_App.build/Debug-iphonesimulator/CrowdCount_App.build/Objects-normal/x86_64/ContentView~partial.swiftmodule"
+  },
+  "/Users/elkanbruha/Documents/CrowdCount/crowdcount-ios/CrowdCount_App/CrowdCount_App/Base and Start Page/LoginTextViewModel.swift" : {
+    "const-values" : "/Users/elkanbruha/Documents/CrowdCount/crowdcount-ios/CrowdCount_App/build/CrowdCount_App.build/Debug-iphonesimulator/CrowdCount_App.build/Objects-normal/x86_64/LoginTextViewModel.swiftconstvalues",
+    "dependencies" : "/Users/elkanbruha/Documents/CrowdCount/crowdcount-ios/CrowdCount_App/build/CrowdCount_App.build/Debug-iphonesimulator/CrowdCount_App.build/Objects-normal/x86_64/LoginTextViewModel.d",
+    "diagnostics" : "/Users/elkanbruha/Documents/CrowdCount/crowdcount-ios/CrowdCount_App/build/CrowdCount_App.build/Debug-iphonesimulator/CrowdCount_App.build/Objects-normal/x86_64/LoginTextViewModel.dia",
+    "index-unit-output-path" : "/CrowdCount_App.build/Debug-iphonesimulator/CrowdCount_App.build/Objects-normal/x86_64/LoginTextViewModel.o",
+    "llvm-bc" : "/Users/elkanbruha/Documents/CrowdCount/crowdcount-ios/CrowdCount_App/build/CrowdCount_App.build/Debug-iphonesimulator/CrowdCount_App.build/Objects-normal/x86_64/LoginTextViewModel.bc",
+    "object" : "/Users/elkanbruha/Documents/CrowdCount/crowdcount-ios/CrowdCount_App/build/CrowdCount_App.build/Debug-iphonesimulator/CrowdCount_App.build/Objects-normal/x86_64/LoginTextViewModel.o",
+    "swift-dependencies" : "/Users/elkanbruha/Documents/CrowdCount/crowdcount-ios/CrowdCount_App/build/CrowdCount_App.build/Debug-iphonesimulator/CrowdCount_App.build/Objects-normal/x86_64/LoginTextViewModel.swiftdeps",
+    "swiftmodule" : "/Users/elkanbruha/Documents/CrowdCount/crowdcount-ios/CrowdCount_App/build/CrowdCount_App.build/Debug-iphonesimulator/CrowdCount_App.build/Objects-normal/x86_64/LoginTextViewModel~partial.swiftmodule"
+  },
+  "/Users/elkanbruha/Documents/CrowdCount/crowdcount-ios/CrowdCount_App/CrowdCount_App/Base and Start Page/LoginView.swift" : {
+    "const-values" : "/Users/elkanbruha/Documents/CrowdCount/crowdcount-ios/CrowdCount_App/build/CrowdCount_App.build/Debug-iphonesimulator/CrowdCount_App.build/Objects-normal/x86_64/LoginView.swiftconstvalues",
+    "dependencies" : "/Users/elkanbruha/Documents/CrowdCount/crowdcount-ios/CrowdCount_App/build/CrowdCount_App.build/Debug-iphonesimulator/CrowdCount_App.build/Objects-normal/x86_64/LoginView.d",
+    "diagnostics" : "/Users/elkanbruha/Documents/CrowdCount/crowdcount-ios/CrowdCount_App/build/CrowdCount_App.build/Debug-iphonesimulator/CrowdCount_App.build/Objects-normal/x86_64/LoginView.dia",
+    "index-unit-output-path" : "/CrowdCount_App.build/Debug-iphonesimulator/CrowdCount_App.build/Objects-normal/x86_64/LoginView.o",
+    "llvm-bc" : "/Users/elkanbruha/Documents/CrowdCount/crowdcount-ios/CrowdCount_App/build/CrowdCount_App.build/Debug-iphonesimulator/CrowdCount_App.build/Objects-normal/x86_64/LoginView.bc",
+    "object" : "/Users/elkanbruha/Documents/CrowdCount/crowdcount-ios/CrowdCount_App/build/CrowdCount_App.build/Debug-iphonesimulator/CrowdCount_App.build/Objects-normal/x86_64/LoginView.o",
+    "swift-dependencies" : "/Users/elkanbruha/Documents/CrowdCount/crowdcount-ios/CrowdCount_App/build/CrowdCount_App.build/Debug-iphonesimulator/CrowdCount_App.build/Objects-normal/x86_64/LoginView.swiftdeps",
+    "swiftmodule" : "/Users/elkanbruha/Documents/CrowdCount/crowdcount-ios/CrowdCount_App/build/CrowdCount_App.build/Debug-iphonesimulator/CrowdCount_App.build/Objects-normal/x86_64/LoginView~partial.swiftmodule"
+  },
+  "/Users/elkanbruha/Documents/CrowdCount/crowdcount-ios/CrowdCount_App/CrowdCount_App/Bluetooth/BluetoothManager.swift" : {
+    "const-values" : "/Users/elkanbruha/Documents/CrowdCount/crowdcount-ios/CrowdCount_App/build/CrowdCount_App.build/Debug-iphonesimulator/CrowdCount_App.build/Objects-normal/x86_64/BluetoothManager.swiftconstvalues",
+    "dependencies" : "/Users/elkanbruha/Documents/CrowdCount/crowdcount-ios/CrowdCount_App/build/CrowdCount_App.build/Debug-iphonesimulator/CrowdCount_App.build/Objects-normal/x86_64/BluetoothManager.d",
+    "diagnostics" : "/Users/elkanbruha/Documents/CrowdCount/crowdcount-ios/CrowdCount_App/build/CrowdCount_App.build/Debug-iphonesimulator/CrowdCount_App.build/Objects-normal/x86_64/BluetoothManager.dia",
+    "index-unit-output-path" : "/CrowdCount_App.build/Debug-iphonesimulator/CrowdCount_App.build/Objects-normal/x86_64/BluetoothManager.o",
+    "llvm-bc" : "/Users/elkanbruha/Documents/CrowdCount/crowdcount-ios/CrowdCount_App/build/CrowdCount_App.build/Debug-iphonesimulator/CrowdCount_App.build/Objects-normal/x86_64/BluetoothManager.bc",
+    "object" : "/Users/elkanbruha/Documents/CrowdCount/crowdcount-ios/CrowdCount_App/build/CrowdCount_App.build/Debug-iphonesimulator/CrowdCount_App.build/Objects-normal/x86_64/BluetoothManager.o",
+    "swift-dependencies" : "/Users/elkanbruha/Documents/CrowdCount/crowdcount-ios/CrowdCount_App/build/CrowdCount_App.build/Debug-iphonesimulator/CrowdCount_App.build/Objects-normal/x86_64/BluetoothManager.swiftdeps",
+    "swiftmodule" : "/Users/elkanbruha/Documents/CrowdCount/crowdcount-ios/CrowdCount_App/build/CrowdCount_App.build/Debug-iphonesimulator/CrowdCount_App.build/Objects-normal/x86_64/BluetoothManager~partial.swiftmodule"
+  },
+  "/Users/elkanbruha/Documents/CrowdCount/crowdcount-ios/CrowdCount_App/CrowdCount_App/Bluetooth/BluetoothSetupView.swift" : {
+    "const-values" : "/Users/elkanbruha/Documents/CrowdCount/crowdcount-ios/CrowdCount_App/build/CrowdCount_App.build/Debug-iphonesimulator/CrowdCount_App.build/Objects-normal/x86_64/BluetoothSetupView.swiftconstvalues",
+    "dependencies" : "/Users/elkanbruha/Documents/CrowdCount/crowdcount-ios/CrowdCount_App/build/CrowdCount_App.build/Debug-iphonesimulator/CrowdCount_App.build/Objects-normal/x86_64/BluetoothSetupView.d",
+    "diagnostics" : "/Users/elkanbruha/Documents/CrowdCount/crowdcount-ios/CrowdCount_App/build/CrowdCount_App.build/Debug-iphonesimulator/CrowdCount_App.build/Objects-normal/x86_64/BluetoothSetupView.dia",
+    "index-unit-output-path" : "/CrowdCount_App.build/Debug-iphonesimulator/CrowdCount_App.build/Objects-normal/x86_64/BluetoothSetupView.o",
+    "llvm-bc" : "/Users/elkanbruha/Documents/CrowdCount/crowdcount-ios/CrowdCount_App/build/CrowdCount_App.build/Debug-iphonesimulator/CrowdCount_App.build/Objects-normal/x86_64/BluetoothSetupView.bc",
+    "object" : "/Users/elkanbruha/Documents/CrowdCount/crowdcount-ios/CrowdCount_App/build/CrowdCount_App.build/Debug-iphonesimulator/CrowdCount_App.build/Objects-normal/x86_64/BluetoothSetupView.o",
+    "swift-dependencies" : "/Users/elkanbruha/Documents/CrowdCount/crowdcount-ios/CrowdCount_App/build/CrowdCount_App.build/Debug-iphonesimulator/CrowdCount_App.build/Objects-normal/x86_64/BluetoothSetupView.swiftdeps",
+    "swiftmodule" : "/Users/elkanbruha/Documents/CrowdCount/crowdcount-ios/CrowdCount_App/build/CrowdCount_App.build/Debug-iphonesimulator/CrowdCount_App.build/Objects-normal/x86_64/BluetoothSetupView~partial.swiftmodule"
+  },
+  "/Users/elkanbruha/Documents/CrowdCount/crowdcount-ios/CrowdCount_App/CrowdCount_App/Bluetooth/CounterPlacementGuideView.swift" : {
+    "const-values" : "/Users/elkanbruha/Documents/CrowdCount/crowdcount-ios/CrowdCount_App/build/CrowdCount_App.build/Debug-iphonesimulator/CrowdCount_App.build/Objects-normal/x86_64/CounterPlacementGuideView.swiftconstvalues",
+    "dependencies" : "/Users/elkanbruha/Documents/CrowdCount/crowdcount-ios/CrowdCount_App/build/CrowdCount_App.build/Debug-iphonesimulator/CrowdCount_App.build/Objects-normal/x86_64/CounterPlacementGuideView.d",
+    "diagnostics" : "/Users/elkanbruha/Documents/CrowdCount/crowdcount-ios/CrowdCount_App/build/CrowdCount_App.build/Debug-iphonesimulator/CrowdCount_App.build/Objects-normal/x86_64/CounterPlacementGuideView.dia",
+    "index-unit-output-path" : "/CrowdCount_App.build/Debug-iphonesimulator/CrowdCount_App.build/Objects-normal/x86_64/CounterPlacementGuideView.o",
+    "llvm-bc" : "/Users/elkanbruha/Documents/CrowdCount/crowdcount-ios/CrowdCount_App/build/CrowdCount_App.build/Debug-iphonesimulator/CrowdCount_App.build/Objects-normal/x86_64/CounterPlacementGuideView.bc",
+    "object" : "/Users/elkanbruha/Documents/CrowdCount/crowdcount-ios/CrowdCount_App/build/CrowdCount_App.build/Debug-iphonesimulator/CrowdCount_App.build/Objects-normal/x86_64/CounterPlacementGuideView.o",
+    "swift-dependencies" : "/Users/elkanbruha/Documents/CrowdCount/crowdcount-ios/CrowdCount_App/build/CrowdCount_App.build/Debug-iphonesimulator/CrowdCount_App.build/Objects-normal/x86_64/CounterPlacementGuideView.swiftdeps",
+    "swiftmodule" : "/Users/elkanbruha/Documents/CrowdCount/crowdcount-ios/CrowdCount_App/build/CrowdCount_App.build/Debug-iphonesimulator/CrowdCount_App.build/Objects-normal/x86_64/CounterPlacementGuideView~partial.swiftmodule"
+  },
+  "/Users/elkanbruha/Documents/CrowdCount/crowdcount-ios/CrowdCount_App/CrowdCount_App/Bluetooth/QRScannerView.swift" : {
+    "const-values" : "/Users/elkanbruha/Documents/CrowdCount/crowdcount-ios/CrowdCount_App/build/CrowdCount_App.build/Debug-iphonesimulator/CrowdCount_App.build/Objects-normal/x86_64/QRScannerView.swiftconstvalues",
+    "dependencies" : "/Users/elkanbruha/Documents/CrowdCount/crowdcount-ios/CrowdCount_App/build/CrowdCount_App.build/Debug-iphonesimulator/CrowdCount_App.build/Objects-normal/x86_64/QRScannerView.d",
+    "diagnostics" : "/Users/elkanbruha/Documents/CrowdCount/crowdcount-ios/CrowdCount_App/build/CrowdCount_App.build/Debug-iphonesimulator/CrowdCount_App.build/Objects-normal/x86_64/QRScannerView.dia",
+    "index-unit-output-path" : "/CrowdCount_App.build/Debug-iphonesimulator/CrowdCount_App.build/Objects-normal/x86_64/QRScannerView.o",
+    "llvm-bc" : "/Users/elkanbruha/Documents/CrowdCount/crowdcount-ios/CrowdCount_App/build/CrowdCount_App.build/Debug-iphonesimulator/CrowdCount_App.build/Objects-normal/x86_64/QRScannerView.bc",
+    "object" : "/Users/elkanbruha/Documents/CrowdCount/crowdcount-ios/CrowdCount_App/build/CrowdCount_App.build/Debug-iphonesimulator/CrowdCount_App.build/Objects-normal/x86_64/QRScannerView.o",
+    "swift-dependencies" : "/Users/elkanbruha/Documents/CrowdCount/crowdcount-ios/CrowdCount_App/build/CrowdCount_App.build/Debug-iphonesimulator/CrowdCount_App.build/Objects-normal/x86_64/QRScannerView.swiftdeps",
+    "swiftmodule" : "/Users/elkanbruha/Documents/CrowdCount/crowdcount-ios/CrowdCount_App/build/CrowdCount_App.build/Debug-iphonesimulator/CrowdCount_App.build/Objects-normal/x86_64/QRScannerView~partial.swiftmodule"
+  },
+  "/Users/elkanbruha/Documents/CrowdCount/crowdcount-ios/CrowdCount_App/CrowdCount_App/Count History/AggregatedHistoricView.swift" : {
+    "const-values" : "/Users/elkanbruha/Documents/CrowdCount/crowdcount-ios/CrowdCount_App/build/CrowdCount_App.build/Debug-iphonesimulator/CrowdCount_App.build/Objects-normal/x86_64/AggregatedHistoricView.swiftconstvalues",
+    "dependencies" : "/Users/elkanbruha/Documents/CrowdCount/crowdcount-ios/CrowdCount_App/build/CrowdCount_App.build/Debug-iphonesimulator/CrowdCount_App.build/Objects-normal/x86_64/AggregatedHistoricView.d",
+    "diagnostics" : "/Users/elkanbruha/Documents/CrowdCount/crowdcount-ios/CrowdCount_App/build/CrowdCount_App.build/Debug-iphonesimulator/CrowdCount_App.build/Objects-normal/x86_64/AggregatedHistoricView.dia",
+    "index-unit-output-path" : "/CrowdCount_App.build/Debug-iphonesimulator/CrowdCount_App.build/Objects-normal/x86_64/AggregatedHistoricView.o",
+    "llvm-bc" : "/Users/elkanbruha/Documents/CrowdCount/crowdcount-ios/CrowdCount_App/build/CrowdCount_App.build/Debug-iphonesimulator/CrowdCount_App.build/Objects-normal/x86_64/AggregatedHistoricView.bc",
+    "object" : "/Users/elkanbruha/Documents/CrowdCount/crowdcount-ios/CrowdCount_App/build/CrowdCount_App.build/Debug-iphonesimulator/CrowdCount_App.build/Objects-normal/x86_64/AggregatedHistoricView.o",
+    "swift-dependencies" : "/Users/elkanbruha/Documents/CrowdCount/crowdcount-ios/CrowdCount_App/build/CrowdCount_App.build/Debug-iphonesimulator/CrowdCount_App.build/Objects-normal/x86_64/AggregatedHistoricView.swiftdeps",
+    "swiftmodule" : "/Users/elkanbruha/Documents/CrowdCount/crowdcount-ios/CrowdCount_App/build/CrowdCount_App.build/Debug-iphonesimulator/CrowdCount_App.build/Objects-normal/x86_64/AggregatedHistoricView~partial.swiftmodule"
+  },
+  "/Users/elkanbruha/Documents/CrowdCount/crowdcount-ios/CrowdCount_App/CrowdCount_App/Count History/BarGraphDay.swift" : {
+    "const-values" : "/Users/elkanbruha/Documents/CrowdCount/crowdcount-ios/CrowdCount_App/build/CrowdCount_App.build/Debug-iphonesimulator/CrowdCount_App.build/Objects-normal/x86_64/BarGraphDay.swiftconstvalues",
+    "dependencies" : "/Users/elkanbruha/Documents/CrowdCount/crowdcount-ios/CrowdCount_App/build/CrowdCount_App.build/Debug-iphonesimulator/CrowdCount_App.build/Objects-normal/x86_64/BarGraphDay.d",
+    "diagnostics" : "/Users/elkanbruha/Documents/CrowdCount/crowdcount-ios/CrowdCount_App/build/CrowdCount_App.build/Debug-iphonesimulator/CrowdCount_App.build/Objects-normal/x86_64/BarGraphDay.dia",
+    "index-unit-output-path" : "/CrowdCount_App.build/Debug-iphonesimulator/CrowdCount_App.build/Objects-normal/x86_64/BarGraphDay.o",
+    "llvm-bc" : "/Users/elkanbruha/Documents/CrowdCount/crowdcount-ios/CrowdCount_App/build/CrowdCount_App.build/Debug-iphonesimulator/CrowdCount_App.build/Objects-normal/x86_64/BarGraphDay.bc",
+    "object" : "/Users/elkanbruha/Documents/CrowdCount/crowdcount-ios/CrowdCount_App/build/CrowdCount_App.build/Debug-iphonesimulator/CrowdCount_App.build/Objects-normal/x86_64/BarGraphDay.o",
+    "swift-dependencies" : "/Users/elkanbruha/Documents/CrowdCount/crowdcount-ios/CrowdCount_App/build/CrowdCount_App.build/Debug-iphonesimulator/CrowdCount_App.build/Objects-normal/x86_64/BarGraphDay.swiftdeps",
+    "swiftmodule" : "/Users/elkanbruha/Documents/CrowdCount/crowdcount-ios/CrowdCount_App/build/CrowdCount_App.build/Debug-iphonesimulator/CrowdCount_App.build/Objects-normal/x86_64/BarGraphDay~partial.swiftmodule"
+  },
+  "/Users/elkanbruha/Documents/CrowdCount/crowdcount-ios/CrowdCount_App/CrowdCount_App/Count History/BarGraphWeek.swift" : {
+    "const-values" : "/Users/elkanbruha/Documents/CrowdCount/crowdcount-ios/CrowdCount_App/build/CrowdCount_App.build/Debug-iphonesimulator/CrowdCount_App.build/Objects-normal/x86_64/BarGraphWeek.swiftconstvalues",
+    "dependencies" : "/Users/elkanbruha/Documents/CrowdCount/crowdcount-ios/CrowdCount_App/build/CrowdCount_App.build/Debug-iphonesimulator/CrowdCount_App.build/Objects-normal/x86_64/BarGraphWeek.d",
+    "diagnostics" : "/Users/elkanbruha/Documents/CrowdCount/crowdcount-ios/CrowdCount_App/build/CrowdCount_App.build/Debug-iphonesimulator/CrowdCount_App.build/Objects-normal/x86_64/BarGraphWeek.dia",
+    "index-unit-output-path" : "/CrowdCount_App.build/Debug-iphonesimulator/CrowdCount_App.build/Objects-normal/x86_64/BarGraphWeek.o",
+    "llvm-bc" : "/Users/elkanbruha/Documents/CrowdCount/crowdcount-ios/CrowdCount_App/build/CrowdCount_App.build/Debug-iphonesimulator/CrowdCount_App.build/Objects-normal/x86_64/BarGraphWeek.bc",
+    "object" : "/Users/elkanbruha/Documents/CrowdCount/crowdcount-ios/CrowdCount_App/build/CrowdCount_App.build/Debug-iphonesimulator/CrowdCount_App.build/Objects-normal/x86_64/BarGraphWeek.o",
+    "swift-dependencies" : "/Users/elkanbruha/Documents/CrowdCount/crowdcount-ios/CrowdCount_App/build/CrowdCount_App.build/Debug-iphonesimulator/CrowdCount_App.build/Objects-normal/x86_64/BarGraphWeek.swiftdeps",
+    "swiftmodule" : "/Users/elkanbruha/Documents/CrowdCount/crowdcount-ios/CrowdCount_App/build/CrowdCount_App.build/Debug-iphonesimulator/CrowdCount_App.build/Objects-normal/x86_64/BarGraphWeek~partial.swiftmodule"
+  },
+  "/Users/elkanbruha/Documents/CrowdCount/crowdcount-ios/CrowdCount_App/CrowdCount_App/Count History/BarGraphYear.swift" : {
+    "const-values" : "/Users/elkanbruha/Documents/CrowdCount/crowdcount-ios/CrowdCount_App/build/CrowdCount_App.build/Debug-iphonesimulator/CrowdCount_App.build/Objects-normal/x86_64/BarGraphYear.swiftconstvalues",
+    "dependencies" : "/Users/elkanbruha/Documents/CrowdCount/crowdcount-ios/CrowdCount_App/build/CrowdCount_App.build/Debug-iphonesimulator/CrowdCount_App.build/Objects-normal/x86_64/BarGraphYear.d",
+    "diagnostics" : "/Users/elkanbruha/Documents/CrowdCount/crowdcount-ios/CrowdCount_App/build/CrowdCount_App.build/Debug-iphonesimulator/CrowdCount_App.build/Objects-normal/x86_64/BarGraphYear.dia",
+    "index-unit-output-path" : "/CrowdCount_App.build/Debug-iphonesimulator/CrowdCount_App.build/Objects-normal/x86_64/BarGraphYear.o",
+    "llvm-bc" : "/Users/elkanbruha/Documents/CrowdCount/crowdcount-ios/CrowdCount_App/build/CrowdCount_App.build/Debug-iphonesimulator/CrowdCount_App.build/Objects-normal/x86_64/BarGraphYear.bc",
+    "object" : "/Users/elkanbruha/Documents/CrowdCount/crowdcount-ios/CrowdCount_App/build/CrowdCount_App.build/Debug-iphonesimulator/CrowdCount_App.build/Objects-normal/x86_64/BarGraphYear.o",
+    "swift-dependencies" : "/Users/elkanbruha/Documents/CrowdCount/crowdcount-ios/CrowdCount_App/build/CrowdCount_App.build/Debug-iphonesimulator/CrowdCount_App.build/Objects-normal/x86_64/BarGraphYear.swiftdeps",
+    "swiftmodule" : "/Users/elkanbruha/Documents/CrowdCount/crowdcount-ios/CrowdCount_App/build/CrowdCount_App.build/Debug-iphonesimulator/CrowdCount_App.build/Objects-normal/x86_64/BarGraphYear~partial.swiftmodule"
+  },
+  "/Users/elkanbruha/Documents/CrowdCount/crowdcount-ios/CrowdCount_App/CrowdCount_App/Count History/HistoricCountsContentView.swift" : {
+    "const-values" : "/Users/elkanbruha/Documents/CrowdCount/crowdcount-ios/CrowdCount_App/build/CrowdCount_App.build/Debug-iphonesimulator/CrowdCount_App.build/Objects-normal/x86_64/HistoricCountsContentView.swiftconstvalues",
+    "dependencies" : "/Users/elkanbruha/Documents/CrowdCount/crowdcount-ios/CrowdCount_App/build/CrowdCount_App.build/Debug-iphonesimulator/CrowdCount_App.build/Objects-normal/x86_64/HistoricCountsContentView.d",
+    "diagnostics" : "/Users/elkanbruha/Documents/CrowdCount/crowdcount-ios/CrowdCount_App/build/CrowdCount_App.build/Debug-iphonesimulator/CrowdCount_App.build/Objects-normal/x86_64/HistoricCountsContentView.dia",
+    "index-unit-output-path" : "/CrowdCount_App.build/Debug-iphonesimulator/CrowdCount_App.build/Objects-normal/x86_64/HistoricCountsContentView.o",
+    "llvm-bc" : "/Users/elkanbruha/Documents/CrowdCount/crowdcount-ios/CrowdCount_App/build/CrowdCount_App.build/Debug-iphonesimulator/CrowdCount_App.build/Objects-normal/x86_64/HistoricCountsContentView.bc",
+    "object" : "/Users/elkanbruha/Documents/CrowdCount/crowdcount-ios/CrowdCount_App/build/CrowdCount_App.build/Debug-iphonesimulator/CrowdCount_App.build/Objects-normal/x86_64/HistoricCountsContentView.o",
+    "swift-dependencies" : "/Users/elkanbruha/Documents/CrowdCount/crowdcount-ios/CrowdCount_App/build/CrowdCount_App.build/Debug-iphonesimulator/CrowdCount_App.build/Objects-normal/x86_64/HistoricCountsContentView.swiftdeps",
+    "swiftmodule" : "/Users/elkanbruha/Documents/CrowdCount/crowdcount-ios/CrowdCount_App/build/CrowdCount_App.build/Debug-iphonesimulator/CrowdCount_App.build/Objects-normal/x86_64/HistoricCountsContentView~partial.swiftmodule"
+  },
+  "/Users/elkanbruha/Documents/CrowdCount/crowdcount-ios/CrowdCount_App/CrowdCount_App/Count History/HistoricView.swift" : {
+    "const-values" : "/Users/elkanbruha/Documents/CrowdCount/crowdcount-ios/CrowdCount_App/build/CrowdCount_App.build/Debug-iphonesimulator/CrowdCount_App.build/Objects-normal/x86_64/HistoricView.swiftconstvalues",
+    "dependencies" : "/Users/elkanbruha/Documents/CrowdCount/crowdcount-ios/CrowdCount_App/build/CrowdCount_App.build/Debug-iphonesimulator/CrowdCount_App.build/Objects-normal/x86_64/HistoricView.d",
+    "diagnostics" : "/Users/elkanbruha/Documents/CrowdCount/crowdcount-ios/CrowdCount_App/build/CrowdCount_App.build/Debug-iphonesimulator/CrowdCount_App.build/Objects-normal/x86_64/HistoricView.dia",
+    "index-unit-output-path" : "/CrowdCount_App.build/Debug-iphonesimulator/CrowdCount_App.build/Objects-normal/x86_64/HistoricView.o",
+    "llvm-bc" : "/Users/elkanbruha/Documents/CrowdCount/crowdcount-ios/CrowdCount_App/build/CrowdCount_App.build/Debug-iphonesimulator/CrowdCount_App.build/Objects-normal/x86_64/HistoricView.bc",
+    "object" : "/Users/elkanbruha/Documents/CrowdCount/crowdcount-ios/CrowdCount_App/build/CrowdCount_App.build/Debug-iphonesimulator/CrowdCount_App.build/Objects-normal/x86_64/HistoricView.o",
+    "swift-dependencies" : "/Users/elkanbruha/Documents/CrowdCount/crowdcount-ios/CrowdCount_App/build/CrowdCount_App.build/Debug-iphonesimulator/CrowdCount_App.build/Objects-normal/x86_64/HistoricView.swiftdeps",
+    "swiftmodule" : "/Users/elkanbruha/Documents/CrowdCount/crowdcount-ios/CrowdCount_App/build/CrowdCount_App.build/Debug-iphonesimulator/CrowdCount_App.build/Objects-normal/x86_64/HistoricView~partial.swiftmodule"
+  },
+  "/Users/elkanbruha/Documents/CrowdCount/crowdcount-ios/CrowdCount_App/CrowdCount_App/Count History/InsightCardView.swift" : {
+    "const-values" : "/Users/elkanbruha/Documents/CrowdCount/crowdcount-ios/CrowdCount_App/build/CrowdCount_App.build/Debug-iphonesimulator/CrowdCount_App.build/Objects-normal/x86_64/InsightCardView.swiftconstvalues",
+    "dependencies" : "/Users/elkanbruha/Documents/CrowdCount/crowdcount-ios/CrowdCount_App/build/CrowdCount_App.build/Debug-iphonesimulator/CrowdCount_App.build/Objects-normal/x86_64/InsightCardView.d",
+    "diagnostics" : "/Users/elkanbruha/Documents/CrowdCount/crowdcount-ios/CrowdCount_App/build/CrowdCount_App.build/Debug-iphonesimulator/CrowdCount_App.build/Objects-normal/x86_64/InsightCardView.dia",
+    "index-unit-output-path" : "/CrowdCount_App.build/Debug-iphonesimulator/CrowdCount_App.build/Objects-normal/x86_64/InsightCardView.o",
+    "llvm-bc" : "/Users/elkanbruha/Documents/CrowdCount/crowdcount-ios/CrowdCount_App/build/CrowdCount_App.build/Debug-iphonesimulator/CrowdCount_App.build/Objects-normal/x86_64/InsightCardView.bc",
+    "object" : "/Users/elkanbruha/Documents/CrowdCount/crowdcount-ios/CrowdCount_App/build/CrowdCount_App.build/Debug-iphonesimulator/CrowdCount_App.build/Objects-normal/x86_64/InsightCardView.o",
+    "swift-dependencies" : "/Users/elkanbruha/Documents/CrowdCount/crowdcount-ios/CrowdCount_App/build/CrowdCount_App.build/Debug-iphonesimulator/CrowdCount_App.build/Objects-normal/x86_64/InsightCardView.swiftdeps",
+    "swiftmodule" : "/Users/elkanbruha/Documents/CrowdCount/crowdcount-ios/CrowdCount_App/build/CrowdCount_App.build/Debug-iphonesimulator/CrowdCount_App.build/Objects-normal/x86_64/InsightCardView~partial.swiftmodule"
+  },
+  "/Users/elkanbruha/Documents/CrowdCount/crowdcount-ios/CrowdCount_App/CrowdCount_App/Count History/InsightsView.swift" : {
+    "const-values" : "/Users/elkanbruha/Documents/CrowdCount/crowdcount-ios/CrowdCount_App/build/CrowdCount_App.build/Debug-iphonesimulator/CrowdCount_App.build/Objects-normal/x86_64/InsightsView.swiftconstvalues",
+    "dependencies" : "/Users/elkanbruha/Documents/CrowdCount/crowdcount-ios/CrowdCount_App/build/CrowdCount_App.build/Debug-iphonesimulator/CrowdCount_App.build/Objects-normal/x86_64/InsightsView.d",
+    "diagnostics" : "/Users/elkanbruha/Documents/CrowdCount/crowdcount-ios/CrowdCount_App/build/CrowdCount_App.build/Debug-iphonesimulator/CrowdCount_App.build/Objects-normal/x86_64/InsightsView.dia",
+    "index-unit-output-path" : "/CrowdCount_App.build/Debug-iphonesimulator/CrowdCount_App.build/Objects-normal/x86_64/InsightsView.o",
+    "llvm-bc" : "/Users/elkanbruha/Documents/CrowdCount/crowdcount-ios/CrowdCount_App/build/CrowdCount_App.build/Debug-iphonesimulator/CrowdCount_App.build/Objects-normal/x86_64/InsightsView.bc",
+    "object" : "/Users/elkanbruha/Documents/CrowdCount/crowdcount-ios/CrowdCount_App/build/CrowdCount_App.build/Debug-iphonesimulator/CrowdCount_App.build/Objects-normal/x86_64/InsightsView.o",
+    "swift-dependencies" : "/Users/elkanbruha/Documents/CrowdCount/crowdcount-ios/CrowdCount_App/build/CrowdCount_App.build/Debug-iphonesimulator/CrowdCount_App.build/Objects-normal/x86_64/InsightsView.swiftdeps",
+    "swiftmodule" : "/Users/elkanbruha/Documents/CrowdCount/crowdcount-ios/CrowdCount_App/build/CrowdCount_App.build/Debug-iphonesimulator/CrowdCount_App.build/Objects-normal/x86_64/InsightsView~partial.swiftmodule"
+  },
+  "/Users/elkanbruha/Documents/CrowdCount/crowdcount-ios/CrowdCount_App/CrowdCount_App/Count History/ShareSheetHelper.swift" : {
+    "const-values" : "/Users/elkanbruha/Documents/CrowdCount/crowdcount-ios/CrowdCount_App/build/CrowdCount_App.build/Debug-iphonesimulator/CrowdCount_App.build/Objects-normal/x86_64/ShareSheetHelper.swiftconstvalues",
+    "dependencies" : "/Users/elkanbruha/Documents/CrowdCount/crowdcount-ios/CrowdCount_App/build/CrowdCount_App.build/Debug-iphonesimulator/CrowdCount_App.build/Objects-normal/x86_64/ShareSheetHelper.d",
+    "diagnostics" : "/Users/elkanbruha/Documents/CrowdCount/crowdcount-ios/CrowdCount_App/build/CrowdCount_App.build/Debug-iphonesimulator/CrowdCount_App.build/Objects-normal/x86_64/ShareSheetHelper.dia",
+    "index-unit-output-path" : "/CrowdCount_App.build/Debug-iphonesimulator/CrowdCount_App.build/Objects-normal/x86_64/ShareSheetHelper.o",
+    "llvm-bc" : "/Users/elkanbruha/Documents/CrowdCount/crowdcount-ios/CrowdCount_App/build/CrowdCount_App.build/Debug-iphonesimulator/CrowdCount_App.build/Objects-normal/x86_64/ShareSheetHelper.bc",
+    "object" : "/Users/elkanbruha/Documents/CrowdCount/crowdcount-ios/CrowdCount_App/build/CrowdCount_App.build/Debug-iphonesimulator/CrowdCount_App.build/Objects-normal/x86_64/ShareSheetHelper.o",
+    "swift-dependencies" : "/Users/elkanbruha/Documents/CrowdCount/crowdcount-ios/CrowdCount_App/build/CrowdCount_App.build/Debug-iphonesimulator/CrowdCount_App.build/Objects-normal/x86_64/ShareSheetHelper.swiftdeps",
+    "swiftmodule" : "/Users/elkanbruha/Documents/CrowdCount/crowdcount-ios/CrowdCount_App/build/CrowdCount_App.build/Debug-iphonesimulator/CrowdCount_App.build/Objects-normal/x86_64/ShareSheetHelper~partial.swiftmodule"
+  },
+  "/Users/elkanbruha/Documents/CrowdCount/crowdcount-ios/CrowdCount_App/CrowdCount_App/Count History/StatisticsCalculator.swift" : {
+    "const-values" : "/Users/elkanbruha/Documents/CrowdCount/crowdcount-ios/CrowdCount_App/build/CrowdCount_App.build/Debug-iphonesimulator/CrowdCount_App.build/Objects-normal/x86_64/StatisticsCalculator.swiftconstvalues",
+    "dependencies" : "/Users/elkanbruha/Documents/CrowdCount/crowdcount-ios/CrowdCount_App/build/CrowdCount_App.build/Debug-iphonesimulator/CrowdCount_App.build/Objects-normal/x86_64/StatisticsCalculator.d",
+    "diagnostics" : "/Users/elkanbruha/Documents/CrowdCount/crowdcount-ios/CrowdCount_App/build/CrowdCount_App.build/Debug-iphonesimulator/CrowdCount_App.build/Objects-normal/x86_64/StatisticsCalculator.dia",
+    "index-unit-output-path" : "/CrowdCount_App.build/Debug-iphonesimulator/CrowdCount_App.build/Objects-normal/x86_64/StatisticsCalculator.o",
+    "llvm-bc" : "/Users/elkanbruha/Documents/CrowdCount/crowdcount-ios/CrowdCount_App/build/CrowdCount_App.build/Debug-iphonesimulator/CrowdCount_App.build/Objects-normal/x86_64/StatisticsCalculator.bc",
+    "object" : "/Users/elkanbruha/Documents/CrowdCount/crowdcount-ios/CrowdCount_App/build/CrowdCount_App.build/Debug-iphonesimulator/CrowdCount_App.build/Objects-normal/x86_64/StatisticsCalculator.o",
+    "swift-dependencies" : "/Users/elkanbruha/Documents/CrowdCount/crowdcount-ios/CrowdCount_App/build/CrowdCount_App.build/Debug-iphonesimulator/CrowdCount_App.build/Objects-normal/x86_64/StatisticsCalculator.swiftdeps",
+    "swiftmodule" : "/Users/elkanbruha/Documents/CrowdCount/crowdcount-ios/CrowdCount_App/build/CrowdCount_App.build/Debug-iphonesimulator/CrowdCount_App.build/Objects-normal/x86_64/StatisticsCalculator~partial.swiftmodule"
+  },
+  "/Users/elkanbruha/Documents/CrowdCount/crowdcount-ios/CrowdCount_App/CrowdCount_App/Device/AdPayView.swift" : {
+    "const-values" : "/Users/elkanbruha/Documents/CrowdCount/crowdcount-ios/CrowdCount_App/build/CrowdCount_App.build/Debug-iphonesimulator/CrowdCount_App.build/Objects-normal/x86_64/AdPayView.swiftconstvalues",
+    "dependencies" : "/Users/elkanbruha/Documents/CrowdCount/crowdcount-ios/CrowdCount_App/build/CrowdCount_App.build/Debug-iphonesimulator/CrowdCount_App.build/Objects-normal/x86_64/AdPayView.d",
+    "diagnostics" : "/Users/elkanbruha/Documents/CrowdCount/crowdcount-ios/CrowdCount_App/build/CrowdCount_App.build/Debug-iphonesimulator/CrowdCount_App.build/Objects-normal/x86_64/AdPayView.dia",
+    "index-unit-output-path" : "/CrowdCount_App.build/Debug-iphonesimulator/CrowdCount_App.build/Objects-normal/x86_64/AdPayView.o",
+    "llvm-bc" : "/Users/elkanbruha/Documents/CrowdCount/crowdcount-ios/CrowdCount_App/build/CrowdCount_App.build/Debug-iphonesimulator/CrowdCount_App.build/Objects-normal/x86_64/AdPayView.bc",
+    "object" : "/Users/elkanbruha/Documents/CrowdCount/crowdcount-ios/CrowdCount_App/build/CrowdCount_App.build/Debug-iphonesimulator/CrowdCount_App.build/Objects-normal/x86_64/AdPayView.o",
+    "swift-dependencies" : "/Users/elkanbruha/Documents/CrowdCount/crowdcount-ios/CrowdCount_App/build/CrowdCount_App.build/Debug-iphonesimulator/CrowdCount_App.build/Objects-normal/x86_64/AdPayView.swiftdeps",
+    "swiftmodule" : "/Users/elkanbruha/Documents/CrowdCount/crowdcount-ios/CrowdCount_App/build/CrowdCount_App.build/Debug-iphonesimulator/CrowdCount_App.build/Objects-normal/x86_64/AdPayView~partial.swiftmodule"
+  },
+  "/Users/elkanbruha/Documents/CrowdCount/crowdcount-ios/CrowdCount_App/CrowdCount_App/Device/AddUserPage.swift" : {
+    "const-values" : "/Users/elkanbruha/Documents/CrowdCount/crowdcount-ios/CrowdCount_App/build/CrowdCount_App.build/Debug-iphonesimulator/CrowdCount_App.build/Objects-normal/x86_64/AddUserPage.swiftconstvalues",
+    "dependencies" : "/Users/elkanbruha/Documents/CrowdCount/crowdcount-ios/CrowdCount_App/build/CrowdCount_App.build/Debug-iphonesimulator/CrowdCount_App.build/Objects-normal/x86_64/AddUserPage.d",
+    "diagnostics" : "/Users/elkanbruha/Documents/CrowdCount/crowdcount-ios/CrowdCount_App/build/CrowdCount_App.build/Debug-iphonesimulator/CrowdCount_App.build/Objects-normal/x86_64/AddUserPage.dia",
+    "index-unit-output-path" : "/CrowdCount_App.build/Debug-iphonesimulator/CrowdCount_App.build/Objects-normal/x86_64/AddUserPage.o",
+    "llvm-bc" : "/Users/elkanbruha/Documents/CrowdCount/crowdcount-ios/CrowdCount_App/build/CrowdCount_App.build/Debug-iphonesimulator/CrowdCount_App.build/Objects-normal/x86_64/AddUserPage.bc",
+    "object" : "/Users/elkanbruha/Documents/CrowdCount/crowdcount-ios/CrowdCount_App/build/CrowdCount_App.build/Debug-iphonesimulator/CrowdCount_App.build/Objects-normal/x86_64/AddUserPage.o",
+    "swift-dependencies" : "/Users/elkanbruha/Documents/CrowdCount/crowdcount-ios/CrowdCount_App/build/CrowdCount_App.build/Debug-iphonesimulator/CrowdCount_App.build/Objects-normal/x86_64/AddUserPage.swiftdeps",
+    "swiftmodule" : "/Users/elkanbruha/Documents/CrowdCount/crowdcount-ios/CrowdCount_App/build/CrowdCount_App.build/Debug-iphonesimulator/CrowdCount_App.build/Objects-normal/x86_64/AddUserPage~partial.swiftmodule"
+  },
+  "/Users/elkanbruha/Documents/CrowdCount/crowdcount-ios/CrowdCount_App/CrowdCount_App/Device/AllCountersListView.swift" : {
+    "const-values" : "/Users/elkanbruha/Documents/CrowdCount/crowdcount-ios/CrowdCount_App/build/CrowdCount_App.build/Debug-iphonesimulator/CrowdCount_App.build/Objects-normal/x86_64/AllCountersListView.swiftconstvalues",
+    "dependencies" : "/Users/elkanbruha/Documents/CrowdCount/crowdcount-ios/CrowdCount_App/build/CrowdCount_App.build/Debug-iphonesimulator/CrowdCount_App.build/Objects-normal/x86_64/AllCountersListView.d",
+    "diagnostics" : "/Users/elkanbruha/Documents/CrowdCount/crowdcount-ios/CrowdCount_App/build/CrowdCount_App.build/Debug-iphonesimulator/CrowdCount_App.build/Objects-normal/x86_64/AllCountersListView.dia",
+    "index-unit-output-path" : "/CrowdCount_App.build/Debug-iphonesimulator/CrowdCount_App.build/Objects-normal/x86_64/AllCountersListView.o",
+    "llvm-bc" : "/Users/elkanbruha/Documents/CrowdCount/crowdcount-ios/CrowdCount_App/build/CrowdCount_App.build/Debug-iphonesimulator/CrowdCount_App.build/Objects-normal/x86_64/AllCountersListView.bc",
+    "object" : "/Users/elkanbruha/Documents/CrowdCount/crowdcount-ios/CrowdCount_App/build/CrowdCount_App.build/Debug-iphonesimulator/CrowdCount_App.build/Objects-normal/x86_64/AllCountersListView.o",
+    "swift-dependencies" : "/Users/elkanbruha/Documents/CrowdCount/crowdcount-ios/CrowdCount_App/build/CrowdCount_App.build/Debug-iphonesimulator/CrowdCount_App.build/Objects-normal/x86_64/AllCountersListView.swiftdeps",
+    "swiftmodule" : "/Users/elkanbruha/Documents/CrowdCount/crowdcount-ios/CrowdCount_App/build/CrowdCount_App.build/Debug-iphonesimulator/CrowdCount_App.build/Objects-normal/x86_64/AllCountersListView~partial.swiftmodule"
+  },
+  "/Users/elkanbruha/Documents/CrowdCount/crowdcount-ios/CrowdCount_App/CrowdCount_App/Device/CountersListView.swift" : {
+    "const-values" : "/Users/elkanbruha/Documents/CrowdCount/crowdcount-ios/CrowdCount_App/build/CrowdCount_App.build/Debug-iphonesimulator/CrowdCount_App.build/Objects-normal/x86_64/CountersListView.swiftconstvalues",
+    "dependencies" : "/Users/elkanbruha/Documents/CrowdCount/crowdcount-ios/CrowdCount_App/build/CrowdCount_App.build/Debug-iphonesimulator/CrowdCount_App.build/Objects-normal/x86_64/CountersListView.d",
+    "diagnostics" : "/Users/elkanbruha/Documents/CrowdCount/crowdcount-ios/CrowdCount_App/build/CrowdCount_App.build/Debug-iphonesimulator/CrowdCount_App.build/Objects-normal/x86_64/CountersListView.dia",
+    "index-unit-output-path" : "/CrowdCount_App.build/Debug-iphonesimulator/CrowdCount_App.build/Objects-normal/x86_64/CountersListView.o",
+    "llvm-bc" : "/Users/elkanbruha/Documents/CrowdCount/crowdcount-ios/CrowdCount_App/build/CrowdCount_App.build/Debug-iphonesimulator/CrowdCount_App.build/Objects-normal/x86_64/CountersListView.bc",
+    "object" : "/Users/elkanbruha/Documents/CrowdCount/crowdcount-ios/CrowdCount_App/build/CrowdCount_App.build/Debug-iphonesimulator/CrowdCount_App.build/Objects-normal/x86_64/CountersListView.o",
+    "swift-dependencies" : "/Users/elkanbruha/Documents/CrowdCount/crowdcount-ios/CrowdCount_App/build/CrowdCount_App.build/Debug-iphonesimulator/CrowdCount_App.build/Objects-normal/x86_64/CountersListView.swiftdeps",
+    "swiftmodule" : "/Users/elkanbruha/Documents/CrowdCount/crowdcount-ios/CrowdCount_App/build/CrowdCount_App.build/Debug-iphonesimulator/CrowdCount_App.build/Objects-normal/x86_64/CountersListView~partial.swiftmodule"
+  },
+  "/Users/elkanbruha/Documents/CrowdCount/crowdcount-ios/CrowdCount_App/CrowdCount_App/Device/GetOnMapInfoView.swift" : {
+    "const-values" : "/Users/elkanbruha/Documents/CrowdCount/crowdcount-ios/CrowdCount_App/build/CrowdCount_App.build/Debug-iphonesimulator/CrowdCount_App.build/Objects-normal/x86_64/GetOnMapInfoView.swiftconstvalues",
+    "dependencies" : "/Users/elkanbruha/Documents/CrowdCount/crowdcount-ios/CrowdCount_App/build/CrowdCount_App.build/Debug-iphonesimulator/CrowdCount_App.build/Objects-normal/x86_64/GetOnMapInfoView.d",
+    "diagnostics" : "/Users/elkanbruha/Documents/CrowdCount/crowdcount-ios/CrowdCount_App/build/CrowdCount_App.build/Debug-iphonesimulator/CrowdCount_App.build/Objects-normal/x86_64/GetOnMapInfoView.dia",
+    "index-unit-output-path" : "/CrowdCount_App.build/Debug-iphonesimulator/CrowdCount_App.build/Objects-normal/x86_64/GetOnMapInfoView.o",
+    "llvm-bc" : "/Users/elkanbruha/Documents/CrowdCount/crowdcount-ios/CrowdCount_App/build/CrowdCount_App.build/Debug-iphonesimulator/CrowdCount_App.build/Objects-normal/x86_64/GetOnMapInfoView.bc",
+    "object" : "/Users/elkanbruha/Documents/CrowdCount/crowdcount-ios/CrowdCount_App/build/CrowdCount_App.build/Debug-iphonesimulator/CrowdCount_App.build/Objects-normal/x86_64/GetOnMapInfoView.o",
+    "swift-dependencies" : "/Users/elkanbruha/Documents/CrowdCount/crowdcount-ios/CrowdCount_App/build/CrowdCount_App.build/Debug-iphonesimulator/CrowdCount_App.build/Objects-normal/x86_64/GetOnMapInfoView.swiftdeps",
+    "swiftmodule" : "/Users/elkanbruha/Documents/CrowdCount/crowdcount-ios/CrowdCount_App/build/CrowdCount_App.build/Debug-iphonesimulator/CrowdCount_App.build/Objects-normal/x86_64/GetOnMapInfoView~partial.swiftmodule"
+  },
+  "/Users/elkanbruha/Documents/CrowdCount/crowdcount-ios/CrowdCount_App/CrowdCount_App/Device/InformationView.swift" : {
+    "const-values" : "/Users/elkanbruha/Documents/CrowdCount/crowdcount-ios/CrowdCount_App/build/CrowdCount_App.build/Debug-iphonesimulator/CrowdCount_App.build/Objects-normal/x86_64/InformationView.swiftconstvalues",
+    "dependencies" : "/Users/elkanbruha/Documents/CrowdCount/crowdcount-ios/CrowdCount_App/build/CrowdCount_App.build/Debug-iphonesimulator/CrowdCount_App.build/Objects-normal/x86_64/InformationView.d",
+    "diagnostics" : "/Users/elkanbruha/Documents/CrowdCount/crowdcount-ios/CrowdCount_App/build/CrowdCount_App.build/Debug-iphonesimulator/CrowdCount_App.build/Objects-normal/x86_64/InformationView.dia",
+    "index-unit-output-path" : "/CrowdCount_App.build/Debug-iphonesimulator/CrowdCount_App.build/Objects-normal/x86_64/InformationView.o",
+    "llvm-bc" : "/Users/elkanbruha/Documents/CrowdCount/crowdcount-ios/CrowdCount_App/build/CrowdCount_App.build/Debug-iphonesimulator/CrowdCount_App.build/Objects-normal/x86_64/InformationView.bc",
+    "object" : "/Users/elkanbruha/Documents/CrowdCount/crowdcount-ios/CrowdCount_App/build/CrowdCount_App.build/Debug-iphonesimulator/CrowdCount_App.build/Objects-normal/x86_64/InformationView.o",
+    "swift-dependencies" : "/Users/elkanbruha/Documents/CrowdCount/crowdcount-ios/CrowdCount_App/build/CrowdCount_App.build/Debug-iphonesimulator/CrowdCount_App.build/Objects-normal/x86_64/InformationView.swiftdeps",
+    "swiftmodule" : "/Users/elkanbruha/Documents/CrowdCount/crowdcount-ios/CrowdCount_App/build/CrowdCount_App.build/Debug-iphonesimulator/CrowdCount_App.build/Objects-normal/x86_64/InformationView~partial.swiftmodule"
+  },
+  "/Users/elkanbruha/Documents/CrowdCount/crowdcount-ios/CrowdCount_App/CrowdCount_App/Device/LocationCountersView.swift" : {
+    "const-values" : "/Users/elkanbruha/Documents/CrowdCount/crowdcount-ios/CrowdCount_App/build/CrowdCount_App.build/Debug-iphonesimulator/CrowdCount_App.build/Objects-normal/x86_64/LocationCountersView.swiftconstvalues",
+    "dependencies" : "/Users/elkanbruha/Documents/CrowdCount/crowdcount-ios/CrowdCount_App/build/CrowdCount_App.build/Debug-iphonesimulator/CrowdCount_App.build/Objects-normal/x86_64/LocationCountersView.d",
+    "diagnostics" : "/Users/elkanbruha/Documents/CrowdCount/crowdcount-ios/CrowdCount_App/build/CrowdCount_App.build/Debug-iphonesimulator/CrowdCount_App.build/Objects-normal/x86_64/LocationCountersView.dia",
+    "index-unit-output-path" : "/CrowdCount_App.build/Debug-iphonesimulator/CrowdCount_App.build/Objects-normal/x86_64/LocationCountersView.o",
+    "llvm-bc" : "/Users/elkanbruha/Documents/CrowdCount/crowdcount-ios/CrowdCount_App/build/CrowdCount_App.build/Debug-iphonesimulator/CrowdCount_App.build/Objects-normal/x86_64/LocationCountersView.bc",
+    "object" : "/Users/elkanbruha/Documents/CrowdCount/crowdcount-ios/CrowdCount_App/build/CrowdCount_App.build/Debug-iphonesimulator/CrowdCount_App.build/Objects-normal/x86_64/LocationCountersView.o",
+    "swift-dependencies" : "/Users/elkanbruha/Documents/CrowdCount/crowdcount-ios/CrowdCount_App/build/CrowdCount_App.build/Debug-iphonesimulator/CrowdCount_App.build/Objects-normal/x86_64/LocationCountersView.swiftdeps",
+    "swiftmodule" : "/Users/elkanbruha/Documents/CrowdCount/crowdcount-ios/CrowdCount_App/build/CrowdCount_App.build/Debug-iphonesimulator/CrowdCount_App.build/Objects-normal/x86_64/LocationCountersView~partial.swiftmodule"
+  },
+  "/Users/elkanbruha/Documents/CrowdCount/crowdcount-ios/CrowdCount_App/CrowdCount_App/Device/LocationPickerView.swift" : {
+    "const-values" : "/Users/elkanbruha/Documents/CrowdCount/crowdcount-ios/CrowdCount_App/build/CrowdCount_App.build/Debug-iphonesimulator/CrowdCount_App.build/Objects-normal/x86_64/LocationPickerView.swiftconstvalues",
+    "dependencies" : "/Users/elkanbruha/Documents/CrowdCount/crowdcount-ios/CrowdCount_App/build/CrowdCount_App.build/Debug-iphonesimulator/CrowdCount_App.build/Objects-normal/x86_64/LocationPickerView.d",
+    "diagnostics" : "/Users/elkanbruha/Documents/CrowdCount/crowdcount-ios/CrowdCount_App/build/CrowdCount_App.build/Debug-iphonesimulator/CrowdCount_App.build/Objects-normal/x86_64/LocationPickerView.dia",
+    "index-unit-output-path" : "/CrowdCount_App.build/Debug-iphonesimulator/CrowdCount_App.build/Objects-normal/x86_64/LocationPickerView.o",
+    "llvm-bc" : "/Users/elkanbruha/Documents/CrowdCount/crowdcount-ios/CrowdCount_App/build/CrowdCount_App.build/Debug-iphonesimulator/CrowdCount_App.build/Objects-normal/x86_64/LocationPickerView.bc",
+    "object" : "/Users/elkanbruha/Documents/CrowdCount/crowdcount-ios/CrowdCount_App/build/CrowdCount_App.build/Debug-iphonesimulator/CrowdCount_App.build/Objects-normal/x86_64/LocationPickerView.o",
+    "swift-dependencies" : "/Users/elkanbruha/Documents/CrowdCount/crowdcount-ios/CrowdCount_App/build/CrowdCount_App.build/Debug-iphonesimulator/CrowdCount_App.build/Objects-normal/x86_64/LocationPickerView.swiftdeps",
+    "swiftmodule" : "/Users/elkanbruha/Documents/CrowdCount/crowdcount-ios/CrowdCount_App/build/CrowdCount_App.build/Debug-iphonesimulator/CrowdCount_App.build/Objects-normal/x86_64/LocationPickerView~partial.swiftmodule"
+  },
+  "/Users/elkanbruha/Documents/CrowdCount/crowdcount-ios/CrowdCount_App/CrowdCount_App/Device/LocationSettingsView.swift" : {
+    "const-values" : "/Users/elkanbruha/Documents/CrowdCount/crowdcount-ios/CrowdCount_App/build/CrowdCount_App.build/Debug-iphonesimulator/CrowdCount_App.build/Objects-normal/x86_64/LocationSettingsView.swiftconstvalues",
+    "dependencies" : "/Users/elkanbruha/Documents/CrowdCount/crowdcount-ios/CrowdCount_App/build/CrowdCount_App.build/Debug-iphonesimulator/CrowdCount_App.build/Objects-normal/x86_64/LocationSettingsView.d",
+    "diagnostics" : "/Users/elkanbruha/Documents/CrowdCount/crowdcount-ios/CrowdCount_App/build/CrowdCount_App.build/Debug-iphonesimulator/CrowdCount_App.build/Objects-normal/x86_64/LocationSettingsView.dia",
+    "index-unit-output-path" : "/CrowdCount_App.build/Debug-iphonesimulator/CrowdCount_App.build/Objects-normal/x86_64/LocationSettingsView.o",
+    "llvm-bc" : "/Users/elkanbruha/Documents/CrowdCount/crowdcount-ios/CrowdCount_App/build/CrowdCount_App.build/Debug-iphonesimulator/CrowdCount_App.build/Objects-normal/x86_64/LocationSettingsView.bc",
+    "object" : "/Users/elkanbruha/Documents/CrowdCount/crowdcount-ios/CrowdCount_App/build/CrowdCount_App.build/Debug-iphonesimulator/CrowdCount_App.build/Objects-normal/x86_64/LocationSettingsView.o",
+    "swift-dependencies" : "/Users/elkanbruha/Documents/CrowdCount/crowdcount-ios/CrowdCount_App/build/CrowdCount_App.build/Debug-iphonesimulator/CrowdCount_App.build/Objects-normal/x86_64/LocationSettingsView.swiftdeps",
+    "swiftmodule" : "/Users/elkanbruha/Documents/CrowdCount/crowdcount-ios/CrowdCount_App/build/CrowdCount_App.build/Debug-iphonesimulator/CrowdCount_App.build/Objects-normal/x86_64/LocationSettingsView~partial.swiftmodule"
+  },
+  "/Users/elkanbruha/Documents/CrowdCount/crowdcount-ios/CrowdCount_App/CrowdCount_App/Device/SettingsView.swift" : {
+    "const-values" : "/Users/elkanbruha/Documents/CrowdCount/crowdcount-ios/CrowdCount_App/build/CrowdCount_App.build/Debug-iphonesimulator/CrowdCount_App.build/Objects-normal/x86_64/SettingsView.swiftconstvalues",
+    "dependencies" : "/Users/elkanbruha/Documents/CrowdCount/crowdcount-ios/CrowdCount_App/build/CrowdCount_App.build/Debug-iphonesimulator/CrowdCount_App.build/Objects-normal/x86_64/SettingsView.d",
+    "diagnostics" : "/Users/elkanbruha/Documents/CrowdCount/crowdcount-ios/CrowdCount_App/build/CrowdCount_App.build/Debug-iphonesimulator/CrowdCount_App.build/Objects-normal/x86_64/SettingsView.dia",
+    "index-unit-output-path" : "/CrowdCount_App.build/Debug-iphonesimulator/CrowdCount_App.build/Objects-normal/x86_64/SettingsView.o",
+    "llvm-bc" : "/Users/elkanbruha/Documents/CrowdCount/crowdcount-ios/CrowdCount_App/build/CrowdCount_App.build/Debug-iphonesimulator/CrowdCount_App.build/Objects-normal/x86_64/SettingsView.bc",
+    "object" : "/Users/elkanbruha/Documents/CrowdCount/crowdcount-ios/CrowdCount_App/build/CrowdCount_App.build/Debug-iphonesimulator/CrowdCount_App.build/Objects-normal/x86_64/SettingsView.o",
+    "swift-dependencies" : "/Users/elkanbruha/Documents/CrowdCount/crowdcount-ios/CrowdCount_App/build/CrowdCount_App.build/Debug-iphonesimulator/CrowdCount_App.build/Objects-normal/x86_64/SettingsView.swiftdeps",
+    "swiftmodule" : "/Users/elkanbruha/Documents/CrowdCount/crowdcount-ios/CrowdCount_App/build/CrowdCount_App.build/Debug-iphonesimulator/CrowdCount_App.build/Objects-normal/x86_64/SettingsView~partial.swiftmodule"
+  },
+  "/Users/elkanbruha/Documents/CrowdCount/crowdcount-ios/CrowdCount_App/CrowdCount_App/Device/TotalCountView.swift" : {
+    "const-values" : "/Users/elkanbruha/Documents/CrowdCount/crowdcount-ios/CrowdCount_App/build/CrowdCount_App.build/Debug-iphonesimulator/CrowdCount_App.build/Objects-normal/x86_64/TotalCountView.swiftconstvalues",
+    "dependencies" : "/Users/elkanbruha/Documents/CrowdCount/crowdcount-ios/CrowdCount_App/build/CrowdCount_App.build/Debug-iphonesimulator/CrowdCount_App.build/Objects-normal/x86_64/TotalCountView.d",
+    "diagnostics" : "/Users/elkanbruha/Documents/CrowdCount/crowdcount-ios/CrowdCount_App/build/CrowdCount_App.build/Debug-iphonesimulator/CrowdCount_App.build/Objects-normal/x86_64/TotalCountView.dia",
+    "index-unit-output-path" : "/CrowdCount_App.build/Debug-iphonesimulator/CrowdCount_App.build/Objects-normal/x86_64/TotalCountView.o",
+    "llvm-bc" : "/Users/elkanbruha/Documents/CrowdCount/crowdcount-ios/CrowdCount_App/build/CrowdCount_App.build/Debug-iphonesimulator/CrowdCount_App.build/Objects-normal/x86_64/TotalCountView.bc",
+    "object" : "/Users/elkanbruha/Documents/CrowdCount/crowdcount-ios/CrowdCount_App/build/CrowdCount_App.build/Debug-iphonesimulator/CrowdCount_App.build/Objects-normal/x86_64/TotalCountView.o",
+    "swift-dependencies" : "/Users/elkanbruha/Documents/CrowdCount/crowdcount-ios/CrowdCount_App/build/CrowdCount_App.build/Debug-iphonesimulator/CrowdCount_App.build/Objects-normal/x86_64/TotalCountView.swiftdeps",
+    "swiftmodule" : "/Users/elkanbruha/Documents/CrowdCount/crowdcount-ios/CrowdCount_App/build/CrowdCount_App.build/Debug-iphonesimulator/CrowdCount_App.build/Objects-normal/x86_64/TotalCountView~partial.swiftmodule"
+  },
+  "/Users/elkanbruha/Documents/CrowdCount/crowdcount-ios/CrowdCount_App/CrowdCount_App/Device/UserView.swift" : {
+    "const-values" : "/Users/elkanbruha/Documents/CrowdCount/crowdcount-ios/CrowdCount_App/build/CrowdCount_App.build/Debug-iphonesimulator/CrowdCount_App.build/Objects-normal/x86_64/UserView.swiftconstvalues",
+    "dependencies" : "/Users/elkanbruha/Documents/CrowdCount/crowdcount-ios/CrowdCount_App/build/CrowdCount_App.build/Debug-iphonesimulator/CrowdCount_App.build/Objects-normal/x86_64/UserView.d",
+    "diagnostics" : "/Users/elkanbruha/Documents/CrowdCount/crowdcount-ios/CrowdCount_App/build/CrowdCount_App.build/Debug-iphonesimulator/CrowdCount_App.build/Objects-normal/x86_64/UserView.dia",
+    "index-unit-output-path" : "/CrowdCount_App.build/Debug-iphonesimulator/CrowdCount_App.build/Objects-normal/x86_64/UserView.o",
+    "llvm-bc" : "/Users/elkanbruha/Documents/CrowdCount/crowdcount-ios/CrowdCount_App/build/CrowdCount_App.build/Debug-iphonesimulator/CrowdCount_App.build/Objects-normal/x86_64/UserView.bc",
+    "object" : "/Users/elkanbruha/Documents/CrowdCount/crowdcount-ios/CrowdCount_App/build/CrowdCount_App.build/Debug-iphonesimulator/CrowdCount_App.build/Objects-normal/x86_64/UserView.o",
+    "swift-dependencies" : "/Users/elkanbruha/Documents/CrowdCount/crowdcount-ios/CrowdCount_App/build/CrowdCount_App.build/Debug-iphonesimulator/CrowdCount_App.build/Objects-normal/x86_64/UserView.swiftdeps",
+    "swiftmodule" : "/Users/elkanbruha/Documents/CrowdCount/crowdcount-ios/CrowdCount_App/build/CrowdCount_App.build/Debug-iphonesimulator/CrowdCount_App.build/Objects-normal/x86_64/UserView~partial.swiftmodule"
+  },
+  "/Users/elkanbruha/Documents/CrowdCount/crowdcount-ios/CrowdCount_App/CrowdCount_App/Map/AdCarouselView.swift" : {
+    "const-values" : "/Users/elkanbruha/Documents/CrowdCount/crowdcount-ios/CrowdCount_App/build/CrowdCount_App.build/Debug-iphonesimulator/CrowdCount_App.build/Objects-normal/x86_64/AdCarouselView.swiftconstvalues",
+    "dependencies" : "/Users/elkanbruha/Documents/CrowdCount/crowdcount-ios/CrowdCount_App/build/CrowdCount_App.build/Debug-iphonesimulator/CrowdCount_App.build/Objects-normal/x86_64/AdCarouselView.d",
+    "diagnostics" : "/Users/elkanbruha/Documents/CrowdCount/crowdcount-ios/CrowdCount_App/build/CrowdCount_App.build/Debug-iphonesimulator/CrowdCount_App.build/Objects-normal/x86_64/AdCarouselView.dia",
+    "index-unit-output-path" : "/CrowdCount_App.build/Debug-iphonesimulator/CrowdCount_App.build/Objects-normal/x86_64/AdCarouselView.o",
+    "llvm-bc" : "/Users/elkanbruha/Documents/CrowdCount/crowdcount-ios/CrowdCount_App/build/CrowdCount_App.build/Debug-iphonesimulator/CrowdCount_App.build/Objects-normal/x86_64/AdCarouselView.bc",
+    "object" : "/Users/elkanbruha/Documents/CrowdCount/crowdcount-ios/CrowdCount_App/build/CrowdCount_App.build/Debug-iphonesimulator/CrowdCount_App.build/Objects-normal/x86_64/AdCarouselView.o",
+    "swift-dependencies" : "/Users/elkanbruha/Documents/CrowdCount/crowdcount-ios/CrowdCount_App/build/CrowdCount_App.build/Debug-iphonesimulator/CrowdCount_App.build/Objects-normal/x86_64/AdCarouselView.swiftdeps",
+    "swiftmodule" : "/Users/elkanbruha/Documents/CrowdCount/crowdcount-ios/CrowdCount_App/build/CrowdCount_App.build/Debug-iphonesimulator/CrowdCount_App.build/Objects-normal/x86_64/AdCarouselView~partial.swiftmodule"
+  },
+  "/Users/elkanbruha/Documents/CrowdCount/crowdcount-ios/CrowdCount_App/CrowdCount_App/Map/AdDetailView.swift" : {
+    "const-values" : "/Users/elkanbruha/Documents/CrowdCount/crowdcount-ios/CrowdCount_App/build/CrowdCount_App.build/Debug-iphonesimulator/CrowdCount_App.build/Objects-normal/x86_64/AdDetailView.swiftconstvalues",
+    "dependencies" : "/Users/elkanbruha/Documents/CrowdCount/crowdcount-ios/CrowdCount_App/build/CrowdCount_App.build/Debug-iphonesimulator/CrowdCount_App.build/Objects-normal/x86_64/AdDetailView.d",
+    "diagnostics" : "/Users/elkanbruha/Documents/CrowdCount/crowdcount-ios/CrowdCount_App/build/CrowdCount_App.build/Debug-iphonesimulator/CrowdCount_App.build/Objects-normal/x86_64/AdDetailView.dia",
+    "index-unit-output-path" : "/CrowdCount_App.build/Debug-iphonesimulator/CrowdCount_App.build/Objects-normal/x86_64/AdDetailView.o",
+    "llvm-bc" : "/Users/elkanbruha/Documents/CrowdCount/crowdcount-ios/CrowdCount_App/build/CrowdCount_App.build/Debug-iphonesimulator/CrowdCount_App.build/Objects-normal/x86_64/AdDetailView.bc",
+    "object" : "/Users/elkanbruha/Documents/CrowdCount/crowdcount-ios/CrowdCount_App/build/CrowdCount_App.build/Debug-iphonesimulator/CrowdCount_App.build/Objects-normal/x86_64/AdDetailView.o",
+    "swift-dependencies" : "/Users/elkanbruha/Documents/CrowdCount/crowdcount-ios/CrowdCount_App/build/CrowdCount_App.build/Debug-iphonesimulator/CrowdCount_App.build/Objects-normal/x86_64/AdDetailView.swiftdeps",
+    "swiftmodule" : "/Users/elkanbruha/Documents/CrowdCount/crowdcount-ios/CrowdCount_App/build/CrowdCount_App.build/Debug-iphonesimulator/CrowdCount_App.build/Objects-normal/x86_64/AdDetailView~partial.swiftmodule"
+  },
+  "/Users/elkanbruha/Documents/CrowdCount/crowdcount-ios/CrowdCount_App/CrowdCount_App/Map/Color.swift" : {
+    "const-values" : "/Users/elkanbruha/Documents/CrowdCount/crowdcount-ios/CrowdCount_App/build/CrowdCount_App.build/Debug-iphonesimulator/CrowdCount_App.build/Objects-normal/x86_64/Color.swiftconstvalues",
+    "dependencies" : "/Users/elkanbruha/Documents/CrowdCount/crowdcount-ios/CrowdCount_App/build/CrowdCount_App.build/Debug-iphonesimulator/CrowdCount_App.build/Objects-normal/x86_64/Color.d",
+    "diagnostics" : "/Users/elkanbruha/Documents/CrowdCount/crowdcount-ios/CrowdCount_App/build/CrowdCount_App.build/Debug-iphonesimulator/CrowdCount_App.build/Objects-normal/x86_64/Color.dia",
+    "index-unit-output-path" : "/CrowdCount_App.build/Debug-iphonesimulator/CrowdCount_App.build/Objects-normal/x86_64/Color.o",
+    "llvm-bc" : "/Users/elkanbruha/Documents/CrowdCount/crowdcount-ios/CrowdCount_App/build/CrowdCount_App.build/Debug-iphonesimulator/CrowdCount_App.build/Objects-normal/x86_64/Color.bc",
+    "object" : "/Users/elkanbruha/Documents/CrowdCount/crowdcount-ios/CrowdCount_App/build/CrowdCount_App.build/Debug-iphonesimulator/CrowdCount_App.build/Objects-normal/x86_64/Color.o",
+    "swift-dependencies" : "/Users/elkanbruha/Documents/CrowdCount/crowdcount-ios/CrowdCount_App/build/CrowdCount_App.build/Debug-iphonesimulator/CrowdCount_App.build/Objects-normal/x86_64/Color.swiftdeps",
+    "swiftmodule" : "/Users/elkanbruha/Documents/CrowdCount/crowdcount-ios/CrowdCount_App/build/CrowdCount_App.build/Debug-iphonesimulator/CrowdCount_App.build/Objects-normal/x86_64/Color~partial.swiftmodule"
+  },
+  "/Users/elkanbruha/Documents/CrowdCount/crowdcount-ios/CrowdCount_App/CrowdCount_App/Map/InfoMapView.swift" : {
+    "const-values" : "/Users/elkanbruha/Documents/CrowdCount/crowdcount-ios/CrowdCount_App/build/CrowdCount_App.build/Debug-iphonesimulator/CrowdCount_App.build/Objects-normal/x86_64/InfoMapView.swiftconstvalues",
+    "dependencies" : "/Users/elkanbruha/Documents/CrowdCount/crowdcount-ios/CrowdCount_App/build/CrowdCount_App.build/Debug-iphonesimulator/CrowdCount_App.build/Objects-normal/x86_64/InfoMapView.d",
+    "diagnostics" : "/Users/elkanbruha/Documents/CrowdCount/crowdcount-ios/CrowdCount_App/build/CrowdCount_App.build/Debug-iphonesimulator/CrowdCount_App.build/Objects-normal/x86_64/InfoMapView.dia",
+    "index-unit-output-path" : "/CrowdCount_App.build/Debug-iphonesimulator/CrowdCount_App.build/Objects-normal/x86_64/InfoMapView.o",
+    "llvm-bc" : "/Users/elkanbruha/Documents/CrowdCount/crowdcount-ios/CrowdCount_App/build/CrowdCount_App.build/Debug-iphonesimulator/CrowdCount_App.build/Objects-normal/x86_64/InfoMapView.bc",
+    "object" : "/Users/elkanbruha/Documents/CrowdCount/crowdcount-ios/CrowdCount_App/build/CrowdCount_App.build/Debug-iphonesimulator/CrowdCount_App.build/Objects-normal/x86_64/InfoMapView.o",
+    "swift-dependencies" : "/Users/elkanbruha/Documents/CrowdCount/crowdcount-ios/CrowdCount_App/build/CrowdCount_App.build/Debug-iphonesimulator/CrowdCount_App.build/Objects-normal/x86_64/InfoMapView.swiftdeps",
+    "swiftmodule" : "/Users/elkanbruha/Documents/CrowdCount/crowdcount-ios/CrowdCount_App/build/CrowdCount_App.build/Debug-iphonesimulator/CrowdCount_App.build/Objects-normal/x86_64/InfoMapView~partial.swiftmodule"
+  },
+  "/Users/elkanbruha/Documents/CrowdCount/crowdcount-ios/CrowdCount_App/CrowdCount_App/Map/LocationListView.swift" : {
+    "const-values" : "/Users/elkanbruha/Documents/CrowdCount/crowdcount-ios/CrowdCount_App/build/CrowdCount_App.build/Debug-iphonesimulator/CrowdCount_App.build/Objects-normal/x86_64/LocationListView.swiftconstvalues",
+    "dependencies" : "/Users/elkanbruha/Documents/CrowdCount/crowdcount-ios/CrowdCount_App/build/CrowdCount_App.build/Debug-iphonesimulator/CrowdCount_App.build/Objects-normal/x86_64/LocationListView.d",
+    "diagnostics" : "/Users/elkanbruha/Documents/CrowdCount/crowdcount-ios/CrowdCount_App/build/CrowdCount_App.build/Debug-iphonesimulator/CrowdCount_App.build/Objects-normal/x86_64/LocationListView.dia",
+    "index-unit-output-path" : "/CrowdCount_App.build/Debug-iphonesimulator/CrowdCount_App.build/Objects-normal/x86_64/LocationListView.o",
+    "llvm-bc" : "/Users/elkanbruha/Documents/CrowdCount/crowdcount-ios/CrowdCount_App/build/CrowdCount_App.build/Debug-iphonesimulator/CrowdCount_App.build/Objects-normal/x86_64/LocationListView.bc",
+    "object" : "/Users/elkanbruha/Documents/CrowdCount/crowdcount-ios/CrowdCount_App/build/CrowdCount_App.build/Debug-iphonesimulator/CrowdCount_App.build/Objects-normal/x86_64/LocationListView.o",
+    "swift-dependencies" : "/Users/elkanbruha/Documents/CrowdCount/crowdcount-ios/CrowdCount_App/build/CrowdCount_App.build/Debug-iphonesimulator/CrowdCount_App.build/Objects-normal/x86_64/LocationListView.swiftdeps",
+    "swiftmodule" : "/Users/elkanbruha/Documents/CrowdCount/crowdcount-ios/CrowdCount_App/build/CrowdCount_App.build/Debug-iphonesimulator/CrowdCount_App.build/Objects-normal/x86_64/LocationListView~partial.swiftmodule"
+  },
+  "/Users/elkanbruha/Documents/CrowdCount/crowdcount-ios/CrowdCount_App/CrowdCount_App/Map/MapView.swift" : {
+    "const-values" : "/Users/elkanbruha/Documents/CrowdCount/crowdcount-ios/CrowdCount_App/build/CrowdCount_App.build/Debug-iphonesimulator/CrowdCount_App.build/Objects-normal/x86_64/MapView.swiftconstvalues",
+    "dependencies" : "/Users/elkanbruha/Documents/CrowdCount/crowdcount-ios/CrowdCount_App/build/CrowdCount_App.build/Debug-iphonesimulator/CrowdCount_App.build/Objects-normal/x86_64/MapView.d",
+    "diagnostics" : "/Users/elkanbruha/Documents/CrowdCount/crowdcount-ios/CrowdCount_App/build/CrowdCount_App.build/Debug-iphonesimulator/CrowdCount_App.build/Objects-normal/x86_64/MapView.dia",
+    "index-unit-output-path" : "/CrowdCount_App.build/Debug-iphonesimulator/CrowdCount_App.build/Objects-normal/x86_64/MapView.o",
+    "llvm-bc" : "/Users/elkanbruha/Documents/CrowdCount/crowdcount-ios/CrowdCount_App/build/CrowdCount_App.build/Debug-iphonesimulator/CrowdCount_App.build/Objects-normal/x86_64/MapView.bc",
+    "object" : "/Users/elkanbruha/Documents/CrowdCount/crowdcount-ios/CrowdCount_App/build/CrowdCount_App.build/Debug-iphonesimulator/CrowdCount_App.build/Objects-normal/x86_64/MapView.o",
+    "swift-dependencies" : "/Users/elkanbruha/Documents/CrowdCount/crowdcount-ios/CrowdCount_App/build/CrowdCount_App.build/Debug-iphonesimulator/CrowdCount_App.build/Objects-normal/x86_64/MapView.swiftdeps",
+    "swiftmodule" : "/Users/elkanbruha/Documents/CrowdCount/crowdcount-ios/CrowdCount_App/build/CrowdCount_App.build/Debug-iphonesimulator/CrowdCount_App.build/Objects-normal/x86_64/MapView~partial.swiftmodule"
+  },
+  "/Users/elkanbruha/Documents/CrowdCount/crowdcount-ios/CrowdCount_App/CrowdCount_App/Map/ReportView.swift" : {
+    "const-values" : "/Users/elkanbruha/Documents/CrowdCount/crowdcount-ios/CrowdCount_App/build/CrowdCount_App.build/Debug-iphonesimulator/CrowdCount_App.build/Objects-normal/x86_64/ReportView.swiftconstvalues",
+    "dependencies" : "/Users/elkanbruha/Documents/CrowdCount/crowdcount-ios/CrowdCount_App/build/CrowdCount_App.build/Debug-iphonesimulator/CrowdCount_App.build/Objects-normal/x86_64/ReportView.d",
+    "diagnostics" : "/Users/elkanbruha/Documents/CrowdCount/crowdcount-ios/CrowdCount_App/build/CrowdCount_App.build/Debug-iphonesimulator/CrowdCount_App.build/Objects-normal/x86_64/ReportView.dia",
+    "index-unit-output-path" : "/CrowdCount_App.build/Debug-iphonesimulator/CrowdCount_App.build/Objects-normal/x86_64/ReportView.o",
+    "llvm-bc" : "/Users/elkanbruha/Documents/CrowdCount/crowdcount-ios/CrowdCount_App/build/CrowdCount_App.build/Debug-iphonesimulator/CrowdCount_App.build/Objects-normal/x86_64/ReportView.bc",
+    "object" : "/Users/elkanbruha/Documents/CrowdCount/crowdcount-ios/CrowdCount_App/build/CrowdCount_App.build/Debug-iphonesimulator/CrowdCount_App.build/Objects-normal/x86_64/ReportView.o",
+    "swift-dependencies" : "/Users/elkanbruha/Documents/CrowdCount/crowdcount-ios/CrowdCount_App/build/CrowdCount_App.build/Debug-iphonesimulator/CrowdCount_App.build/Objects-normal/x86_64/ReportView.swiftdeps",
+    "swiftmodule" : "/Users/elkanbruha/Documents/CrowdCount/crowdcount-ios/CrowdCount_App/build/CrowdCount_App.build/Debug-iphonesimulator/CrowdCount_App.build/Objects-normal/x86_64/ReportView~partial.swiftmodule"
+  },
+  "/Users/elkanbruha/Documents/CrowdCount/crowdcount-ios/CrowdCount_App/build/CrowdCount_App.build/Debug-iphonesimulator/CrowdCount_App.build/DerivedSources/GeneratedAssetSymbols.swift" : {
+    "const-values" : "/Users/elkanbruha/Documents/CrowdCount/crowdcount-ios/CrowdCount_App/build/CrowdCount_App.build/Debug-iphonesimulator/CrowdCount_App.build/Objects-normal/x86_64/GeneratedAssetSymbols.swiftconstvalues",
+    "dependencies" : "/Users/elkanbruha/Documents/CrowdCount/crowdcount-ios/CrowdCount_App/build/CrowdCount_App.build/Debug-iphonesimulator/CrowdCount_App.build/Objects-normal/x86_64/GeneratedAssetSymbols.d",
+    "diagnostics" : "/Users/elkanbruha/Documents/CrowdCount/crowdcount-ios/CrowdCount_App/build/CrowdCount_App.build/Debug-iphonesimulator/CrowdCount_App.build/Objects-normal/x86_64/GeneratedAssetSymbols.dia",
+    "index-unit-output-path" : "/CrowdCount_App.build/Debug-iphonesimulator/CrowdCount_App.build/Objects-normal/x86_64/GeneratedAssetSymbols.o",
+    "llvm-bc" : "/Users/elkanbruha/Documents/CrowdCount/crowdcount-ios/CrowdCount_App/build/CrowdCount_App.build/Debug-iphonesimulator/CrowdCount_App.build/Objects-normal/x86_64/GeneratedAssetSymbols.bc",
+    "object" : "/Users/elkanbruha/Documents/CrowdCount/crowdcount-ios/CrowdCount_App/build/CrowdCount_App.build/Debug-iphonesimulator/CrowdCount_App.build/Objects-normal/x86_64/GeneratedAssetSymbols.o",
+    "swift-dependencies" : "/Users/elkanbruha/Documents/CrowdCount/crowdcount-ios/CrowdCount_App/build/CrowdCount_App.build/Debug-iphonesimulator/CrowdCount_App.build/Objects-normal/x86_64/GeneratedAssetSymbols.swiftdeps",
+    "swiftmodule" : "/Users/elkanbruha/Documents/CrowdCount/crowdcount-ios/CrowdCount_App/build/CrowdCount_App.build/Debug-iphonesimulator/CrowdCount_App.build/Objects-normal/x86_64/GeneratedAssetSymbols~partial.swiftmodule"
+  }
+}

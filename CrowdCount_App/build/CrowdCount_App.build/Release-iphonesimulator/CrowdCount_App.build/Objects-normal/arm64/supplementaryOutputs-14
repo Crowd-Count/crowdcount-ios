@@ -1,0 +1,12 @@
+{
+  "/Users/elkanbruha/Documents/CrowdCount/crowdcount-ios/CrowdCount_App/CrowdCount_App/App Foundation/APIService.swift" : {
+    "abi-baseline-json" : "/Users/elkanbruha/Documents/CrowdCount/crowdcount-ios/CrowdCount_App/build/CrowdCount_App.build/Release-iphonesimulator/CrowdCount_App.build/Objects-normal/arm64/CrowdCount_App.abi.json",
+    "const-values" : "/Users/elkanbruha/Documents/CrowdCount/crowdcount-ios/CrowdCount_App/build/CrowdCount_App.build/Release-iphonesimulator/CrowdCount_App.build/Objects-normal/arm64/CrowdCount_App-primary.swiftconstvalues",
+    "dependencies" : "/Users/elkanbruha/Documents/CrowdCount/crowdcount-ios/CrowdCount_App/build/CrowdCount_App.build/Release-iphonesimulator/CrowdCount_App.build/Objects-normal/arm64/CrowdCount_App-primary.d",
+    "diagnostics" : "/Users/elkanbruha/Documents/CrowdCount/crowdcount-ios/CrowdCount_App/build/CrowdCount_App.build/Release-iphonesimulator/CrowdCount_App.build/Objects-normal/arm64/CrowdCount_App-primary.dia",
+    "objc-header" : "/Users/elkanbruha/Documents/CrowdCount/crowdcount-ios/CrowdCount_App/build/CrowdCount_App.build/Release-iphonesimulator/CrowdCount_App.build/Objects-normal/arm64/CrowdCount_App-Swift.h",
+    "swiftdoc" : "/Users/elkanbruha/Documents/CrowdCount/crowdcount-ios/CrowdCount_App/build/CrowdCount_App.build/Release-iphonesimulator/CrowdCount_App.build/Objects-normal/arm64/CrowdCount_App.swiftdoc",
+    "swiftmodule" : "/Users/elkanbruha/Documents/CrowdCount/crowdcount-ios/CrowdCount_App/build/CrowdCount_App.build/Release-iphonesimulator/CrowdCount_App.build/Objects-normal/arm64/CrowdCount_App.swiftmodule",
+    "swiftsourceinfo" : "/Users/elkanbruha/Documents/CrowdCount/crowdcount-ios/CrowdCount_App/build/CrowdCount_App.build/Release-iphonesimulator/CrowdCount_App.build/Objects-normal/arm64/CrowdCount_App.swiftsourceinfo"
+  }
+}

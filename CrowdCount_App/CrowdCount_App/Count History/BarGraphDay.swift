@@ -9,6 +9,8 @@ struct BarGraphDay: View {
     var isDeviceOnline: Bool
     var mostRecentDataTime: String? // Most recent hour with data
 
+    private let allHours = (0..<24).map { String($0) }
+
     // Computed property to check if we have truly live data (current hour matches most recent data hour)
     private var isLiveData: Bool {
         guard isTodayView && isDeviceOnline else { return false }
@@ -22,18 +24,17 @@ struct BarGraphDay: View {
         VStack {
             Chart {
                 barMarks()
-                lineMarks()
+                averageBarMarks()
             }
-            .chartXScale(domain: 0...23)
+            .chartXScale(domain: allHours)
             .chartXAxis {
-                AxisMarks(values: Array(stride(from: 0, through: 23, by: 2))) { value in
-                    if let intValue = value.as(Int.self) {
+                AxisMarks(values: stride(from: 0, through: 23, by: 2).map { String($0) }) { value in
+                    if let strValue = value.as(String.self) {
                         AxisValueLabel {
-                            Text("\(intValue)")
+                            Text(strValue)
                                 .font(.caption)
                                 .foregroundColor(.primary)
                         }
-                        .offset(x: -10) // Nothing i would do would make these values align with the columns correctly, so this is why this is here
                     }
                 }
             }
@@ -57,44 +58,46 @@ struct BarGraphDay: View {
         }
         .padding([.top, .bottom]) // Add padding to top and bottom of the view
     }
-    
+
     @ChartContentBuilder
     private func barMarks() -> some ChartContent {
-        ForEach(0..<24, id: \.self) { hour in
-            if let count = dayData[String(hour)] {
+        ForEach(Array(allHours.enumerated()), id: \.element) { index, hour in
+            if let count = dayData[hour] {
                 BarMark(
                     x: .value("Hour", hour),
                     y: .value("Count", max(0, count))
                 )
                 .foregroundStyle(shouldHighlightBar(for: hour) ? .green : .blue)
-                .opacity(shouldHighlightBar(for: hour) ? 1.0 : (hour % 2 == 0 ? 0.8 : 0.6))
-                .cornerRadius(3)
+                .opacity(shouldHighlightBar(for: hour) ? 1.0 : (index % 2 == 0 ? 1.0 : 0.85))
+                .cornerRadius(2)
+                .position(by: .value("Series", "Data"))
             }
         }
     }
-    
+
     @ChartContentBuilder
-    private func lineMarks() -> some ChartContent {
+    private func averageBarMarks() -> some ChartContent {
         if let averageDayData = averageDayData {
-            ForEach(0..<24, id: \.self) { hour in
-                if let averageCount = averageDayData[String(hour)] {
-                    LineMark(
+            ForEach(Array(allHours.enumerated()), id: \.element) { index, hour in
+                if let averageCount = averageDayData[hour] {
+                    BarMark(
                         x: .value("Hour", hour),
-                        y: .value("Average Count", max(0, averageCount))
+                        y: .value("Count", max(0, averageCount))
                     )
                     .foregroundStyle(.orange)
-                    .lineStyle(StrokeStyle(lineWidth: 2))
+                    .opacity(index % 2 == 0 ? 0.85 : 0.7)
+                    .cornerRadius(2)
+                    .position(by: .value("Series", "Average"))
                 }
             }
         }
     }
 
     // Only highlight the bar if it's truly live data (current hour with data)
-    func shouldHighlightBar(for hour: Int) -> Bool {
+    func shouldHighlightBar(for hour: String) -> Bool {
         guard isLiveData else { return false }
-        guard let mostRecentDataTime = mostRecentDataTime,
-              let mostRecentHour = Int(mostRecentDataTime) else { return false }
-        return hour == mostRecentHour
+        guard let mostRecentDataTime = mostRecentDataTime else { return false }
+        return hour == mostRecentDataTime
     }
 }
 

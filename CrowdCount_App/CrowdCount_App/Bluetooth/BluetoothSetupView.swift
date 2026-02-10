@@ -465,21 +465,26 @@ struct BluetoothSetupView: View {
             streamName: nil
         )
 
-        // Wait for device to configure (120 seconds), then check status with retries
-        DispatchQueue.main.asyncAfter(deadline: .now() + 120) {
-            isLoading = false
-            provisioningStep = .checkingStatus
-            checkDeviceStatus(retriesRemaining: 3)
+        // Start polling for device status every 10 seconds (up to 12 attempts = ~2 minutes)
+        // Give the device a 10-second head start before the first check
+        DispatchQueue.main.asyncAfter(deadline: .now() + 10) {
+            self.checkDeviceStatus(attemptsRemaining: 11)
         }
     }
 
-    func checkDeviceStatus(retriesRemaining: Int = 0) {
+    func checkDeviceStatus(attemptsRemaining: Int) {
         guard let url = URL(string: "\(AppSettings.apiBaseURL)/connection_status") else {
             self.message = "Server error, please try again later"
             self.messageColor = .red
             self.showMessage = true
+            self.isLoading = false
             self.provisioningStep = .enterCredentials
             return
+        }
+
+        // Update UI to show checking status on later attempts
+        if attemptsRemaining <= 8 {
+            provisioningStep = .checkingStatus
         }
 
         var request = URLRequest(url: url)
@@ -491,14 +496,15 @@ struct BluetoothSetupView: View {
         URLSession.shared.dataTask(with: request) { data, response, error in
             DispatchQueue.main.async {
                 if let error = error {
-                    if retriesRemaining > 0 {
-                        DispatchQueue.main.asyncAfter(deadline: .now() + 15) {
-                            self.checkDeviceStatus(retriesRemaining: retriesRemaining - 1)
+                    if attemptsRemaining > 0 {
+                        DispatchQueue.main.asyncAfter(deadline: .now() + 10) {
+                            self.checkDeviceStatus(attemptsRemaining: attemptsRemaining - 1)
                         }
                     } else {
                         self.message = "Network error: \(error.localizedDescription)"
                         self.messageColor = .red
                         self.showMessage = true
+                        self.isLoading = false
                         self.provisioningStep = .enterCredentials
                     }
                 } else if let httpResponse = response as? HTTPURLResponse, httpResponse.statusCode == 200 {
@@ -506,35 +512,45 @@ struct BluetoothSetupView: View {
                        let json = try? JSONSerialization.jsonObject(with: data, options: []) as? [String: Any],
                        let status = json["status"] as? String {
                         if status == "online" {
-                            // Success!
+                            // Device is online — exit setup immediately
+                            self.isLoading = false
                             self.provisioningStep = .complete
-                        } else if retriesRemaining > 0 {
+                        } else if attemptsRemaining > 0 {
                             // Not online yet, retry after delay
-                            DispatchQueue.main.asyncAfter(deadline: .now() + 15) {
-                                self.checkDeviceStatus(retriesRemaining: retriesRemaining - 1)
+                            DispatchQueue.main.asyncAfter(deadline: .now() + 10) {
+                                self.checkDeviceStatus(attemptsRemaining: attemptsRemaining - 1)
                             }
                         } else {
                             // Still offline after all retries
                             self.message = "Device is still offline. Please check WiFi credentials and try again."
                             self.messageColor = .red
                             self.showMessage = true
+                            self.isLoading = false
                             self.provisioningStep = .enterCredentials
                         }
                     } else {
-                        self.message = "Unexpected response from server"
-                        self.messageColor = .red
-                        self.showMessage = true
-                        self.provisioningStep = .enterCredentials
+                        if attemptsRemaining > 0 {
+                            DispatchQueue.main.asyncAfter(deadline: .now() + 10) {
+                                self.checkDeviceStatus(attemptsRemaining: attemptsRemaining - 1)
+                            }
+                        } else {
+                            self.message = "Unexpected response from server"
+                            self.messageColor = .red
+                            self.showMessage = true
+                            self.isLoading = false
+                            self.provisioningStep = .enterCredentials
+                        }
                     }
                 } else {
-                    if retriesRemaining > 0 {
-                        DispatchQueue.main.asyncAfter(deadline: .now() + 15) {
-                            self.checkDeviceStatus(retriesRemaining: retriesRemaining - 1)
+                    if attemptsRemaining > 0 {
+                        DispatchQueue.main.asyncAfter(deadline: .now() + 10) {
+                            self.checkDeviceStatus(attemptsRemaining: attemptsRemaining - 1)
                         }
                     } else {
                         self.message = "Server error. Please wait and try again."
                         self.messageColor = .red
                         self.showMessage = true
+                        self.isLoading = false
                         self.provisioningStep = .enterCredentials
                     }
                 }

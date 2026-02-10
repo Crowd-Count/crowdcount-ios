@@ -1022,7 +1022,7 @@ struct AggregatedHistoricView: View {
             return
         }
 
-        let weekdayOrder = ["Monday", "Tuesday", "Wednesday", "Thursday", "Friday", "Saturday", "Sunday"]
+        let weekdayOrder: [String] = ["Monday", "Tuesday", "Wednesday", "Thursday", "Friday", "Saturday", "Sunday"]
 
         var csvContent = "Day,Aggregated Total,Aggregated Average\n"
 
@@ -1056,8 +1056,8 @@ struct AggregatedHistoricView: View {
             return
         }
 
-        let monthOrder = ["January", "February", "March", "April", "May", "June",
-                          "July", "August", "September", "October", "November", "December"]
+        let monthOrder: [String] = ["January", "February", "March", "April", "May", "June",
+                                    "July", "August", "September", "October", "November", "December"]
 
         var csvContent = "Month,Aggregated Total,Aggregated Average\n"
 

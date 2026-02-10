@@ -1,0 +1,4 @@
+module StripeApplePay {
+header "StripeApplePay-Swift.h"
+export *
+}

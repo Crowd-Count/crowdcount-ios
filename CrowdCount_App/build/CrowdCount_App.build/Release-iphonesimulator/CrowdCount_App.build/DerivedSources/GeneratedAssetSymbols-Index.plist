@@ -1,0 +1,53 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE plist PUBLIC "-//Apple//DTD PLIST 1.0//EN" "http://www.apple.com/DTDs/PropertyList-1.0.dtd">
+<plist version="1.0">
+<dict>
+	<key>colors</key>
+	<array/>
+	<key>images</key>
+	<array>
+		<dict>
+			<key>catalogPath</key>
+			<string>/Users/elkanbruha/Documents/CrowdCount/crowdcount-ios/CrowdCount_App/CrowdCount_App/Assets.xcassets</string>
+			<key>objcSymbol</key>
+			<string>ACImageNameLogoRounded</string>
+			<key>relativePath</key>
+			<string>./LogoRounded.imageset</string>
+			<key>swiftSymbol</key>
+			<string>logoRounded</string>
+		</dict>
+		<dict>
+			<key>catalogPath</key>
+			<string>/Users/elkanbruha/Documents/CrowdCount/crowdcount-ios/CrowdCount_App/CrowdCount_App/Assets.xcassets</string>
+			<key>objcSymbol</key>
+			<string>ACImageNameTransparentLogo</string>
+			<key>relativePath</key>
+			<string>./TransparentLogo.imageset</string>
+			<key>swiftSymbol</key>
+			<string>transparentLogo</string>
+		</dict>
+		<dict>
+			<key>catalogPath</key>
+			<string>/Users/elkanbruha/Documents/CrowdCount/crowdcount-ios/CrowdCount_App/CrowdCount_App/Assets.xcassets</string>
+			<key>objcSymbol</key>
+			<string>ACImageNameTransparentLogoBlack</string>
+			<key>relativePath</key>
+			<string>./TransparentLogoBlack.imageset</string>
+			<key>swiftSymbol</key>
+			<string>transparentLogoBlack</string>
+		</dict>
+		<dict>
+			<key>catalogPath</key>
+			<string>/Users/elkanbruha/Documents/CrowdCount/crowdcount-ios/CrowdCount_App/CrowdCount_App/Assets.xcassets</string>
+			<key>objcSymbol</key>
+			<string>ACImageNameMapIcon</string>
+			<key>relativePath</key>
+			<string>./mapIcon.imageset</string>
+			<key>swiftSymbol</key>
+			<string>mapIcon</string>
+		</dict>
+	</array>
+	<key>symbols</key>
+	<array/>
+</dict>
+</plist>

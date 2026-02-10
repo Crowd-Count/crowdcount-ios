@@ -13,7 +13,7 @@ struct BarGraphWeek: View {
         VStack {
             Chart {
                 barMarks()
-                lineMarks()
+                averageBarMarks()
             }
             .chartXAxis {
                 AxisMarks(values: allDays) { value in
@@ -56,8 +56,9 @@ struct BarGraphWeek: View {
                     y: .value("Count", count)
                 )
                 .foregroundStyle(.blue)
-                .opacity(index % 2 == 0 ? 0.8 : 0.6)
+                .opacity(index % 2 == 0 ? 1.0 : 0.85)
                 .cornerRadius(3)
+                .position(by: .value("Series", "Data"))
             } else {
                 // Invisible placeholder to ensure day appears on X-axis
                 BarMark(
@@ -65,22 +66,24 @@ struct BarGraphWeek: View {
                     y: .value("Count", 0)
                 )
                 .foregroundStyle(.clear)
+                .position(by: .value("Series", "Data"))
             }
         }
     }
 
     @ChartContentBuilder
-    private func lineMarks() -> some ChartContent {
-        // Show average line for all days that have average data
+    private func averageBarMarks() -> some ChartContent {
         if let averageWeekData = averageWeekData {
-            ForEach(allDays, id: \.self) { day in
+            ForEach(Array(allDays.enumerated()), id: \.element) { index, day in
                 if let averageCount = averageWeekData[day] {
-                    LineMark(
+                    BarMark(
                         x: .value("Day", day),
-                        y: .value("Average Count", max(0, averageCount))
+                        y: .value("Count", max(0, averageCount))
                     )
                     .foregroundStyle(.orange)
-                    .lineStyle(StrokeStyle(lineWidth: 2))
+                    .opacity(index % 2 == 0 ? 0.85 : 0.7)
+                    .cornerRadius(3)
+                    .position(by: .value("Series", "Average"))
                 }
             }
         }

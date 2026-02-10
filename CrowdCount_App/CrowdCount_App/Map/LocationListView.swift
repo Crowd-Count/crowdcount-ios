@@ -14,6 +14,7 @@ struct LocationListView: View {
     @ObservedObject var viewModel: MapViewModel
     @ObservedObject var adService: AdService
     var userLocation: CLLocationCoordinate2D?
+    var onLocationSelected: ((Location) -> Void)? = nil
     @State private var searchText = ""
     @State private var selectedTab: ListTab = .locations
     @Environment(\.dismiss) private var dismiss
@@ -93,7 +94,7 @@ struct LocationListView: View {
                 // Content based on selected tab
                 switch selectedTab {
                 case .locations:
-                    LocationsListContent(filteredLocations: filteredLocations, searchText: searchText, colorScheme: colorScheme)
+                    LocationsListContent(filteredLocations: filteredLocations, searchText: searchText, colorScheme: colorScheme, userLocation: userLocation, onLocationSelected: onLocationSelected)
                 case .ads:
                     AdsListContent(filteredAds: filteredAds, searchText: searchText, locations: viewModel.locations, colorScheme: colorScheme)
                 }
@@ -127,6 +128,9 @@ struct LocationsListContent: View {
     let filteredLocations: [Location]
     let searchText: String
     let colorScheme: ColorScheme
+    var userLocation: CLLocationCoordinate2D? = nil
+    var onLocationSelected: ((Location) -> Void)? = nil
+    @Environment(\.dismiss) private var dismiss
 
     var body: some View {
         if filteredLocations.isEmpty {
@@ -143,8 +147,13 @@ struct LocationsListContent: View {
         } else {
             List {
                 ForEach(filteredLocations) { location in
-                    LocationRowView(location: location)
-                        .listRowInsets(EdgeInsets(top: 8, leading: 16, bottom: 8, trailing: 16))
+                    Button {
+                        onLocationSelected?(location)
+                        dismiss()
+                    } label: {
+                        LocationRowView(location: location, userLocation: userLocation)
+                    }
+                    .listRowInsets(EdgeInsets(top: 8, leading: 16, bottom: 8, trailing: 16))
                 }
             }
             .listStyle(PlainListStyle())
@@ -431,7 +440,32 @@ struct SearchBar: View {
 
 struct LocationRowView: View {
     let location: Location
+    var userLocation: CLLocationCoordinate2D? = nil
     @Environment(\.colorScheme) private var colorScheme
+
+    private var distanceText: String? {
+        guard let userLocation = userLocation else { return nil }
+        let userCL = CLLocation(latitude: userLocation.latitude, longitude: userLocation.longitude)
+        let locationCL = CLLocation(latitude: location.coordinate.latitude, longitude: location.coordinate.longitude)
+        let meters = locationCL.distance(from: userCL)
+        let usesMetric = Locale.current.measurementSystem == .metric
+        if usesMetric {
+            if meters < 1000 {
+                return "\(Int(meters)) m"
+            } else {
+                let km = meters / 1000
+                return km < 10 ? String(format: "%.1f km", km) : String(format: "%.0f km", km)
+            }
+        } else {
+            let feet = meters * 3.28084
+            if feet < 1000 {
+                return "\(Int(feet)) ft"
+            } else {
+                let miles = meters / 1609.344
+                return miles < 10 ? String(format: "%.1f mi", miles) : String(format: "%.0f mi", miles)
+            }
+        }
+    }
 
     var body: some View {
         HStack(spacing: 12) {
@@ -474,6 +508,18 @@ struct LocationRowView: View {
                     // Overcrowding if available
                     if let overcrowding = location.overcrowding {
                         Text("Max: \(overcrowding)")
+                            .font(.caption)
+                            .foregroundColor(.secondary)
+                    }
+                }
+
+                // Distance from user
+                if let distance = distanceText {
+                    HStack(spacing: 4) {
+                        Image(systemName: "location.fill")
+                            .font(.caption2)
+                            .foregroundColor(.secondary)
+                        Text(distance)
                             .font(.caption)
                             .foregroundColor(.secondary)
                     }

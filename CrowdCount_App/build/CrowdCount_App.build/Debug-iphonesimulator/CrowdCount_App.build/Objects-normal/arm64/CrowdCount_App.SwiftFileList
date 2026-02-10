@@ -1,0 +1,47 @@
+/Users/elkanbruha/Documents/CrowdCount/crowdcount-ios/CrowdCount_App/CrowdCount_App/App\ Foundation/APIService.swift
+/Users/elkanbruha/Documents/CrowdCount/crowdcount-ios/CrowdCount_App/CrowdCount_App/App\ Foundation/CryptoHelper.swift
+/Users/elkanbruha/Documents/CrowdCount/crowdcount-ios/CrowdCount_App/CrowdCount_App/Count\ History/BarGraphWeek.swift
+/Users/elkanbruha/Documents/CrowdCount/crowdcount-ios/CrowdCount_App/CrowdCount_App/Count\ History/BarGraphDay.swift
+/Users/elkanbruha/Documents/CrowdCount/crowdcount-ios/CrowdCount_App/CrowdCount_App/Device/CountersListView.swift
+/Users/elkanbruha/Documents/CrowdCount/crowdcount-ios/CrowdCount_App/CrowdCount_App/Device/AddUserPage.swift
+/Users/elkanbruha/Documents/CrowdCount/crowdcount-ios/CrowdCount_App/CrowdCount_App/Base\ and\ Start\ Page/LoginView.swift
+/Users/elkanbruha/Documents/CrowdCount/crowdcount-ios/CrowdCount_App/CrowdCount_App/Device/SettingsView.swift
+/Users/elkanbruha/Documents/CrowdCount/crowdcount-ios/CrowdCount_App/CrowdCount_App/Base\ and\ Start\ Page/ContentView.swift
+/Users/elkanbruha/Documents/CrowdCount/crowdcount-ios/CrowdCount_App/CrowdCount_App/Map/MapView.swift
+/Users/elkanbruha/Documents/CrowdCount/crowdcount-ios/CrowdCount_App/CrowdCount_App/Map/AdCarouselView.swift
+/Users/elkanbruha/Documents/CrowdCount/crowdcount-ios/CrowdCount_App/CrowdCount_App/Background/BlurredEdgesView.swift
+/Users/elkanbruha/Documents/CrowdCount/crowdcount-ios/CrowdCount_App/CrowdCount_App/Count\ History/HistoricView.swift
+/Users/elkanbruha/Documents/CrowdCount/crowdcount-ios/CrowdCount_App/CrowdCount_App/Map/InfoMapView.swift
+/Users/elkanbruha/Documents/CrowdCount/crowdcount-ios/CrowdCount_App/CrowdCount_App/Bluetooth/BluetoothSetupView.swift
+/Users/elkanbruha/Documents/CrowdCount/crowdcount-ios/CrowdCount_App/CrowdCount_App/Device/AllCountersListView.swift
+/Users/elkanbruha/Documents/CrowdCount/crowdcount-ios/CrowdCount_App/CrowdCount_App/Device/AdPayView.swift
+/Users/elkanbruha/Documents/CrowdCount/crowdcount-ios/CrowdCount_App/CrowdCount_App/Map/LocationListView.swift
+/Users/elkanbruha/Documents/CrowdCount/crowdcount-ios/CrowdCount_App/CrowdCount_App/Count\ History/HistoricCountsContentView.swift
+/Users/elkanbruha/Documents/CrowdCount/crowdcount-ios/CrowdCount_App/CrowdCount_App/Bluetooth/CounterPlacementGuideView.swift
+/Users/elkanbruha/Documents/CrowdCount/crowdcount-ios/CrowdCount_App/CrowdCount_App/App\ Foundation/NicknameManager.swift
+/Users/elkanbruha/Documents/CrowdCount/crowdcount-ios/CrowdCount_App/CrowdCount_App/Device/LocationSettingsView.swift
+/Users/elkanbruha/Documents/CrowdCount/crowdcount-ios/CrowdCount_App/CrowdCount_App/Device/LocationPickerView.swift
+/Users/elkanbruha/Documents/CrowdCount/crowdcount-ios/CrowdCount_App/CrowdCount_App/Count\ History/ShareSheetHelper.swift
+/Users/elkanbruha/Documents/CrowdCount/crowdcount-ios/CrowdCount_App/CrowdCount_App/Map/AdDetailView.swift
+/Users/elkanbruha/Documents/CrowdCount/crowdcount-ios/CrowdCount_App/CrowdCount_App/Map/Color.swift
+/Users/elkanbruha/Documents/CrowdCount/crowdcount-ios/CrowdCount_App/CrowdCount_App/Bluetooth/BluetoothManager.swift
+/Users/elkanbruha/Documents/CrowdCount/crowdcount-ios/CrowdCount_App/CrowdCount_App/Background/VisualEffectView.swift
+/Users/elkanbruha/Documents/CrowdCount/crowdcount-ios/CrowdCount_App/CrowdCount_App/Count\ History/StatisticsCalculator.swift
+/Users/elkanbruha/Documents/CrowdCount/crowdcount-ios/CrowdCount_App/CrowdCount_App/Count\ History/InsightCardView.swift
+/Users/elkanbruha/Documents/CrowdCount/crowdcount-ios/CrowdCount_App/CrowdCount_App/Count\ History/InsightsView.swift
+/Users/elkanbruha/Documents/CrowdCount/crowdcount-ios/CrowdCount_App/CrowdCount_App/Device/GetOnMapInfoView.swift
+/Users/elkanbruha/Documents/CrowdCount/crowdcount-ios/CrowdCount_App/CrowdCount_App/App\ Foundation/CrowdCount_AppApp.swift
+/Users/elkanbruha/Documents/CrowdCount/crowdcount-ios/CrowdCount_App/CrowdCount_App/Device/UserView.swift
+/Users/elkanbruha/Documents/CrowdCount/crowdcount-ios/CrowdCount_App/CrowdCount_App/Device/InformationView.swift
+/Users/elkanbruha/Documents/CrowdCount/crowdcount-ios/CrowdCount_App/CrowdCount_App/Device/TotalCountView.swift
+/Users/elkanbruha/Documents/CrowdCount/crowdcount-ios/CrowdCount_App/CrowdCount_App/App\ Foundation/AppSettings.swift
+/Users/elkanbruha/Documents/CrowdCount/crowdcount-ios/CrowdCount_App/CrowdCount_App/Count\ History/BarGraphYear.swift
+/Users/elkanbruha/Documents/CrowdCount/crowdcount-ios/CrowdCount_App/CrowdCount_App/Count\ History/AggregatedHistoricView.swift
+/Users/elkanbruha/Documents/CrowdCount/crowdcount-ios/CrowdCount_App/CrowdCount_App/Bluetooth/QRScannerView.swift
+/Users/elkanbruha/Documents/CrowdCount/crowdcount-ios/CrowdCount_App/CrowdCount_App/Base\ and\ Start\ Page/LoginTextViewModel.swift
+/Users/elkanbruha/Documents/CrowdCount/crowdcount-ios/CrowdCount_App/CrowdCount_App/Device/LocationCountersView.swift
+/Users/elkanbruha/Documents/CrowdCount/crowdcount-ios/CrowdCount_App/CrowdCount_App/Map/ReportView.swift
+/Users/elkanbruha/Documents/CrowdCount/crowdcount-ios/CrowdCount_App/CrowdCount_App/Background/BlurredEdgesViewRepresentable.swift
+/Users/elkanbruha/Documents/CrowdCount/crowdcount-ios/CrowdCount_App/CrowdCount_App/Base\ and\ Start\ Page/Alert.swift
+/Users/elkanbruha/Documents/CrowdCount/crowdcount-ios/CrowdCount_App/CrowdCount_App/App\ Foundation/AppDelegate.swift
+/Users/elkanbruha/Documents/CrowdCount/crowdcount-ios/CrowdCount_App/build/CrowdCount_App.build/Debug-iphonesimulator/CrowdCount_App.build/DerivedSources/GeneratedAssetSymbols.swift

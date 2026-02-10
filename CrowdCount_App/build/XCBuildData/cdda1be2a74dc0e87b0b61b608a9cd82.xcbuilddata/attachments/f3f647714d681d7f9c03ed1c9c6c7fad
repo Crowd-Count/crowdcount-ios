@@ -1,0 +1,246 @@
+{
+  "" : {
+    "const-values" : "/Users/elkanbruha/Documents/CrowdCount/crowdcount-ios/CrowdCount_App/build/CrowdCount_App.build/Release-iphonesimulator/CrowdCount_App.build/Objects-normal/x86_64/CrowdCount_App-primary.swiftconstvalues",
+    "dependencies" : "/Users/elkanbruha/Documents/CrowdCount/crowdcount-ios/CrowdCount_App/build/CrowdCount_App.build/Release-iphonesimulator/CrowdCount_App.build/Objects-normal/x86_64/CrowdCount_App-primary.d",
+    "diagnostics" : "/Users/elkanbruha/Documents/CrowdCount/crowdcount-ios/CrowdCount_App/build/CrowdCount_App.build/Release-iphonesimulator/CrowdCount_App.build/Objects-normal/x86_64/CrowdCount_App-primary.dia",
+    "emit-module-dependencies" : "/Users/elkanbruha/Documents/CrowdCount/crowdcount-ios/CrowdCount_App/build/CrowdCount_App.build/Release-iphonesimulator/CrowdCount_App.build/Objects-normal/x86_64/CrowdCount_App-primary-emit-module.d",
+    "emit-module-diagnostics" : "/Users/elkanbruha/Documents/CrowdCount/crowdcount-ios/CrowdCount_App/build/CrowdCount_App.build/Release-iphonesimulator/CrowdCount_App.build/Objects-normal/x86_64/CrowdCount_App-primary-emit-module.dia",
+    "pch" : "/Users/elkanbruha/Documents/CrowdCount/crowdcount-ios/CrowdCount_App/build/CrowdCount_App.build/Release-iphonesimulator/CrowdCount_App.build/Objects-normal/x86_64/CrowdCount_App-primary-Bridging-header.pch",
+    "swift-dependencies" : "/Users/elkanbruha/Documents/CrowdCount/crowdcount-ios/CrowdCount_App/build/CrowdCount_App.build/Release-iphonesimulator/CrowdCount_App.build/Objects-normal/x86_64/CrowdCount_App-primary.swiftdeps"
+  },
+  "/Users/elkanbruha/Documents/CrowdCount/crowdcount-ios/CrowdCount_App/CrowdCount_App/App Foundation/APIService.swift" : {
+    "index-unit-output-path" : "/CrowdCount_App.build/Release-iphonesimulator/CrowdCount_App.build/Objects-normal/x86_64/APIService.o",
+    "llvm-bc" : "/Users/elkanbruha/Documents/CrowdCount/crowdcount-ios/CrowdCount_App/build/CrowdCount_App.build/Release-iphonesimulator/CrowdCount_App.build/Objects-normal/x86_64/APIService.bc",
+    "object" : "/Users/elkanbruha/Documents/CrowdCount/crowdcount-ios/CrowdCount_App/build/CrowdCount_App.build/Release-iphonesimulator/CrowdCount_App.build/Objects-normal/x86_64/APIService.o"
+  },
+  "/Users/elkanbruha/Documents/CrowdCount/crowdcount-ios/CrowdCount_App/CrowdCount_App/App Foundation/AppDelegate.swift" : {
+    "index-unit-output-path" : "/CrowdCount_App.build/Release-iphonesimulator/CrowdCount_App.build/Objects-normal/x86_64/AppDelegate.o",
+    "llvm-bc" : "/Users/elkanbruha/Documents/CrowdCount/crowdcount-ios/CrowdCount_App/build/CrowdCount_App.build/Release-iphonesimulator/CrowdCount_App.build/Objects-normal/x86_64/AppDelegate.bc",
+    "object" : "/Users/elkanbruha/Documents/CrowdCount/crowdcount-ios/CrowdCount_App/build/CrowdCount_App.build/Release-iphonesimulator/CrowdCount_App.build/Objects-normal/x86_64/AppDelegate.o"
+  },
+  "/Users/elkanbruha/Documents/CrowdCount/crowdcount-ios/CrowdCount_App/CrowdCount_App/App Foundation/AppSettings.swift" : {
+    "index-unit-output-path" : "/CrowdCount_App.build/Release-iphonesimulator/CrowdCount_App.build/Objects-normal/x86_64/AppSettings.o",
+    "llvm-bc" : "/Users/elkanbruha/Documents/CrowdCount/crowdcount-ios/CrowdCount_App/build/CrowdCount_App.build/Release-iphonesimulator/CrowdCount_App.build/Objects-normal/x86_64/AppSettings.bc",
+    "object" : "/Users/elkanbruha/Documents/CrowdCount/crowdcount-ios/CrowdCount_App/build/CrowdCount_App.build/Release-iphonesimulator/CrowdCount_App.build/Objects-normal/x86_64/AppSettings.o"
+  },
+  "/Users/elkanbruha/Documents/CrowdCount/crowdcount-ios/CrowdCount_App/CrowdCount_App/App Foundation/CrowdCount_AppApp.swift" : {
+    "index-unit-output-path" : "/CrowdCount_App.build/Release-iphonesimulator/CrowdCount_App.build/Objects-normal/x86_64/CrowdCount_AppApp.o",
+    "llvm-bc" : "/Users/elkanbruha/Documents/CrowdCount/crowdcount-ios/CrowdCount_App/build/CrowdCount_App.build/Release-iphonesimulator/CrowdCount_App.build/Objects-normal/x86_64/CrowdCount_AppApp.bc",
+    "object" : "/Users/elkanbruha/Documents/CrowdCount/crowdcount-ios/CrowdCount_App/build/CrowdCount_App.build/Release-iphonesimulator/CrowdCount_App.build/Objects-normal/x86_64/CrowdCount_AppApp.o"
+  },
+  "/Users/elkanbruha/Documents/CrowdCount/crowdcount-ios/CrowdCount_App/CrowdCount_App/App Foundation/CryptoHelper.swift" : {
+    "index-unit-output-path" : "/CrowdCount_App.build/Release-iphonesimulator/CrowdCount_App.build/Objects-normal/x86_64/CryptoHelper.o",
+    "llvm-bc" : "/Users/elkanbruha/Documents/CrowdCount/crowdcount-ios/CrowdCount_App/build/CrowdCount_App.build/Release-iphonesimulator/CrowdCount_App.build/Objects-normal/x86_64/CryptoHelper.bc",
+    "object" : "/Users/elkanbruha/Documents/CrowdCount/crowdcount-ios/CrowdCount_App/build/CrowdCount_App.build/Release-iphonesimulator/CrowdCount_App.build/Objects-normal/x86_64/CryptoHelper.o"
+  },
+  "/Users/elkanbruha/Documents/CrowdCount/crowdcount-ios/CrowdCount_App/CrowdCount_App/App Foundation/NicknameManager.swift" : {
+    "index-unit-output-path" : "/CrowdCount_App.build/Release-iphonesimulator/CrowdCount_App.build/Objects-normal/x86_64/NicknameManager.o",
+    "llvm-bc" : "/Users/elkanbruha/Documents/CrowdCount/crowdcount-ios/CrowdCount_App/build/CrowdCount_App.build/Release-iphonesimulator/CrowdCount_App.build/Objects-normal/x86_64/NicknameManager.bc",
+    "object" : "/Users/elkanbruha/Documents/CrowdCount/crowdcount-ios/CrowdCount_App/build/CrowdCount_App.build/Release-iphonesimulator/CrowdCount_App.build/Objects-normal/x86_64/NicknameManager.o"
+  },
+  "/Users/elkanbruha/Documents/CrowdCount/crowdcount-ios/CrowdCount_App/CrowdCount_App/Background/BlurredEdgesView.swift" : {
+    "index-unit-output-path" : "/CrowdCount_App.build/Release-iphonesimulator/CrowdCount_App.build/Objects-normal/x86_64/BlurredEdgesView.o",
+    "llvm-bc" : "/Users/elkanbruha/Documents/CrowdCount/crowdcount-ios/CrowdCount_App/build/CrowdCount_App.build/Release-iphonesimulator/CrowdCount_App.build/Objects-normal/x86_64/BlurredEdgesView.bc",
+    "object" : "/Users/elkanbruha/Documents/CrowdCount/crowdcount-ios/CrowdCount_App/build/CrowdCount_App.build/Release-iphonesimulator/CrowdCount_App.build/Objects-normal/x86_64/BlurredEdgesView.o"
+  },
+  "/Users/elkanbruha/Documents/CrowdCount/crowdcount-ios/CrowdCount_App/CrowdCount_App/Background/BlurredEdgesViewRepresentable.swift" : {
+    "index-unit-output-path" : "/CrowdCount_App.build/Release-iphonesimulator/CrowdCount_App.build/Objects-normal/x86_64/BlurredEdgesViewRepresentable.o",
+    "llvm-bc" : "/Users/elkanbruha/Documents/CrowdCount/crowdcount-ios/CrowdCount_App/build/CrowdCount_App.build/Release-iphonesimulator/CrowdCount_App.build/Objects-normal/x86_64/BlurredEdgesViewRepresentable.bc",
+    "object" : "/Users/elkanbruha/Documents/CrowdCount/crowdcount-ios/CrowdCount_App/build/CrowdCount_App.build/Release-iphonesimulator/CrowdCount_App.build/Objects-normal/x86_64/BlurredEdgesViewRepresentable.o"
+  },
+  "/Users/elkanbruha/Documents/CrowdCount/crowdcount-ios/CrowdCount_App/CrowdCount_App/Background/VisualEffectView.swift" : {
+    "index-unit-output-path" : "/CrowdCount_App.build/Release-iphonesimulator/CrowdCount_App.build/Objects-normal/x86_64/VisualEffectView.o",
+    "llvm-bc" : "/Users/elkanbruha/Documents/CrowdCount/crowdcount-ios/CrowdCount_App/build/CrowdCount_App.build/Release-iphonesimulator/CrowdCount_App.build/Objects-normal/x86_64/VisualEffectView.bc",
+    "object" : "/Users/elkanbruha/Documents/CrowdCount/crowdcount-ios/CrowdCount_App/build/CrowdCount_App.build/Release-iphonesimulator/CrowdCount_App.build/Objects-normal/x86_64/VisualEffectView.o"
+  },
+  "/Users/elkanbruha/Documents/CrowdCount/crowdcount-ios/CrowdCount_App/CrowdCount_App/Base and Start Page/Alert.swift" : {
+    "index-unit-output-path" : "/CrowdCount_App.build/Release-iphonesimulator/CrowdCount_App.build/Objects-normal/x86_64/Alert.o",
+    "llvm-bc" : "/Users/elkanbruha/Documents/CrowdCount/crowdcount-ios/CrowdCount_App/build/CrowdCount_App.build/Release-iphonesimulator/CrowdCount_App.build/Objects-normal/x86_64/Alert.bc",
+    "object" : "/Users/elkanbruha/Documents/CrowdCount/crowdcount-ios/CrowdCount_App/build/CrowdCount_App.build/Release-iphonesimulator/CrowdCount_App.build/Objects-normal/x86_64/Alert.o"
+  },
+  "/Users/elkanbruha/Documents/CrowdCount/crowdcount-ios/CrowdCount_App/CrowdCount_App/Base and Start Page/ContentView.swift" : {
+    "index-unit-output-path" : "/CrowdCount_App.build/Release-iphonesimulator/CrowdCount_App.build/Objects-normal/x86_64/ContentView.o",
+    "llvm-bc" : "/Users/elkanbruha/Documents/CrowdCount/crowdcount-ios/CrowdCount_App/build/CrowdCount_App.build/Release-iphonesimulator/CrowdCount_App.build/Objects-normal/x86_64/ContentView.bc",
+    "object" : "/Users/elkanbruha/Documents/CrowdCount/crowdcount-ios/CrowdCount_App/build/CrowdCount_App.build/Release-iphonesimulator/CrowdCount_App.build/Objects-normal/x86_64/ContentView.o"
+  },
+  "/Users/elkanbruha/Documents/CrowdCount/crowdcount-ios/CrowdCount_App/CrowdCount_App/Base and Start Page/LoginTextViewModel.swift" : {
+    "index-unit-output-path" : "/CrowdCount_App.build/Release-iphonesimulator/CrowdCount_App.build/Objects-normal/x86_64/LoginTextViewModel.o",
+    "llvm-bc" : "/Users/elkanbruha/Documents/CrowdCount/crowdcount-ios/CrowdCount_App/build/CrowdCount_App.build/Release-iphonesimulator/CrowdCount_App.build/Objects-normal/x86_64/LoginTextViewModel.bc",
+    "object" : "/Users/elkanbruha/Documents/CrowdCount/crowdcount-ios/CrowdCount_App/build/CrowdCount_App.build/Release-iphonesimulator/CrowdCount_App.build/Objects-normal/x86_64/LoginTextViewModel.o"
+  },
+  "/Users/elkanbruha/Documents/CrowdCount/crowdcount-ios/CrowdCount_App/CrowdCount_App/Base and Start Page/LoginView.swift" : {
+    "index-unit-output-path" : "/CrowdCount_App.build/Release-iphonesimulator/CrowdCount_App.build/Objects-normal/x86_64/LoginView.o",
+    "llvm-bc" : "/Users/elkanbruha/Documents/CrowdCount/crowdcount-ios/CrowdCount_App/build/CrowdCount_App.build/Release-iphonesimulator/CrowdCount_App.build/Objects-normal/x86_64/LoginView.bc",
+    "object" : "/Users/elkanbruha/Documents/CrowdCount/crowdcount-ios/CrowdCount_App/build/CrowdCount_App.build/Release-iphonesimulator/CrowdCount_App.build/Objects-normal/x86_64/LoginView.o"
+  },
+  "/Users/elkanbruha/Documents/CrowdCount/crowdcount-ios/CrowdCount_App/CrowdCount_App/Bluetooth/BluetoothManager.swift" : {
+    "index-unit-output-path" : "/CrowdCount_App.build/Release-iphonesimulator/CrowdCount_App.build/Objects-normal/x86_64/BluetoothManager.o",
+    "llvm-bc" : "/Users/elkanbruha/Documents/CrowdCount/crowdcount-ios/CrowdCount_App/build/CrowdCount_App.build/Release-iphonesimulator/CrowdCount_App.build/Objects-normal/x86_64/BluetoothManager.bc",
+    "object" : "/Users/elkanbruha/Documents/CrowdCount/crowdcount-ios/CrowdCount_App/build/CrowdCount_App.build/Release-iphonesimulator/CrowdCount_App.build/Objects-normal/x86_64/BluetoothManager.o"
+  },
+  "/Users/elkanbruha/Documents/CrowdCount/crowdcount-ios/CrowdCount_App/CrowdCount_App/Bluetooth/BluetoothSetupView.swift" : {
+    "index-unit-output-path" : "/CrowdCount_App.build/Release-iphonesimulator/CrowdCount_App.build/Objects-normal/x86_64/BluetoothSetupView.o",
+    "llvm-bc" : "/Users/elkanbruha/Documents/CrowdCount/crowdcount-ios/CrowdCount_App/build/CrowdCount_App.build/Release-iphonesimulator/CrowdCount_App.build/Objects-normal/x86_64/BluetoothSetupView.bc",
+    "object" : "/Users/elkanbruha/Documents/CrowdCount/crowdcount-ios/CrowdCount_App/build/CrowdCount_App.build/Release-iphonesimulator/CrowdCount_App.build/Objects-normal/x86_64/BluetoothSetupView.o"
+  },
+  "/Users/elkanbruha/Documents/CrowdCount/crowdcount-ios/CrowdCount_App/CrowdCount_App/Bluetooth/CounterPlacementGuideView.swift" : {
+    "index-unit-output-path" : "/CrowdCount_App.build/Release-iphonesimulator/CrowdCount_App.build/Objects-normal/x86_64/CounterPlacementGuideView.o",
+    "llvm-bc" : "/Users/elkanbruha/Documents/CrowdCount/crowdcount-ios/CrowdCount_App/build/CrowdCount_App.build/Release-iphonesimulator/CrowdCount_App.build/Objects-normal/x86_64/CounterPlacementGuideView.bc",
+    "object" : "/Users/elkanbruha/Documents/CrowdCount/crowdcount-ios/CrowdCount_App/build/CrowdCount_App.build/Release-iphonesimulator/CrowdCount_App.build/Objects-normal/x86_64/CounterPlacementGuideView.o"
+  },
+  "/Users/elkanbruha/Documents/CrowdCount/crowdcount-ios/CrowdCount_App/CrowdCount_App/Bluetooth/QRScannerView.swift" : {
+    "index-unit-output-path" : "/CrowdCount_App.build/Release-iphonesimulator/CrowdCount_App.build/Objects-normal/x86_64/QRScannerView.o",
+    "llvm-bc" : "/Users/elkanbruha/Documents/CrowdCount/crowdcount-ios/CrowdCount_App/build/CrowdCount_App.build/Release-iphonesimulator/CrowdCount_App.build/Objects-normal/x86_64/QRScannerView.bc",
+    "object" : "/Users/elkanbruha/Documents/CrowdCount/crowdcount-ios/CrowdCount_App/build/CrowdCount_App.build/Release-iphonesimulator/CrowdCount_App.build/Objects-normal/x86_64/QRScannerView.o"
+  },
+  "/Users/elkanbruha/Documents/CrowdCount/crowdcount-ios/CrowdCount_App/CrowdCount_App/Count History/AggregatedHistoricView.swift" : {
+    "index-unit-output-path" : "/CrowdCount_App.build/Release-iphonesimulator/CrowdCount_App.build/Objects-normal/x86_64/AggregatedHistoricView.o",
+    "llvm-bc" : "/Users/elkanbruha/Documents/CrowdCount/crowdcount-ios/CrowdCount_App/build/CrowdCount_App.build/Release-iphonesimulator/CrowdCount_App.build/Objects-normal/x86_64/AggregatedHistoricView.bc",
+    "object" : "/Users/elkanbruha/Documents/CrowdCount/crowdcount-ios/CrowdCount_App/build/CrowdCount_App.build/Release-iphonesimulator/CrowdCount_App.build/Objects-normal/x86_64/AggregatedHistoricView.o"
+  },
+  "/Users/elkanbruha/Documents/CrowdCount/crowdcount-ios/CrowdCount_App/CrowdCount_App/Count History/BarGraphDay.swift" : {
+    "index-unit-output-path" : "/CrowdCount_App.build/Release-iphonesimulator/CrowdCount_App.build/Objects-normal/x86_64/BarGraphDay.o",
+    "llvm-bc" : "/Users/elkanbruha/Documents/CrowdCount/crowdcount-ios/CrowdCount_App/build/CrowdCount_App.build/Release-iphonesimulator/CrowdCount_App.build/Objects-normal/x86_64/BarGraphDay.bc",
+    "object" : "/Users/elkanbruha/Documents/CrowdCount/crowdcount-ios/CrowdCount_App/build/CrowdCount_App.build/Release-iphonesimulator/CrowdCount_App.build/Objects-normal/x86_64/BarGraphDay.o"
+  },
+  "/Users/elkanbruha/Documents/CrowdCount/crowdcount-ios/CrowdCount_App/CrowdCount_App/Count History/BarGraphWeek.swift" : {
+    "index-unit-output-path" : "/CrowdCount_App.build/Release-iphonesimulator/CrowdCount_App.build/Objects-normal/x86_64/BarGraphWeek.o",
+    "llvm-bc" : "/Users/elkanbruha/Documents/CrowdCount/crowdcount-ios/CrowdCount_App/build/CrowdCount_App.build/Release-iphonesimulator/CrowdCount_App.build/Objects-normal/x86_64/BarGraphWeek.bc",
+    "object" : "/Users/elkanbruha/Documents/CrowdCount/crowdcount-ios/CrowdCount_App/build/CrowdCount_App.build/Release-iphonesimulator/CrowdCount_App.build/Objects-normal/x86_64/BarGraphWeek.o"
+  },
+  "/Users/elkanbruha/Documents/CrowdCount/crowdcount-ios/CrowdCount_App/CrowdCount_App/Count History/BarGraphYear.swift" : {
+    "index-unit-output-path" : "/CrowdCount_App.build/Release-iphonesimulator/CrowdCount_App.build/Objects-normal/x86_64/BarGraphYear.o",
+    "llvm-bc" : "/Users/elkanbruha/Documents/CrowdCount/crowdcount-ios/CrowdCount_App/build/CrowdCount_App.build/Release-iphonesimulator/CrowdCount_App.build/Objects-normal/x86_64/BarGraphYear.bc",
+    "object" : "/Users/elkanbruha/Documents/CrowdCount/crowdcount-ios/CrowdCount_App/build/CrowdCount_App.build/Release-iphonesimulator/CrowdCount_App.build/Objects-normal/x86_64/BarGraphYear.o"
+  },
+  "/Users/elkanbruha/Documents/CrowdCount/crowdcount-ios/CrowdCount_App/CrowdCount_App/Count History/HistoricCountsContentView.swift" : {
+    "index-unit-output-path" : "/CrowdCount_App.build/Release-iphonesimulator/CrowdCount_App.build/Objects-normal/x86_64/HistoricCountsContentView.o",
+    "llvm-bc" : "/Users/elkanbruha/Documents/CrowdCount/crowdcount-ios/CrowdCount_App/build/CrowdCount_App.build/Release-iphonesimulator/CrowdCount_App.build/Objects-normal/x86_64/HistoricCountsContentView.bc",
+    "object" : "/Users/elkanbruha/Documents/CrowdCount/crowdcount-ios/CrowdCount_App/build/CrowdCount_App.build/Release-iphonesimulator/CrowdCount_App.build/Objects-normal/x86_64/HistoricCountsContentView.o"
+  },
+  "/Users/elkanbruha/Documents/CrowdCount/crowdcount-ios/CrowdCount_App/CrowdCount_App/Count History/HistoricView.swift" : {
+    "index-unit-output-path" : "/CrowdCount_App.build/Release-iphonesimulator/CrowdCount_App.build/Objects-normal/x86_64/HistoricView.o",
+    "llvm-bc" : "/Users/elkanbruha/Documents/CrowdCount/crowdcount-ios/CrowdCount_App/build/CrowdCount_App.build/Release-iphonesimulator/CrowdCount_App.build/Objects-normal/x86_64/HistoricView.bc",
+    "object" : "/Users/elkanbruha/Documents/CrowdCount/crowdcount-ios/CrowdCount_App/build/CrowdCount_App.build/Release-iphonesimulator/CrowdCount_App.build/Objects-normal/x86_64/HistoricView.o"
+  },
+  "/Users/elkanbruha/Documents/CrowdCount/crowdcount-ios/CrowdCount_App/CrowdCount_App/Count History/InsightCardView.swift" : {
+    "index-unit-output-path" : "/CrowdCount_App.build/Release-iphonesimulator/CrowdCount_App.build/Objects-normal/x86_64/InsightCardView.o",
+    "llvm-bc" : "/Users/elkanbruha/Documents/CrowdCount/crowdcount-ios/CrowdCount_App/build/CrowdCount_App.build/Release-iphonesimulator/CrowdCount_App.build/Objects-normal/x86_64/InsightCardView.bc",
+    "object" : "/Users/elkanbruha/Documents/CrowdCount/crowdcount-ios/CrowdCount_App/build/CrowdCount_App.build/Release-iphonesimulator/CrowdCount_App.build/Objects-normal/x86_64/InsightCardView.o"
+  },
+  "/Users/elkanbruha/Documents/CrowdCount/crowdcount-ios/CrowdCount_App/CrowdCount_App/Count History/InsightsView.swift" : {
+    "index-unit-output-path" : "/CrowdCount_App.build/Release-iphonesimulator/CrowdCount_App.build/Objects-normal/x86_64/InsightsView.o",
+    "llvm-bc" : "/Users/elkanbruha/Documents/CrowdCount/crowdcount-ios/CrowdCount_App/build/CrowdCount_App.build/Release-iphonesimulator/CrowdCount_App.build/Objects-normal/x86_64/InsightsView.bc",
+    "object" : "/Users/elkanbruha/Documents/CrowdCount/crowdcount-ios/CrowdCount_App/build/CrowdCount_App.build/Release-iphonesimulator/CrowdCount_App.build/Objects-normal/x86_64/InsightsView.o"
+  },
+  "/Users/elkanbruha/Documents/CrowdCount/crowdcount-ios/CrowdCount_App/CrowdCount_App/Count History/ShareSheetHelper.swift" : {
+    "index-unit-output-path" : "/CrowdCount_App.build/Release-iphonesimulator/CrowdCount_App.build/Objects-normal/x86_64/ShareSheetHelper.o",
+    "llvm-bc" : "/Users/elkanbruha/Documents/CrowdCount/crowdcount-ios/CrowdCount_App/build/CrowdCount_App.build/Release-iphonesimulator/CrowdCount_App.build/Objects-normal/x86_64/ShareSheetHelper.bc",
+    "object" : "/Users/elkanbruha/Documents/CrowdCount/crowdcount-ios/CrowdCount_App/build/CrowdCount_App.build/Release-iphonesimulator/CrowdCount_App.build/Objects-normal/x86_64/ShareSheetHelper.o"
+  },
+  "/Users/elkanbruha/Documents/CrowdCount/crowdcount-ios/CrowdCount_App/CrowdCount_App/Count History/StatisticsCalculator.swift" : {
+    "index-unit-output-path" : "/CrowdCount_App.build/Release-iphonesimulator/CrowdCount_App.build/Objects-normal/x86_64/StatisticsCalculator.o",
+    "llvm-bc" : "/Users/elkanbruha/Documents/CrowdCount/crowdcount-ios/CrowdCount_App/build/CrowdCount_App.build/Release-iphonesimulator/CrowdCount_App.build/Objects-normal/x86_64/StatisticsCalculator.bc",
+    "object" : "/Users/elkanbruha/Documents/CrowdCount/crowdcount-ios/CrowdCount_App/build/CrowdCount_App.build/Release-iphonesimulator/CrowdCount_App.build/Objects-normal/x86_64/StatisticsCalculator.o"
+  },
+  "/Users/elkanbruha/Documents/CrowdCount/crowdcount-ios/CrowdCount_App/CrowdCount_App/Device/AdPayView.swift" : {
+    "index-unit-output-path" : "/CrowdCount_App.build/Release-iphonesimulator/CrowdCount_App.build/Objects-normal/x86_64/AdPayView.o",
+    "llvm-bc" : "/Users/elkanbruha/Documents/CrowdCount/crowdcount-ios/CrowdCount_App/build/CrowdCount_App.build/Release-iphonesimulator/CrowdCount_App.build/Objects-normal/x86_64/AdPayView.bc",
+    "object" : "/Users/elkanbruha/Documents/CrowdCount/crowdcount-ios/CrowdCount_App/build/CrowdCount_App.build/Release-iphonesimulator/CrowdCount_App.build/Objects-normal/x86_64/AdPayView.o"
+  },
+  "/Users/elkanbruha/Documents/CrowdCount/crowdcount-ios/CrowdCount_App/CrowdCount_App/Device/AddUserPage.swift" : {
+    "index-unit-output-path" : "/CrowdCount_App.build/Release-iphonesimulator/CrowdCount_App.build/Objects-normal/x86_64/AddUserPage.o",
+    "llvm-bc" : "/Users/elkanbruha/Documents/CrowdCount/crowdcount-ios/CrowdCount_App/build/CrowdCount_App.build/Release-iphonesimulator/CrowdCount_App.build/Objects-normal/x86_64/AddUserPage.bc",
+    "object" : "/Users/elkanbruha/Documents/CrowdCount/crowdcount-ios/CrowdCount_App/build/CrowdCount_App.build/Release-iphonesimulator/CrowdCount_App.build/Objects-normal/x86_64/AddUserPage.o"
+  },
+  "/Users/elkanbruha/Documents/CrowdCount/crowdcount-ios/CrowdCount_App/CrowdCount_App/Device/AllCountersListView.swift" : {
+    "index-unit-output-path" : "/CrowdCount_App.build/Release-iphonesimulator/CrowdCount_App.build/Objects-normal/x86_64/AllCountersListView.o",
+    "llvm-bc" : "/Users/elkanbruha/Documents/CrowdCount/crowdcount-ios/CrowdCount_App/build/CrowdCount_App.build/Release-iphonesimulator/CrowdCount_App.build/Objects-normal/x86_64/AllCountersListView.bc",
+    "object" : "/Users/elkanbruha/Documents/CrowdCount/crowdcount-ios/CrowdCount_App/build/CrowdCount_App.build/Release-iphonesimulator/CrowdCount_App.build/Objects-normal/x86_64/AllCountersListView.o"
+  },
+  "/Users/elkanbruha/Documents/CrowdCount/crowdcount-ios/CrowdCount_App/CrowdCount_App/Device/CountersListView.swift" : {
+    "index-unit-output-path" : "/CrowdCount_App.build/Release-iphonesimulator/CrowdCount_App.build/Objects-normal/x86_64/CountersListView.o",
+    "llvm-bc" : "/Users/elkanbruha/Documents/CrowdCount/crowdcount-ios/CrowdCount_App/build/CrowdCount_App.build/Release-iphonesimulator/CrowdCount_App.build/Objects-normal/x86_64/CountersListView.bc",
+    "object" : "/Users/elkanbruha/Documents/CrowdCount/crowdcount-ios/CrowdCount_App/build/CrowdCount_App.build/Release-iphonesimulator/CrowdCount_App.build/Objects-normal/x86_64/CountersListView.o"
+  },
+  "/Users/elkanbruha/Documents/CrowdCount/crowdcount-ios/CrowdCount_App/CrowdCount_App/Device/GetOnMapInfoView.swift" : {
+    "index-unit-output-path" : "/CrowdCount_App.build/Release-iphonesimulator/CrowdCount_App.build/Objects-normal/x86_64/GetOnMapInfoView.o",
+    "llvm-bc" : "/Users/elkanbruha/Documents/CrowdCount/crowdcount-ios/CrowdCount_App/build/CrowdCount_App.build/Release-iphonesimulator/CrowdCount_App.build/Objects-normal/x86_64/GetOnMapInfoView.bc",
+    "object" : "/Users/elkanbruha/Documents/CrowdCount/crowdcount-ios/CrowdCount_App/build/CrowdCount_App.build/Release-iphonesimulator/CrowdCount_App.build/Objects-normal/x86_64/GetOnMapInfoView.o"
+  },
+  "/Users/elkanbruha/Documents/CrowdCount/crowdcount-ios/CrowdCount_App/CrowdCount_App/Device/InformationView.swift" : {
+    "index-unit-output-path" : "/CrowdCount_App.build/Release-iphonesimulator/CrowdCount_App.build/Objects-normal/x86_64/InformationView.o",
+    "llvm-bc" : "/Users/elkanbruha/Documents/CrowdCount/crowdcount-ios/CrowdCount_App/build/CrowdCount_App.build/Release-iphonesimulator/CrowdCount_App.build/Objects-normal/x86_64/InformationView.bc",
+    "object" : "/Users/elkanbruha/Documents/CrowdCount/crowdcount-ios/CrowdCount_App/build/CrowdCount_App.build/Release-iphonesimulator/CrowdCount_App.build/Objects-normal/x86_64/InformationView.o"
+  },
+  "/Users/elkanbruha/Documents/CrowdCount/crowdcount-ios/CrowdCount_App/CrowdCount_App/Device/LocationCountersView.swift" : {
+    "index-unit-output-path" : "/CrowdCount_App.build/Release-iphonesimulator/CrowdCount_App.build/Objects-normal/x86_64/LocationCountersView.o",
+    "llvm-bc" : "/Users/elkanbruha/Documents/CrowdCount/crowdcount-ios/CrowdCount_App/build/CrowdCount_App.build/Release-iphonesimulator/CrowdCount_App.build/Objects-normal/x86_64/LocationCountersView.bc",
+    "object" : "/Users/elkanbruha/Documents/CrowdCount/crowdcount-ios/CrowdCount_App/build/CrowdCount_App.build/Release-iphonesimulator/CrowdCount_App.build/Objects-normal/x86_64/LocationCountersView.o"
+  },
+  "/Users/elkanbruha/Documents/CrowdCount/crowdcount-ios/CrowdCount_App/CrowdCount_App/Device/LocationPickerView.swift" : {
+    "index-unit-output-path" : "/CrowdCount_App.build/Release-iphonesimulator/CrowdCount_App.build/Objects-normal/x86_64/LocationPickerView.o",
+    "llvm-bc" : "/Users/elkanbruha/Documents/CrowdCount/crowdcount-ios/CrowdCount_App/build/CrowdCount_App.build/Release-iphonesimulator/CrowdCount_App.build/Objects-normal/x86_64/LocationPickerView.bc",
+    "object" : "/Users/elkanbruha/Documents/CrowdCount/crowdcount-ios/CrowdCount_App/build/CrowdCount_App.build/Release-iphonesimulator/CrowdCount_App.build/Objects-normal/x86_64/LocationPickerView.o"
+  },
+  "/Users/elkanbruha/Documents/CrowdCount/crowdcount-ios/CrowdCount_App/CrowdCount_App/Device/LocationSettingsView.swift" : {
+    "index-unit-output-path" : "/CrowdCount_App.build/Release-iphonesimulator/CrowdCount_App.build/Objects-normal/x86_64/LocationSettingsView.o",
+    "llvm-bc" : "/Users/elkanbruha/Documents/CrowdCount/crowdcount-ios/CrowdCount_App/build/CrowdCount_App.build/Release-iphonesimulator/CrowdCount_App.build/Objects-normal/x86_64/LocationSettingsView.bc",
+    "object" : "/Users/elkanbruha/Documents/CrowdCount/crowdcount-ios/CrowdCount_App/build/CrowdCount_App.build/Release-iphonesimulator/CrowdCount_App.build/Objects-normal/x86_64/LocationSettingsView.o"
+  },
+  "/Users/elkanbruha/Documents/CrowdCount/crowdcount-ios/CrowdCount_App/CrowdCount_App/Device/SettingsView.swift" : {
+    "index-unit-output-path" : "/CrowdCount_App.build/Release-iphonesimulator/CrowdCount_App.build/Objects-normal/x86_64/SettingsView.o",
+    "llvm-bc" : "/Users/elkanbruha/Documents/CrowdCount/crowdcount-ios/CrowdCount_App/build/CrowdCount_App.build/Release-iphonesimulator/CrowdCount_App.build/Objects-normal/x86_64/SettingsView.bc",
+    "object" : "/Users/elkanbruha/Documents/CrowdCount/crowdcount-ios/CrowdCount_App/build/CrowdCount_App.build/Release-iphonesimulator/CrowdCount_App.build/Objects-normal/x86_64/SettingsView.o"
+  },
+  "/Users/elkanbruha/Documents/CrowdCount/crowdcount-ios/CrowdCount_App/CrowdCount_App/Device/TotalCountView.swift" : {
+    "index-unit-output-path" : "/CrowdCount_App.build/Release-iphonesimulator/CrowdCount_App.build/Objects-normal/x86_64/TotalCountView.o",
+    "llvm-bc" : "/Users/elkanbruha/Documents/CrowdCount/crowdcount-ios/CrowdCount_App/build/CrowdCount_App.build/Release-iphonesimulator/CrowdCount_App.build/Objects-normal/x86_64/TotalCountView.bc",
+    "object" : "/Users/elkanbruha/Documents/CrowdCount/crowdcount-ios/CrowdCount_App/build/CrowdCount_App.build/Release-iphonesimulator/CrowdCount_App.build/Objects-normal/x86_64/TotalCountView.o"
+  },
+  "/Users/elkanbruha/Documents/CrowdCount/crowdcount-ios/CrowdCount_App/CrowdCount_App/Device/UserView.swift" : {
+    "index-unit-output-path" : "/CrowdCount_App.build/Release-iphonesimulator/CrowdCount_App.build/Objects-normal/x86_64/UserView.o",
+    "llvm-bc" : "/Users/elkanbruha/Documents/CrowdCount/crowdcount-ios/CrowdCount_App/build/CrowdCount_App.build/Release-iphonesimulator/CrowdCount_App.build/Objects-normal/x86_64/UserView.bc",
+    "object" : "/Users/elkanbruha/Documents/CrowdCount/crowdcount-ios/CrowdCount_App/build/CrowdCount_App.build/Release-iphonesimulator/CrowdCount_App.build/Objects-normal/x86_64/UserView.o"
+  },
+  "/Users/elkanbruha/Documents/CrowdCount/crowdcount-ios/CrowdCount_App/CrowdCount_App/Map/AdCarouselView.swift" : {
+    "index-unit-output-path" : "/CrowdCount_App.build/Release-iphonesimulator/CrowdCount_App.build/Objects-normal/x86_64/AdCarouselView.o",
+    "llvm-bc" : "/Users/elkanbruha/Documents/CrowdCount/crowdcount-ios/CrowdCount_App/build/CrowdCount_App.build/Release-iphonesimulator/CrowdCount_App.build/Objects-normal/x86_64/AdCarouselView.bc",
+    "object" : "/Users/elkanbruha/Documents/CrowdCount/crowdcount-ios/CrowdCount_App/build/CrowdCount_App.build/Release-iphonesimulator/CrowdCount_App.build/Objects-normal/x86_64/AdCarouselView.o"
+  },
+  "/Users/elkanbruha/Documents/CrowdCount/crowdcount-ios/CrowdCount_App/CrowdCount_App/Map/AdDetailView.swift" : {
+    "index-unit-output-path" : "/CrowdCount_App.build/Release-iphonesimulator/CrowdCount_App.build/Objects-normal/x86_64/AdDetailView.o",
+    "llvm-bc" : "/Users/elkanbruha/Documents/CrowdCount/crowdcount-ios/CrowdCount_App/build/CrowdCount_App.build/Release-iphonesimulator/CrowdCount_App.build/Objects-normal/x86_64/AdDetailView.bc",
+    "object" : "/Users/elkanbruha/Documents/CrowdCount/crowdcount-ios/CrowdCount_App/build/CrowdCount_App.build/Release-iphonesimulator/CrowdCount_App.build/Objects-normal/x86_64/AdDetailView.o"
+  },
+  "/Users/elkanbruha/Documents/CrowdCount/crowdcount-ios/CrowdCount_App/CrowdCount_App/Map/Color.swift" : {
+    "index-unit-output-path" : "/CrowdCount_App.build/Release-iphonesimulator/CrowdCount_App.build/Objects-normal/x86_64/Color.o",
+    "llvm-bc" : "/Users/elkanbruha/Documents/CrowdCount/crowdcount-ios/CrowdCount_App/build/CrowdCount_App.build/Release-iphonesimulator/CrowdCount_App.build/Objects-normal/x86_64/Color.bc",
+    "object" : "/Users/elkanbruha/Documents/CrowdCount/crowdcount-ios/CrowdCount_App/build/CrowdCount_App.build/Release-iphonesimulator/CrowdCount_App.build/Objects-normal/x86_64/Color.o"
+  },
+  "/Users/elkanbruha/Documents/CrowdCount/crowdcount-ios/CrowdCount_App/CrowdCount_App/Map/InfoMapView.swift" : {
+    "index-unit-output-path" : "/CrowdCount_App.build/Release-iphonesimulator/CrowdCount_App.build/Objects-normal/x86_64/InfoMapView.o",
+    "llvm-bc" : "/Users/elkanbruha/Documents/CrowdCount/crowdcount-ios/CrowdCount_App/build/CrowdCount_App.build/Release-iphonesimulator/CrowdCount_App.build/Objects-normal/x86_64/InfoMapView.bc",
+    "object" : "/Users/elkanbruha/Documents/CrowdCount/crowdcount-ios/CrowdCount_App/build/CrowdCount_App.build/Release-iphonesimulator/CrowdCount_App.build/Objects-normal/x86_64/InfoMapView.o"
+  },
+  "/Users/elkanbruha/Documents/CrowdCount/crowdcount-ios/CrowdCount_App/CrowdCount_App/Map/LocationListView.swift" : {
+    "index-unit-output-path" : "/CrowdCount_App.build/Release-iphonesimulator/CrowdCount_App.build/Objects-normal/x86_64/LocationListView.o",
+    "llvm-bc" : "/Users/elkanbruha/Documents/CrowdCount/crowdcount-ios/CrowdCount_App/build/CrowdCount_App.build/Release-iphonesimulator/CrowdCount_App.build/Objects-normal/x86_64/LocationListView.bc",
+    "object" : "/Users/elkanbruha/Documents/CrowdCount/crowdcount-ios/CrowdCount_App/build/CrowdCount_App.build/Release-iphonesimulator/CrowdCount_App.build/Objects-normal/x86_64/LocationListView.o"
+  },
+  "/Users/elkanbruha/Documents/CrowdCount/crowdcount-ios/CrowdCount_App/CrowdCount_App/Map/MapView.swift" : {
+    "index-unit-output-path" : "/CrowdCount_App.build/Release-iphonesimulator/CrowdCount_App.build/Objects-normal/x86_64/MapView.o",
+    "llvm-bc" : "/Users/elkanbruha/Documents/CrowdCount/crowdcount-ios/CrowdCount_App/build/CrowdCount_App.build/Release-iphonesimulator/CrowdCount_App.build/Objects-normal/x86_64/MapView.bc",
+    "object" : "/Users/elkanbruha/Documents/CrowdCount/crowdcount-ios/CrowdCount_App/build/CrowdCount_App.build/Release-iphonesimulator/CrowdCount_App.build/Objects-normal/x86_64/MapView.o"
+  },
+  "/Users/elkanbruha/Documents/CrowdCount/crowdcount-ios/CrowdCount_App/CrowdCount_App/Map/ReportView.swift" : {
+    "index-unit-output-path" : "/CrowdCount_App.build/Release-iphonesimulator/CrowdCount_App.build/Objects-normal/x86_64/ReportView.o",
+    "llvm-bc" : "/Users/elkanbruha/Documents/CrowdCount/crowdcount-ios/CrowdCount_App/build/CrowdCount_App.build/Release-iphonesimulator/CrowdCount_App.build/Objects-normal/x86_64/ReportView.bc",
+    "object" : "/Users/elkanbruha/Documents/CrowdCount/crowdcount-ios/CrowdCount_App/build/CrowdCount_App.build/Release-iphonesimulator/CrowdCount_App.build/Objects-normal/x86_64/ReportView.o"
+  },
+  "/Users/elkanbruha/Documents/CrowdCount/crowdcount-ios/CrowdCount_App/build/CrowdCount_App.build/Release-iphonesimulator/CrowdCount_App.build/DerivedSources/GeneratedAssetSymbols.swift" : {
+    "index-unit-output-path" : "/CrowdCount_App.build/Release-iphonesimulator/CrowdCount_App.build/Objects-normal/x86_64/GeneratedAssetSymbols.o",
+    "llvm-bc" : "/Users/elkanbruha/Documents/CrowdCount/crowdcount-ios/CrowdCount_App/build/CrowdCount_App.build/Release-iphonesimulator/CrowdCount_App.build/Objects-normal/x86_64/GeneratedAssetSymbols.bc",
+    "object" : "/Users/elkanbruha/Documents/CrowdCount/crowdcount-ios/CrowdCount_App/build/CrowdCount_App.build/Release-iphonesimulator/CrowdCount_App.build/Objects-normal/x86_64/GeneratedAssetSymbols.o"
+  }
+}

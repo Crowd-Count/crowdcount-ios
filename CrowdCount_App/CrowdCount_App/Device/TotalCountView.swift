@@ -1,4 +1,5 @@
 import SwiftUI
+import UserNotifications
 
 struct TotalCountView: View {
     let totalCount: Int
@@ -441,20 +442,33 @@ struct TotalCountView: View {
         guard let groupId = location.overcrowdingGroupId,
               let appId = UserDefaults.standard.string(forKey: "appId") else { return }
 
-        Task {
-            do {
-                try await APIService.shared.registerGroupNotification(groupId: groupId, appId: appId)
-
-                await MainActor.run {
-                    var updatedLocation = location
-                    updatedLocation.isOvercrowdingNotificationEnabled = true
-                    location = updatedLocation
-                    onLocationUpdated(updatedLocation)
+        // Request notification permission first, then register with the server
+        UNUserNotificationCenter.current().requestAuthorization(options: [.alert, .badge, .sound]) { granted, error in
+            if granted {
+                DispatchQueue.main.async {
+                    UIApplication.shared.registerForRemoteNotifications()
                 }
-            } catch {
-                print("Error registering for notifications: \(error)")
-                await MainActor.run {
-                    isOvercrowdingNotificationEnabled = false
+            } else if let error = error {
+                print("Notification permission error: \(error.localizedDescription)")
+            }
+
+            // Register with server regardless — the device token will be sent
+            // asynchronously via AppDelegate once APNs provides it
+            Task {
+                do {
+                    try await APIService.shared.registerGroupNotification(groupId: groupId, appId: appId)
+
+                    await MainActor.run {
+                        var updatedLocation = self.location
+                        updatedLocation.isOvercrowdingNotificationEnabled = true
+                        self.location = updatedLocation
+                        self.onLocationUpdated(updatedLocation)
+                    }
+                } catch {
+                    print("Error registering for notifications: \(error)")
+                    await MainActor.run {
+                        self.isOvercrowdingNotificationEnabled = false
+                    }
                 }
             }
         }

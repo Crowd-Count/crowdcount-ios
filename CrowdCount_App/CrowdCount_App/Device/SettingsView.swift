@@ -297,7 +297,7 @@ struct SettingsView: View {
                         .padding(.bottom,10)
                         Text("Need some help?")
                             .foregroundColor(.secondary)
-                        Link("help@crowdcount.tech", destination: URL(string: "mailto:help@crowdcount.tech")!)
+                        Link("info@crowdcount.tech", destination: URL(string: "mailto:info@crowdcount.tech")!)
                             .foregroundColor(.blue)
                     }
                 }

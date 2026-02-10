@@ -1193,7 +1193,7 @@ struct HistoricView: View {
         }
 
         // Define the correct weekday order
-        let weekdayOrder = ["Monday", "Tuesday", "Wednesday", "Thursday", "Friday", "Saturday", "Sunday"]
+        let weekdayOrder: [String] = ["Monday", "Tuesday", "Wednesday", "Thursday", "Friday", "Saturday", "Sunday"]
 
         // Build CSV content
         var csvContent = "Day,Count,Average\n"
@@ -1228,8 +1228,8 @@ struct HistoricView: View {
         }
 
         // Define the correct month order
-        let monthOrder = ["January", "February", "March", "April", "May", "June",
-                          "July", "August", "September", "October", "November", "December"]
+        let monthOrder: [String] = ["January", "February", "March", "April", "May", "June",
+                                    "July", "August", "September", "October", "November", "December"]
 
         // Build CSV content
         var csvContent = "Month,Count,Average\n"
@@ -1290,13 +1290,169 @@ extension UIApplication {
 
 // MARK: - Preview
 
-#Preview("Historic View") {
-    NavigationView {
-        HistoricView(
-            userId: "Demo",
-            userUUID: UUID(),
-            userPasswords: .constant([UUID(): "password"])
-        )
+/// A self-contained preview wrapper that renders HistoricCountsContentView
+/// with fake data so all three charts (day/week/year) display without an API.
+private struct HistoricViewPreview: View {
+    @State private var selectedTab: HistoricViewTab = .historicCounts
+    @State private var selectedGraphDataType: GraphDataType = .population
+    @State private var selectedDay: String = "Today"
+    @State private var selectedWeek: WeekInfo? = WeekInfo(label: "This Week", startDate: "2026-01-26")
+    @State private var selectedYear: String = "This Year"
+    @State private var selectedInsightsPeriod: InsightsPeriod = .today
+
+    // Restaurant day data — lunch rush 12-2pm, tapering by 4pm (data stops at 16 = "now")
+    static let fakeDayData: [String: Double] = [
+        "11": 12, "12": 58, "13": 72, "14": 45, "15": 28, "16": 22
+    ]
+    // 8-week daily average shows full day pattern including dinner rush
+    static let fakeAvgDayData: [String: Double] = [
+        "11": 15, "12": 62, "13": 68, "14": 48, "15": 30, "16": 24,
+        "17": 32, "18": 55, "19": 74, "20": 65, "21": 38, "22": 12
+    ]
+
+    // Restaurant week data — busier Thu-Sat, quieter early week
+    static let fakeWeekData: [String: Double] = [
+        "Monday": 95, "Tuesday": 110, "Wednesday": 125,
+        "Thursday": 155, "Friday": 210, "Saturday": 235, "Sunday": 180
+    ]
+    static let fakeAvgWeekData: [String: Double] = [
+        "Monday": 90, "Tuesday": 105, "Wednesday": 120,
+        "Thursday": 148, "Friday": 200, "Saturday": 225, "Sunday": 170
+    ]
+
+    // Restaurant year data — summer patio season peak, holiday bumps
+    static let fakeYearData: [String: Double] = [
+        "January": 2800, "February": 2600
+    ]
+    static let fakeAvgYearData: [String: Double] = [
+        "January": 2900, "February": 2750, "March": 3400,
+        "April": 3800, "May": 4500, "June": 5200,
+        "July": 5600, "August": 5400, "September": 4800,
+        "October": 4100, "November": 3500, "December": 3900
+    ]
+
+    // Entry data (total guests seated throughout the day, higher than concurrent occupancy)
+    static let fakeEntryDayData: [String: Double] = [
+        "11": 18, "12": 85, "13": 96, "14": 62, "15": 38, "16": 30
+    ]
+    static let fakeEntryWeekData: [String: Double] = [
+        "Monday": 160, "Tuesday": 185, "Wednesday": 210,
+        "Thursday": 260, "Friday": 350, "Saturday": 390, "Sunday": 300
+    ]
+    static let fakeEntryYearData: [String: Double] = [
+        "January": 4600, "February": 4300
+    ]
+
+    static let fakeAvailableDates: [String] = [
+        "2026-02-04", "2026-02-03", "2026-02-02", "2026-02-01",
+        "2026-01-31", "2026-01-30", "2026-01-29", "2026-01-28"
+    ]
+    static let fakeAvailableWeeks: [WeekInfo] = [
+        WeekInfo(label: "This Week", startDate: "2026-01-26"),
+        WeekInfo(label: "Jan 19 - Jan 25", startDate: "2026-01-19"),
+        WeekInfo(label: "Jan 12 - Jan 18", startDate: "2026-01-12")
+    ]
+    static let fakeAvailableYears: [String] = ["2026", "2025"]
+
+    var body: some View {
+        NavigationView {
+            VStack(spacing: 0) {
+                Picker("View", selection: $selectedTab) {
+                    ForEach(HistoricViewTab.allCases, id: \.self) { tab in
+                        Text(tab.rawValue).tag(tab)
+                    }
+                }
+                .pickerStyle(.segmented)
+                .padding(.horizontal)
+                .padding(.top, 8)
+                .padding(.bottom, 4)
+
+                if selectedTab == .historicCounts {
+                    VStack(spacing: 0) {
+                        Picker("Data Type", selection: $selectedGraphDataType) {
+                            ForEach(GraphDataType.allCases, id: \.self) { type in
+                                Text(type.rawValue).tag(type)
+                            }
+                        }
+                        .pickerStyle(.segmented)
+                        .padding(.horizontal)
+                        .padding(.top, 8)
+                        .padding(.bottom, 12)
+
+                        HistoricCountsContentView(
+                            selectedGraphDataType: $selectedGraphDataType,
+                            selectedDay: $selectedDay,
+                            availableDates: Self.fakeAvailableDates,
+                            dayData: Self.fakeDayData,
+                            averageDayData: Self.fakeAvgDayData,
+                            hasDataForSelectedDay: true,
+                            isDayLoading: false,
+                            isDeviceOnline: true,
+                            mostRecentDataTime: "16",
+                            entryDayData: Self.fakeEntryDayData,
+                            averageEntryDayData: nil,
+                            hasDataForSelectedDayEntries: true,
+                            isEntryDayLoading: false,
+                            selectedWeek: $selectedWeek,
+                            availableWeeks: Self.fakeAvailableWeeks,
+                            weekData: Self.fakeWeekData,
+                            averageWeekData: Self.fakeAvgWeekData,
+                            hasDataForSelectedWeek: true,
+                            isWeekLoading: false,
+                            entryWeekData: Self.fakeEntryWeekData,
+                            averageEntryWeekData: nil,
+                            hasDataForSelectedWeekEntries: true,
+                            isEntryWeekLoading: false,
+                            selectedYear: $selectedYear,
+                            availableYears: Self.fakeAvailableYears,
+                            yearData: Self.fakeYearData,
+                            averageYearData: Self.fakeAvgYearData,
+                            hasDataForSelectedYear: true,
+                            isYearLoading: false,
+                            hasInsufficientYearData: false,
+                            entryYearData: Self.fakeEntryYearData,
+                            averageEntryYearData: nil,
+                            hasDataForSelectedYearEntries: true,
+                            isEntryYearLoading: false,
+                            onDaySelected: { _ in },
+                            onWeekSelected: { _ in },
+                            onYearSelected: { _ in },
+                            onDownloadDay: {},
+                            onDownloadWeek: {},
+                            onDownloadYear: {},
+                            getCurrentDate: { "2026-02-04" },
+                            getCurrentYear: { "2026" },
+                            formattedDateLong: { $0 },
+                            findMostRecentDataTime: { data in
+                                data.filter { $0.value > 0 }.keys.compactMap { Int($0) }.max().map { String($0) }
+                            }
+                        )
+                    }
+                } else {
+                    InsightsView(
+                        selectedPeriod: $selectedInsightsPeriod,
+                        dayData: Self.fakeDayData,
+                        averageDayData: Self.fakeAvgDayData,
+                        weekData: Self.fakeWeekData,
+                        averageWeekData: Self.fakeAvgWeekData,
+                        yearData: Self.fakeYearData,
+                        averageYearData: Self.fakeAvgYearData,
+                        entryDayData: Self.fakeEntryDayData,
+                        entryWeekData: Self.fakeEntryWeekData,
+                        entryYearData: Self.fakeEntryYearData,
+                        isDayLoading: false,
+                        isWeekLoading: false,
+                        isYearLoading: false
+                    )
+                }
+            }
+            .navigationBarTitle("Count Analytics", displayMode: .inline)
+        }
+        .preferredColorScheme(.dark)
         .environmentObject(AppSettings())
     }
+}
+
+#Preview("Historic View") {
+    HistoricViewPreview()
 }

@@ -1,0 +1,4 @@
+module Stripe3DS2 {
+umbrella header "/Users/elkanbruha/Library/Developer/Xcode/DerivedData/CrowdCount_App-aupdlaajpiruoegbfrtkqkcnyxan/SourcePackages/checkouts/stripe-ios/Stripe3DS2/Stripe3DS2/include/Stripe3DS2.h"
+export *
+}

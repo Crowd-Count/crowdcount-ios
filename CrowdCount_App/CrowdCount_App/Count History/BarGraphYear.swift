@@ -11,7 +11,7 @@ struct BarGraphYear: View {
         VStack {
             Chart {
                 barMarks()
-                lineMarks()
+                averageBarMarks()
             }
             .chartXAxis {
                 AxisMarks(values: getAllMonths()) { value in
@@ -55,23 +55,26 @@ struct BarGraphYear: View {
                 y: .value("Count", max(0, yearData[month] ?? 0))
             )
             .foregroundStyle(.blue)
-            .opacity(index % 2 == 0 ? 0.8 : 0.6)
+            .opacity(index % 2 == 0 ? 1.0 : 0.85)
             .cornerRadius(3)
+            .position(by: .value("Series", "Data"))
         }
     }
 
     @ChartContentBuilder
-    private func lineMarks() -> some ChartContent {
+    private func averageBarMarks() -> some ChartContent {
         if let averageYearData = averageYearData {
             let allMonths = getAllMonths()
-            ForEach(allMonths, id: \.self) { month in
+            ForEach(Array(allMonths.enumerated()), id: \.element) { index, month in
                 if let averageCount = averageYearData[month] {
-                    LineMark(
+                    BarMark(
                         x: .value("Month", month),
-                        y: .value("Average Count", max(0, averageCount))
+                        y: .value("Count", max(0, averageCount))
                     )
                     .foregroundStyle(.orange)
-                    .lineStyle(StrokeStyle(lineWidth: 2))
+                    .opacity(index % 2 == 0 ? 0.85 : 0.7)
+                    .cornerRadius(3)
+                    .position(by: .value("Series", "Average"))
                 }
             }
         }

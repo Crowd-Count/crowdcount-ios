@@ -85,6 +85,7 @@ struct ContentView: View {
     private let apiService = APIService.shared
     @State private var isBluetoothSetupRequired: [UUID: Bool] = [:]
     @State private var isCountLoaded: [UUID: Bool] = [:]  // Track if initial count has been fetched
+    @State private var lastManualCountSet: [UUID: Date] = [:]  // Grace period after manual set to ignore stale polls
     @State private var showLoginScreen: Bool = true
     @State private var path = NavigationPath()
     @State private var userPasswords: [UUID: String] = [:] // Store passwords per user
@@ -248,6 +249,13 @@ struct ContentView: View {
                         UserDefaults.standard.set(locationId.uuidString, forKey: "lastViewingLocationId")
                     } else {
                         UserDefaults.standard.removeObject(forKey: "lastViewingLocationId")
+                    }
+                }
+                .onReceive(NotificationCenter.default.publisher(for: NSNotification.Name("NavigateToOvercrowdingGroup"))) { notification in
+                    guard let groupId = notification.userInfo?["group_id"] as? String else { return }
+                    // Find the location with this overcrowding group and navigate to it
+                    if let location = locations.first(where: { $0.overcrowdingGroupId == groupId }) {
+                        viewingLocationId = location.id
                     }
                 }
                 .navigationDestination(for: String.self) { value in
@@ -904,7 +912,17 @@ struct ContentView: View {
         do {
             let result = try await apiService.fetchCurrentCount(deviceId: user.userId)
 
-            // Always update UI with the fetched count to ensure consistency
+            // Skip overwriting if a manual count was set recently (grace period to avoid stale poll data)
+            if let lastSet = self.lastManualCountSet[userId],
+               Date().timeIntervalSince(lastSet) < 3.0,
+               result.count != self.users[userIndex].currentCount {
+                // Within grace period — only accept if the server value is newer (different from what we set)
+                // The server value might still be stale, so trust our local value
+                self.isCountLoaded[userId] = true
+                return
+            }
+
+            // Update UI with the fetched count
             if let updatedIndex = self.users.firstIndex(where: { $0.id == userId }) {
                 if self.users[updatedIndex].currentCount != result.count {
                     self.users[updatedIndex].currentCount = result.count
@@ -969,8 +987,14 @@ struct ContentView: View {
             self.showNewCountField = false
             print("Successfully updated count for user: \(user.userId)")
 
-            // Fetch updated count - always makes a fresh request now
-            await fetchCurrentCountAsync(for: user.id)
+            // Immediately update local state so location totals reflect the new count
+            if let index = self.users.firstIndex(where: { $0.id == user.id }) {
+                self.users[index].currentCount = newCount
+                self.calculateTotalCount()
+                self.isCountLoaded[user.id] = true
+                // Prevent poll from overwriting with stale data for 3 seconds
+                self.lastManualCountSet[user.id] = Date()
+            }
         } catch {
             self.errorMessage = "Failed to update count"
             print("Failed to update count: \(error)")
@@ -1164,9 +1188,13 @@ struct ContentView: View {
             self.deviceStatusCheckTimers[userId]?.invalidate()
             self.deviceStatusCheckTimers.removeValue(forKey: userId)
 
-            // Remove device from all locations
+            // Remove device from all locations and sync groups
             for i in locations.indices {
                 locations[i].deviceIds.removeAll { $0 == deviceId }
+            }
+            // Sync any affected overcrowding groups before removing empty locations
+            for location in locations where location.overcrowdingGroupId != nil {
+                syncGroupDevicesIfNeeded(for: location)
             }
             // Remove any empty locations that result from this removal
             locations.removeAll { $0.deviceIds.isEmpty }
@@ -1351,12 +1379,27 @@ struct ContentView: View {
         saveLocations()
     }
 
+    /// Sync a location's device list to its server overcrowding group (if any)
+    private func syncGroupDevicesIfNeeded(for location: CounterLocation) {
+        guard let groupId = location.overcrowdingGroupId else { return }
+        let deviceIds = location.deviceIds
+        Task {
+            do {
+                try await APIService.shared.updateOvercrowdingGroup(groupId: groupId, deviceIds: deviceIds)
+                print("[syncGroupDevices] Updated group \(groupId) with devices: \(deviceIds)")
+            } catch {
+                print("[syncGroupDevices] Failed to update group \(groupId): \(error)")
+            }
+        }
+    }
+
     /// Add a device to a location
     func addDeviceToLocation(deviceId: String, locationId: UUID) {
         if let index = locations.firstIndex(where: { $0.id == locationId }) {
             if !locations[index].deviceIds.contains(deviceId) {
                 locations[index].deviceIds.append(deviceId)
                 saveLocations()
+                syncGroupDevicesIfNeeded(for: locations[index])
             }
         }
     }
@@ -1366,6 +1409,7 @@ struct ContentView: View {
         if let index = locations.firstIndex(where: { $0.id == locationId }) {
             locations[index].deviceIds.removeAll { $0 == deviceId }
             saveLocations()
+            syncGroupDevicesIfNeeded(for: locations[index])
         }
     }
 
@@ -1566,6 +1610,16 @@ struct ContentView: View {
             let decoder = JSONDecoder()
             if let decodedPasswords = try? decoder.decode([UUID: String].self, from: savedPasswords) {
                 userPasswords = decodedPasswords
+            }
+        }
+
+        // Bootstrap signing keys on the server for all existing devices
+        // so they're ready when signature mode switches to "required"
+        for user in users {
+            if let password = userPasswords[user.id] {
+                Task {
+                    _ = try? await apiService.checkPassword(deviceId: user.userId, password: password)
+                }
             }
         }
     }

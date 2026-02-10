@@ -1,0 +1,4 @@
+module StripePaymentsUI {
+header "StripePaymentsUI-Swift.h"
+export *
+}

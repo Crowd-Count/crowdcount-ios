@@ -1,0 +1,91 @@
+{
+  "" : {
+    "const-values" : "/Users/elkanbruha/Library/Developer/Xcode/DerivedData/CrowdCount_App-aupdlaajpiruoegbfrtkqkcnyxan/SourcePackages/checkouts/stripe-ios/build/Stripe.build/Release-iphonesimulator/Stripe.build/Objects-normal/x86_64/Stripe-primary.swiftconstvalues",
+    "dependencies" : "/Users/elkanbruha/Library/Developer/Xcode/DerivedData/CrowdCount_App-aupdlaajpiruoegbfrtkqkcnyxan/SourcePackages/checkouts/stripe-ios/build/Stripe.build/Release-iphonesimulator/Stripe.build/Objects-normal/x86_64/Stripe-primary.d",
+    "diagnostics" : "/Users/elkanbruha/Library/Developer/Xcode/DerivedData/CrowdCount_App-aupdlaajpiruoegbfrtkqkcnyxan/SourcePackages/checkouts/stripe-ios/build/Stripe.build/Release-iphonesimulator/Stripe.build/Objects-normal/x86_64/Stripe-primary.dia",
+    "emit-module-dependencies" : "/Users/elkanbruha/Library/Developer/Xcode/DerivedData/CrowdCount_App-aupdlaajpiruoegbfrtkqkcnyxan/SourcePackages/checkouts/stripe-ios/build/Stripe.build/Release-iphonesimulator/Stripe.build/Objects-normal/x86_64/Stripe-primary-emit-module.d",
+    "emit-module-diagnostics" : "/Users/elkanbruha/Library/Developer/Xcode/DerivedData/CrowdCount_App-aupdlaajpiruoegbfrtkqkcnyxan/SourcePackages/checkouts/stripe-ios/build/Stripe.build/Release-iphonesimulator/Stripe.build/Objects-normal/x86_64/Stripe-primary-emit-module.dia",
+    "pch" : "/Users/elkanbruha/Library/Developer/Xcode/DerivedData/CrowdCount_App-aupdlaajpiruoegbfrtkqkcnyxan/SourcePackages/checkouts/stripe-ios/build/Stripe.build/Release-iphonesimulator/Stripe.build/Objects-normal/x86_64/Stripe-primary-Bridging-header.pch",
+    "swift-dependencies" : "/Users/elkanbruha/Library/Developer/Xcode/DerivedData/CrowdCount_App-aupdlaajpiruoegbfrtkqkcnyxan/SourcePackages/checkouts/stripe-ios/build/Stripe.build/Release-iphonesimulator/Stripe.build/Objects-normal/x86_64/Stripe-primary.swiftdeps"
+  },
+  "/Users/elkanbruha/Library/Developer/Xcode/DerivedData/CrowdCount_App-aupdlaajpiruoegbfrtkqkcnyxan/SourcePackages/checkouts/stripe-ios/Stripe/StripeiOS/Source/PKAddPaymentPassRequest+Stripe_Error.swift" : {
+    "index-unit-output-path" : "/Stripe.build/Release-iphonesimulator/Stripe.build/Objects-normal/x86_64/PKAddPaymentPassRequest+Stripe_Error.o",
+    "llvm-bc" : "/Users/elkanbruha/Library/Developer/Xcode/DerivedData/CrowdCount_App-aupdlaajpiruoegbfrtkqkcnyxan/SourcePackages/checkouts/stripe-ios/build/Stripe.build/Release-iphonesimulator/Stripe.build/Objects-normal/x86_64/PKAddPaymentPassRequest+Stripe_Error.bc",
+    "object" : "/Users/elkanbruha/Library/Developer/Xcode/DerivedData/CrowdCount_App-aupdlaajpiruoegbfrtkqkcnyxan/SourcePackages/checkouts/stripe-ios/build/Stripe.build/Release-iphonesimulator/Stripe.build/Objects-normal/x86_64/PKAddPaymentPassRequest+Stripe_Error.o"
+  },
+  "/Users/elkanbruha/Library/Developer/Xcode/DerivedData/CrowdCount_App-aupdlaajpiruoegbfrtkqkcnyxan/SourcePackages/checkouts/stripe-ios/Stripe/StripeiOS/Source/PKPaymentAuthorizationViewController+Stripe_Blocks.swift" : {
+    "index-unit-output-path" : "/Stripe.build/Release-iphonesimulator/Stripe.build/Objects-normal/x86_64/PKPaymentAuthorizationViewController+Stripe_Blocks.o",
+    "llvm-bc" : "/Users/elkanbruha/Library/Developer/Xcode/DerivedData/CrowdCount_App-aupdlaajpiruoegbfrtkqkcnyxan/SourcePackages/checkouts/stripe-ios/build/Stripe.build/Release-iphonesimulator/Stripe.build/Objects-normal/x86_64/PKPaymentAuthorizationViewController+Stripe_Blocks.bc",
+    "object" : "/Users/elkanbruha/Library/Developer/Xcode/DerivedData/CrowdCount_App-aupdlaajpiruoegbfrtkqkcnyxan/SourcePackages/checkouts/stripe-ios/build/Stripe.build/Release-iphonesimulator/Stripe.build/Objects-normal/x86_64/PKPaymentAuthorizationViewController+Stripe_Blocks.o"
+  },
+  "/Users/elkanbruha/Library/Developer/Xcode/DerivedData/CrowdCount_App-aupdlaajpiruoegbfrtkqkcnyxan/SourcePackages/checkouts/stripe-ios/Stripe/StripeiOS/Source/STPAPIClient+PushProvisioning.swift" : {
+    "index-unit-output-path" : "/Stripe.build/Release-iphonesimulator/Stripe.build/Objects-normal/x86_64/STPAPIClient+PushProvisioning.o",
+    "llvm-bc" : "/Users/elkanbruha/Library/Developer/Xcode/DerivedData/CrowdCount_App-aupdlaajpiruoegbfrtkqkcnyxan/SourcePackages/checkouts/stripe-ios/build/Stripe.build/Release-iphonesimulator/Stripe.build/Objects-normal/x86_64/STPAPIClient+PushProvisioning.bc",
+    "object" : "/Users/elkanbruha/Library/Developer/Xcode/DerivedData/CrowdCount_App-aupdlaajpiruoegbfrtkqkcnyxan/SourcePackages/checkouts/stripe-ios/build/Stripe.build/Release-iphonesimulator/Stripe.build/Objects-normal/x86_64/STPAPIClient+PushProvisioning.o"
+  },
+  "/Users/elkanbruha/Library/Developer/Xcode/DerivedData/CrowdCount_App-aupdlaajpiruoegbfrtkqkcnyxan/SourcePackages/checkouts/stripe-ios/Stripe/StripeiOS/Source/STPAnalyticsClient+Payments.swift" : {
+    "index-unit-output-path" : "/Stripe.build/Release-iphonesimulator/Stripe.build/Objects-normal/x86_64/STPAnalyticsClient+Payments.o",
+    "llvm-bc" : "/Users/elkanbruha/Library/Developer/Xcode/DerivedData/CrowdCount_App-aupdlaajpiruoegbfrtkqkcnyxan/SourcePackages/checkouts/stripe-ios/build/Stripe.build/Release-iphonesimulator/Stripe.build/Objects-normal/x86_64/STPAnalyticsClient+Payments.bc",
+    "object" : "/Users/elkanbruha/Library/Developer/Xcode/DerivedData/CrowdCount_App-aupdlaajpiruoegbfrtkqkcnyxan/SourcePackages/checkouts/stripe-ios/build/Stripe.build/Release-iphonesimulator/Stripe.build/Objects-normal/x86_64/STPAnalyticsClient+Payments.o"
+  },
+  "/Users/elkanbruha/Library/Developer/Xcode/DerivedData/CrowdCount_App-aupdlaajpiruoegbfrtkqkcnyxan/SourcePackages/checkouts/stripe-ios/Stripe/StripeiOS/Source/STPApplePayContextDelegate.swift" : {
+    "index-unit-output-path" : "/Stripe.build/Release-iphonesimulator/Stripe.build/Objects-normal/x86_64/STPApplePayContextDelegate.o",
+    "llvm-bc" : "/Users/elkanbruha/Library/Developer/Xcode/DerivedData/CrowdCount_App-aupdlaajpiruoegbfrtkqkcnyxan/SourcePackages/checkouts/stripe-ios/build/Stripe.build/Release-iphonesimulator/Stripe.build/Objects-normal/x86_64/STPApplePayContextDelegate.bc",
+    "object" : "/Users/elkanbruha/Library/Developer/Xcode/DerivedData/CrowdCount_App-aupdlaajpiruoegbfrtkqkcnyxan/SourcePackages/checkouts/stripe-ios/build/Stripe.build/Release-iphonesimulator/Stripe.build/Objects-normal/x86_64/STPApplePayContextDelegate.o"
+  },
+  "/Users/elkanbruha/Library/Developer/Xcode/DerivedData/CrowdCount_App-aupdlaajpiruoegbfrtkqkcnyxan/SourcePackages/checkouts/stripe-ios/Stripe/StripeiOS/Source/STPEphemeralKey.swift" : {
+    "index-unit-output-path" : "/Stripe.build/Release-iphonesimulator/Stripe.build/Objects-normal/x86_64/STPEphemeralKey.o",
+    "llvm-bc" : "/Users/elkanbruha/Library/Developer/Xcode/DerivedData/CrowdCount_App-aupdlaajpiruoegbfrtkqkcnyxan/SourcePackages/checkouts/stripe-ios/build/Stripe.build/Release-iphonesimulator/Stripe.build/Objects-normal/x86_64/STPEphemeralKey.bc",
+    "object" : "/Users/elkanbruha/Library/Developer/Xcode/DerivedData/CrowdCount_App-aupdlaajpiruoegbfrtkqkcnyxan/SourcePackages/checkouts/stripe-ios/build/Stripe.build/Release-iphonesimulator/Stripe.build/Objects-normal/x86_64/STPEphemeralKey.o"
+  },
+  "/Users/elkanbruha/Library/Developer/Xcode/DerivedData/CrowdCount_App-aupdlaajpiruoegbfrtkqkcnyxan/SourcePackages/checkouts/stripe-ios/Stripe/StripeiOS/Source/STPEphemeralKeyManager.swift" : {
+    "index-unit-output-path" : "/Stripe.build/Release-iphonesimulator/Stripe.build/Objects-normal/x86_64/STPEphemeralKeyManager.o",
+    "llvm-bc" : "/Users/elkanbruha/Library/Developer/Xcode/DerivedData/CrowdCount_App-aupdlaajpiruoegbfrtkqkcnyxan/SourcePackages/checkouts/stripe-ios/build/Stripe.build/Release-iphonesimulator/Stripe.build/Objects-normal/x86_64/STPEphemeralKeyManager.bc",
+    "object" : "/Users/elkanbruha/Library/Developer/Xcode/DerivedData/CrowdCount_App-aupdlaajpiruoegbfrtkqkcnyxan/SourcePackages/checkouts/stripe-ios/build/Stripe.build/Release-iphonesimulator/Stripe.build/Objects-normal/x86_64/STPEphemeralKeyManager.o"
+  },
+  "/Users/elkanbruha/Library/Developer/Xcode/DerivedData/CrowdCount_App-aupdlaajpiruoegbfrtkqkcnyxan/SourcePackages/checkouts/stripe-ios/Stripe/StripeiOS/Source/STPEphemeralKeyProvider.swift" : {
+    "index-unit-output-path" : "/Stripe.build/Release-iphonesimulator/Stripe.build/Objects-normal/x86_64/STPEphemeralKeyProvider.o",
+    "llvm-bc" : "/Users/elkanbruha/Library/Developer/Xcode/DerivedData/CrowdCount_App-aupdlaajpiruoegbfrtkqkcnyxan/SourcePackages/checkouts/stripe-ios/build/Stripe.build/Release-iphonesimulator/Stripe.build/Objects-normal/x86_64/STPEphemeralKeyProvider.bc",
+    "object" : "/Users/elkanbruha/Library/Developer/Xcode/DerivedData/CrowdCount_App-aupdlaajpiruoegbfrtkqkcnyxan/SourcePackages/checkouts/stripe-ios/build/Stripe.build/Release-iphonesimulator/Stripe.build/Objects-normal/x86_64/STPEphemeralKeyProvider.o"
+  },
+  "/Users/elkanbruha/Library/Developer/Xcode/DerivedData/CrowdCount_App-aupdlaajpiruoegbfrtkqkcnyxan/SourcePackages/checkouts/stripe-ios/Stripe/StripeiOS/Source/STPFakeAddPaymentPassViewController.swift" : {
+    "index-unit-output-path" : "/Stripe.build/Release-iphonesimulator/Stripe.build/Objects-normal/x86_64/STPFakeAddPaymentPassViewController.o",
+    "llvm-bc" : "/Users/elkanbruha/Library/Developer/Xcode/DerivedData/CrowdCount_App-aupdlaajpiruoegbfrtkqkcnyxan/SourcePackages/checkouts/stripe-ios/build/Stripe.build/Release-iphonesimulator/Stripe.build/Objects-normal/x86_64/STPFakeAddPaymentPassViewController.bc",
+    "object" : "/Users/elkanbruha/Library/Developer/Xcode/DerivedData/CrowdCount_App-aupdlaajpiruoegbfrtkqkcnyxan/SourcePackages/checkouts/stripe-ios/build/Stripe.build/Release-iphonesimulator/Stripe.build/Objects-normal/x86_64/STPFakeAddPaymentPassViewController.o"
+  },
+  "/Users/elkanbruha/Library/Developer/Xcode/DerivedData/CrowdCount_App-aupdlaajpiruoegbfrtkqkcnyxan/SourcePackages/checkouts/stripe-ios/Stripe/StripeiOS/Source/STPPinManagementService.swift" : {
+    "index-unit-output-path" : "/Stripe.build/Release-iphonesimulator/Stripe.build/Objects-normal/x86_64/STPPinManagementService.o",
+    "llvm-bc" : "/Users/elkanbruha/Library/Developer/Xcode/DerivedData/CrowdCount_App-aupdlaajpiruoegbfrtkqkcnyxan/SourcePackages/checkouts/stripe-ios/build/Stripe.build/Release-iphonesimulator/Stripe.build/Objects-normal/x86_64/STPPinManagementService.bc",
+    "object" : "/Users/elkanbruha/Library/Developer/Xcode/DerivedData/CrowdCount_App-aupdlaajpiruoegbfrtkqkcnyxan/SourcePackages/checkouts/stripe-ios/build/Stripe.build/Release-iphonesimulator/Stripe.build/Objects-normal/x86_64/STPPinManagementService.o"
+  },
+  "/Users/elkanbruha/Library/Developer/Xcode/DerivedData/CrowdCount_App-aupdlaajpiruoegbfrtkqkcnyxan/SourcePackages/checkouts/stripe-ios/Stripe/StripeiOS/Source/STPPushProvisioningContext.swift" : {
+    "index-unit-output-path" : "/Stripe.build/Release-iphonesimulator/Stripe.build/Objects-normal/x86_64/STPPushProvisioningContext.o",
+    "llvm-bc" : "/Users/elkanbruha/Library/Developer/Xcode/DerivedData/CrowdCount_App-aupdlaajpiruoegbfrtkqkcnyxan/SourcePackages/checkouts/stripe-ios/build/Stripe.build/Release-iphonesimulator/Stripe.build/Objects-normal/x86_64/STPPushProvisioningContext.bc",
+    "object" : "/Users/elkanbruha/Library/Developer/Xcode/DerivedData/CrowdCount_App-aupdlaajpiruoegbfrtkqkcnyxan/SourcePackages/checkouts/stripe-ios/build/Stripe.build/Release-iphonesimulator/Stripe.build/Objects-normal/x86_64/STPPushProvisioningContext.o"
+  },
+  "/Users/elkanbruha/Library/Developer/Xcode/DerivedData/CrowdCount_App-aupdlaajpiruoegbfrtkqkcnyxan/SourcePackages/checkouts/stripe-ios/Stripe/StripeiOS/Source/STPPushProvisioningDetails.swift" : {
+    "index-unit-output-path" : "/Stripe.build/Release-iphonesimulator/Stripe.build/Objects-normal/x86_64/STPPushProvisioningDetails.o",
+    "llvm-bc" : "/Users/elkanbruha/Library/Developer/Xcode/DerivedData/CrowdCount_App-aupdlaajpiruoegbfrtkqkcnyxan/SourcePackages/checkouts/stripe-ios/build/Stripe.build/Release-iphonesimulator/Stripe.build/Objects-normal/x86_64/STPPushProvisioningDetails.bc",
+    "object" : "/Users/elkanbruha/Library/Developer/Xcode/DerivedData/CrowdCount_App-aupdlaajpiruoegbfrtkqkcnyxan/SourcePackages/checkouts/stripe-ios/build/Stripe.build/Release-iphonesimulator/Stripe.build/Objects-normal/x86_64/STPPushProvisioningDetails.o"
+  },
+  "/Users/elkanbruha/Library/Developer/Xcode/DerivedData/CrowdCount_App-aupdlaajpiruoegbfrtkqkcnyxan/SourcePackages/checkouts/stripe-ios/Stripe/StripeiOS/Source/STPPushProvisioningDetailsParams.swift" : {
+    "index-unit-output-path" : "/Stripe.build/Release-iphonesimulator/Stripe.build/Objects-normal/x86_64/STPPushProvisioningDetailsParams.o",
+    "llvm-bc" : "/Users/elkanbruha/Library/Developer/Xcode/DerivedData/CrowdCount_App-aupdlaajpiruoegbfrtkqkcnyxan/SourcePackages/checkouts/stripe-ios/build/Stripe.build/Release-iphonesimulator/Stripe.build/Objects-normal/x86_64/STPPushProvisioningDetailsParams.bc",
+    "object" : "/Users/elkanbruha/Library/Developer/Xcode/DerivedData/CrowdCount_App-aupdlaajpiruoegbfrtkqkcnyxan/SourcePackages/checkouts/stripe-ios/build/Stripe.build/Release-iphonesimulator/Stripe.build/Objects-normal/x86_64/STPPushProvisioningDetailsParams.o"
+  },
+  "/Users/elkanbruha/Library/Developer/Xcode/DerivedData/CrowdCount_App-aupdlaajpiruoegbfrtkqkcnyxan/SourcePackages/checkouts/stripe-ios/Stripe/StripeiOS/Source/Stripe+Exports.swift" : {
+    "index-unit-output-path" : "/Stripe.build/Release-iphonesimulator/Stripe.build/Objects-normal/x86_64/Stripe+Exports.o",
+    "llvm-bc" : "/Users/elkanbruha/Library/Developer/Xcode/DerivedData/CrowdCount_App-aupdlaajpiruoegbfrtkqkcnyxan/SourcePackages/checkouts/stripe-ios/build/Stripe.build/Release-iphonesimulator/Stripe.build/Objects-normal/x86_64/Stripe+Exports.bc",
+    "object" : "/Users/elkanbruha/Library/Developer/Xcode/DerivedData/CrowdCount_App-aupdlaajpiruoegbfrtkqkcnyxan/SourcePackages/checkouts/stripe-ios/build/Stripe.build/Release-iphonesimulator/Stripe.build/Objects-normal/x86_64/Stripe+Exports.o"
+  },
+  "/Users/elkanbruha/Library/Developer/Xcode/DerivedData/CrowdCount_App-aupdlaajpiruoegbfrtkqkcnyxan/SourcePackages/checkouts/stripe-ios/build/Stripe.build/Release-iphonesimulator/Stripe.build/DerivedSources/GeneratedAssetSymbols.swift" : {
+    "index-unit-output-path" : "/Stripe.build/Release-iphonesimulator/Stripe.build/Objects-normal/x86_64/GeneratedAssetSymbols.o",
+    "llvm-bc" : "/Users/elkanbruha/Library/Developer/Xcode/DerivedData/CrowdCount_App-aupdlaajpiruoegbfrtkqkcnyxan/SourcePackages/checkouts/stripe-ios/build/Stripe.build/Release-iphonesimulator/Stripe.build/Objects-normal/x86_64/GeneratedAssetSymbols.bc",
+    "object" : "/Users/elkanbruha/Library/Developer/Xcode/DerivedData/CrowdCount_App-aupdlaajpiruoegbfrtkqkcnyxan/SourcePackages/checkouts/stripe-ios/build/Stripe.build/Release-iphonesimulator/Stripe.build/Objects-normal/x86_64/GeneratedAssetSymbols.o"
+  },
+  "/Users/elkanbruha/Library/Developer/Xcode/DerivedData/CrowdCount_App-aupdlaajpiruoegbfrtkqkcnyxan/SourcePackages/checkouts/stripe-ios/build/Stripe.build/Release-iphonesimulator/Stripe.build/DerivedSources/resource_bundle_accessor.swift" : {
+    "index-unit-output-path" : "/Stripe.build/Release-iphonesimulator/Stripe.build/Objects-normal/x86_64/resource_bundle_accessor.o",
+    "llvm-bc" : "/Users/elkanbruha/Library/Developer/Xcode/DerivedData/CrowdCount_App-aupdlaajpiruoegbfrtkqkcnyxan/SourcePackages/checkouts/stripe-ios/build/Stripe.build/Release-iphonesimulator/Stripe.build/Objects-normal/x86_64/resource_bundle_accessor.bc",
+    "object" : "/Users/elkanbruha/Library/Developer/Xcode/DerivedData/CrowdCount_App-aupdlaajpiruoegbfrtkqkcnyxan/SourcePackages/checkouts/stripe-ios/build/Stripe.build/Release-iphonesimulator/Stripe.build/Objects-normal/x86_64/resource_bundle_accessor.o"
+  }
+}

@@ -82,7 +82,7 @@ struct InfoMapView: View {
                     Text("Bug or Issue?")
                         .foregroundColor(.primary)
                         .bold()
-                    Text("If a location is having an issue, please report it at \(Text("[crowdcount.tech/report](https://www.crowdcount.tech/report)")). If it's an issue on our end, feel free to send an email at \(Text("[help@crowdcount.tech](mailto:help@crowdcount.tech)")).")
+                    Text("If a location is having an issue, please report it at \(Text("[crowdcount.tech/report](https://www.crowdcount.tech/report)")). If it's an issue on our end, feel free to send an email at \(Text("[info@crowdcount.tech](mailto:info@crowdcount.tech)")).")
                         .foregroundColor(.secondary)
                         .multilineTextAlignment(.center)
                         .tint(.primary)

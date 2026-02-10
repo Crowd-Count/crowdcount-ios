@@ -185,7 +185,7 @@ struct AlertPage: View {
                             .font(.body)
                             .tint(.blue)
                     case "warning":
-                        Text("\(Text("[crowdcount.tech](https://www.crowdcount.tech)"))  |  \(Text("[help@crowdcount.tech](mailto:help@crowdcount.tech)"))")
+                        Text("\(Text("[crowdcount.tech](https://www.crowdcount.tech)"))  |  \(Text("[info@crowdcount.tech](mailto:info@crowdcount.tech)"))")
                             .font(.body)
                             .tint(.blue)
                     case "celebration":
