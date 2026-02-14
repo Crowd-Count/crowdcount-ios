@@ -9,6 +9,7 @@
 /* Begin PBXBuildFile section */
 		7C077D5E2E611AA70042C0AD /* LocationListView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 7C077D5D2E611AA40042C0AD /* LocationListView.swift */; };
 		7C2469DD2E09E05200409394 /* BarGraphYear.swift in Sources */ = {isa = PBXBuildFile; fileRef = 7C2469DC2E09E04E00409394 /* BarGraphYear.swift */; };
+		7C2EF95F2F3C44ED00FB437F /* LocationHistoricView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 7C2EF95E2F3C44ED00FB437F /* LocationHistoricView.swift */; };
 		7C349C012F0F19A9001A87C1 /* CountersListView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 7C349C002F0F19A9001A87C1 /* CountersListView.swift */; };
 		7C349C032F0F238C001A87C1 /* AllCountersListView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 7C349C022F0F238C001A87C1 /* AllCountersListView.swift */; };
 		7C349C052F0F2AE4001A87C1 /* NicknameManager.swift in Sources */ = {isa = PBXBuildFile; fileRef = 7C349C042F0F2AE4001A87C1 /* NicknameManager.swift */; };
@@ -56,15 +57,11 @@
 		7CC381232F0C1AF2001C3A41 /* LocationCountersView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 7CC381222F0C1AF2001C3A41 /* LocationCountersView.swift */; };
 		7CC3BE372C3C1BF400C5DEFC /* HistoricView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 7CC3BE362C3C1BF200C5DEFC /* HistoricView.swift */; };
 		7CD02E952C2CF693000EAFC5 /* LoginView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 7CD02E942C2CF690000EAFC5 /* LoginView.swift */; };
-		7CD02E972C2DFB15000EAFC5 /* UserView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 7CD02E962C2DFB12000EAFC5 /* UserView.swift */; };
 		7CD02E992C2DFD59000EAFC5 /* TotalCountView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 7CD02E982C2DFD56000EAFC5 /* TotalCountView.swift */; };
 		7CD02E9B2C2DFD69000EAFC5 /* AddUserPage.swift in Sources */ = {isa = PBXBuildFile; fileRef = 7CD02E9A2C2DFD65000EAFC5 /* AddUserPage.swift */; };
 		7CD54D5A2C29EF4C00E144A1 /* SettingsView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 7CD54D592C29EF4800E144A1 /* SettingsView.swift */; };
 		7CE8EF142EF9B85E00C1FA7C /* GetOnMapInfoView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 7CE8EF132EF9B85E00C1FA7C /* GetOnMapInfoView.swift */; };
 		7CF6F7E42EDE6CA900622E57 /* QRScannerView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 7CF6F7E32EDE6CA900622E57 /* QRScannerView.swift */; };
-		7CF6F7E62EDF9C9400622E57 /* AggregatedHistoricView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 7CF6F7E52EDF9C9400622E57 /* AggregatedHistoricView.swift */; };
-		7CF6F7E72EDF9C9400622E57 /* AggregatedHistoricView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 7CF6F7E52EDF9C9400622E57 /* AggregatedHistoricView.swift */; };
-		7CF6F7E82EDF9C9400622E57 /* AggregatedHistoricView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 7CF6F7E52EDF9C9400622E57 /* AggregatedHistoricView.swift */; };
 /* End PBXBuildFile section */
 
 /* Begin PBXContainerItemProxy section */
@@ -87,6 +84,7 @@
 /* Begin PBXFileReference section */
 		7C077D5D2E611AA40042C0AD /* LocationListView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = LocationListView.swift; sourceTree = "<group>"; };
 		7C2469DC2E09E04E00409394 /* BarGraphYear.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = BarGraphYear.swift; sourceTree = "<group>"; };
+		7C2EF95E2F3C44ED00FB437F /* LocationHistoricView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = LocationHistoricView.swift; sourceTree = "<group>"; };
 		7C349C002F0F19A9001A87C1 /* CountersListView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = CountersListView.swift; sourceTree = "<group>"; };
 		7C349C022F0F238C001A87C1 /* AllCountersListView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = AllCountersListView.swift; sourceTree = "<group>"; };
 		7C349C042F0F2AE4001A87C1 /* NicknameManager.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = NicknameManager.swift; sourceTree = "<group>"; };
@@ -135,13 +133,11 @@
 		7CC381222F0C1AF2001C3A41 /* LocationCountersView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = LocationCountersView.swift; sourceTree = "<group>"; };
 		7CC3BE362C3C1BF200C5DEFC /* HistoricView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = HistoricView.swift; sourceTree = "<group>"; };
 		7CD02E942C2CF690000EAFC5 /* LoginView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = LoginView.swift; sourceTree = "<group>"; };
-		7CD02E962C2DFB12000EAFC5 /* UserView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = UserView.swift; sourceTree = "<group>"; };
 		7CD02E982C2DFD56000EAFC5 /* TotalCountView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = TotalCountView.swift; sourceTree = "<group>"; };
 		7CD02E9A2C2DFD65000EAFC5 /* AddUserPage.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = AddUserPage.swift; sourceTree = "<group>"; };
 		7CD54D592C29EF4800E144A1 /* SettingsView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = SettingsView.swift; sourceTree = "<group>"; };
 		7CE8EF132EF9B85E00C1FA7C /* GetOnMapInfoView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = GetOnMapInfoView.swift; sourceTree = "<group>"; };
 		7CF6F7E32EDE6CA900622E57 /* QRScannerView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = QRScannerView.swift; sourceTree = "<group>"; };
-		7CF6F7E52EDF9C9400622E57 /* AggregatedHistoricView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = AggregatedHistoricView.swift; sourceTree = "<group>"; };
 /* End PBXFileReference section */
 
 /* Begin PBXFrameworksBuildPhase section */
@@ -284,7 +280,6 @@
 				7CE8EF132EF9B85E00C1FA7C /* GetOnMapInfoView.swift */,
 				7C8F95302EF602F5008FE41B /* AdPayView.swift */,
 				7CD02E982C2DFD56000EAFC5 /* TotalCountView.swift */,
-				7CD02E962C2DFB12000EAFC5 /* UserView.swift */,
 				7CD02E9A2C2DFD65000EAFC5 /* AddUserPage.swift */,
 				7C362EF92C358DB600F02FDA /* InformationView.swift */,
 				7CD54D592C29EF4800E144A1 /* SettingsView.swift */,
@@ -295,6 +290,7 @@
 		7C7F1B1B2C4D2F82005A5D18 /* Count History */ = {
 			isa = PBXGroup;
 			children = (
+				7C2EF95E2F3C44ED00FB437F /* LocationHistoricView.swift */,
 				7C91DCB32F33E65700191C98 /* HistoricCountsContentView.swift */,
 				7C99B2B22F27FB0100BF8CAA /* InsightCardView.swift */,
 				7C99B2B32F27FB0100BF8CAA /* InsightsView.swift */,
@@ -304,7 +300,6 @@
 				7C8FF56A2C3EAABC008D039F /* BarGraphWeek.swift */,
 				7C2469DC2E09E04E00409394 /* BarGraphYear.swift */,
 				7CBDF77D2C4003D20046C7FB /* ShareSheetHelper.swift */,
-				7CF6F7E52EDF9C9400622E57 /* AggregatedHistoricView.swift */,
 			);
 			path = "Count History";
 			sourceTree = "<group>";
@@ -498,12 +493,10 @@
 				7C99B2B72F27FB0100BF8CAA /* InsightsView.swift in Sources */,
 				7CE8EF142EF9B85E00C1FA7C /* GetOnMapInfoView.swift in Sources */,
 				7C5A120C2C18D0BB0050C4D8 /* CrowdCount_AppApp.swift in Sources */,
-				7CD02E972C2DFB15000EAFC5 /* UserView.swift in Sources */,
 				7C362EFA2C358DBA00F02FDA /* InformationView.swift in Sources */,
 				7CD02E992C2DFD59000EAFC5 /* TotalCountView.swift in Sources */,
 				7C54AF9A2C5BD1FE00D9226B /* AppSettings.swift in Sources */,
 				7C2469DD2E09E05200409394 /* BarGraphYear.swift in Sources */,
-				7CF6F7E72EDF9C9400622E57 /* AggregatedHistoricView.swift in Sources */,
 				7CF6F7E42EDE6CA900622E57 /* QRScannerView.swift in Sources */,
 				7CC3810B2EF9FA67001C3A41 /* LoginTextViewModel.swift in Sources */,
 				7CC381232F0C1AF2001C3A41 /* LocationCountersView.swift in Sources */,
@@ -511,6 +504,7 @@
 				7CA928152C373EA900233AF4 /* BlurredEdgesViewRepresentable.swift in Sources */,
 				7C7F1B212C4F9FA2005A5D18 /* Alert.swift in Sources */,
 				7CA9C98E2C7E2B1D00356DB5 /* AppDelegate.swift in Sources */,
+				7C2EF95F2F3C44ED00FB437F /* LocationHistoricView.swift in Sources */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};
@@ -519,7 +513,6 @@
 			buildActionMask = 2147483647;
 			files = (
 				7C8F95312EF602F5008FE41B /* AdPayView.swift in Sources */,
-				7CF6F7E62EDF9C9400622E57 /* AggregatedHistoricView.swift in Sources */,
 				7C5A121D2C18D0BC0050C4D8 /* CrowdCount_AppTests.swift in Sources */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
@@ -529,7 +522,6 @@
 			buildActionMask = 2147483647;
 			files = (
 				7C8F95322EF602F5008FE41B /* AdPayView.swift in Sources */,
-				7CF6F7E82EDF9C9400622E57 /* AggregatedHistoricView.swift in Sources */,
 				7C5A12272C18D0BC0050C4D8 /* CrowdCount_AppUITests.swift in Sources */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
@@ -682,7 +674,7 @@
 				ASSETCATALOG_COMPILER_INCLUDE_ALL_APPICON_ASSETS = YES;
 				CODE_SIGN_ENTITLEMENTS = CrowdCount_App/CrowdCount_App.entitlements;
 				CODE_SIGN_STYLE = Automatic;
-				CURRENT_PROJECT_VERSION = 18;
+				CURRENT_PROJECT_VERSION = 74;
 				DEVELOPMENT_ASSET_PATHS = "\"CrowdCount_App/Preview Content\"";
 				ENABLE_PREVIEWS = YES;
 				GENERATE_INFOPLIST_FILE = YES;
@@ -704,7 +696,7 @@
 					"$(inherited)",
 					"@executable_path/Frameworks",
 				);
-				MARKETING_VERSION = 4.2.4;
+				MARKETING_VERSION = 5.0.0;
 				PRODUCT_BUNDLE_IDENTIFIER = "CrowdCount.CrowdCount-App";
 				PRODUCT_NAME = "$(TARGET_NAME)";
 				SUPPORTED_PLATFORMS = "iphoneos iphonesimulator";
@@ -725,7 +717,7 @@
 				ASSETCATALOG_COMPILER_INCLUDE_ALL_APPICON_ASSETS = YES;
 				CODE_SIGN_ENTITLEMENTS = CrowdCount_App/CrowdCount_App.entitlements;
 				CODE_SIGN_STYLE = Automatic;
-				CURRENT_PROJECT_VERSION = 18;
+				CURRENT_PROJECT_VERSION = 74;
 				DEVELOPMENT_ASSET_PATHS = "\"CrowdCount_App/Preview Content\"";
 				ENABLE_PREVIEWS = YES;
 				GENERATE_INFOPLIST_FILE = YES;
@@ -747,7 +739,7 @@
 					"$(inherited)",
 					"@executable_path/Frameworks",
 				);
-				MARKETING_VERSION = 4.2.4;
+				MARKETING_VERSION = 5.0.0;
 				PRODUCT_BUNDLE_IDENTIFIER = "CrowdCount.CrowdCount-App";
 				PRODUCT_NAME = "$(TARGET_NAME)";
 				SUPPORTED_PLATFORMS = "iphoneos iphonesimulator";

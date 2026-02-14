@@ -30,7 +30,7 @@ struct InfoMapView: View {
                     Text("Comparisons")
                         .foregroundColor(.primary)
                         .bold()
-                    Text("These arrows indicate wether the current location population is more or less crowded than usual (±25%).")
+                    Text("These arrows indicate whether the current location population is more or less crowded than usual (±25%).")
                         .foregroundColor(.secondary)
                         .tint(.primary)
                         .multilineTextAlignment(.center)

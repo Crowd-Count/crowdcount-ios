@@ -42,6 +42,12 @@ struct AdDetailView: View {
     var body: some View {
         NavigationStack {
             VStack(spacing: 28) {
+                // Custom drag indicator (positioned lower than system default)
+                Capsule()
+                    .fill(Color.secondary.opacity(0.4))
+                    .frame(width: 36, height: 5)
+                    .padding(.top, 8)
+
                 // Logos: CrowdCount | Ad
                 HStack(spacing: 20) {
                     // CrowdCount Logo
@@ -157,7 +163,7 @@ struct AdDetailView: View {
             }
         }
         .presentationDetents([.large])
-        .presentationDragIndicator(.visible)
+        .presentationDragIndicator(.hidden)
         .preferredColorScheme(appSettings.isDarkMode ? .dark : .light)
     }
 
@@ -182,7 +188,7 @@ struct AdDetailView: View {
             title: "Joe's Coffee",
             description: "50% off your first order! Best espresso in town.",
             imagePath: nil,
-            deviceId: "A1234",
+            locationId: "A1234",
             durationHours: 24,
             totalPrice: 120.0,
             ctaText: "Get Offer",
@@ -207,7 +213,7 @@ struct AdDetailView: View {
             title: "Joe's Coffee",
             description: "50% off your first order! Best espresso in town.",
             imagePath: nil,
-            deviceId: "A1234",
+            locationId: "A1234",
             durationHours: 24,
             totalPrice: 120.0,
             ctaText: "Get Offer",

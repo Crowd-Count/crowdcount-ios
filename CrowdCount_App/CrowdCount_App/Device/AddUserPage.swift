@@ -1,136 +1,202 @@
 import SwiftUI
 
-struct AddUserPage: View {
-    @Binding var users: [User]
-    @Binding var totalCount: Int
-    @Binding var userPasswords: [UUID: String]
-    @State private var userId: String = ""
+/// View for adding a new device to an existing location
+struct AddDeviceToLocationView: View {
+    let locationName: String
+    let addDeviceToLocation: (String, String, String) async -> Void  // (deviceId, password, label)
+    @ObservedObject var alertViewModel: AlertViewModel
+    let locationHasDevices: Bool
+    var isOnMap: Bool = false
+    var onDeleteLocation: (() -> Void)? = nil
+    var onOpenLocationList: (() -> Void)? = nil
+
+    @State private var deviceId: String = ""
     @State private var password: String = ""
     @State private var errorMessage: String?
-
-    @EnvironmentObject var appSettings: AppSettings
-    @Environment(\.colorScheme) var colorScheme
-
-    let serverURL: String
-    let startDeviceStatusCheck: (User) -> Void
-    let startLiveCountUpdate: () -> Void  // Added this to trigger the count update
-
-    // Location support - closure-based approach for correct location assignment
-    let onDeviceAdded: (String) -> Void  // Called with deviceId after successful add
-    let isInLocationView: Bool  // For UI text customization
-    var isLocationOnMap: Bool = false  // Whether the current location is on the public map
-    var locationHasCounters: Bool = false  // Whether the location already has counters
-    var locationName: String = ""  // Name of the current location
-    var onDeleteLocation: (() -> Void)? = nil  // Called when user wants to delete empty location
-    @ObservedObject var alertViewModel: AlertViewModel
-
+    @State private var isAdding: Bool = false
     @State private var showDeleteConfirmation: Bool = false
 
+    @EnvironmentObject var appSettings: AppSettings
     @FocusState private var focusedField: Field?
 
     enum Field {
-        case userId, password
+        case deviceId, password
     }
 
     var body: some View {
+        if isOnMap {
+            mapLocationContent
+        } else {
+            addCounterContent
+        }
+    }
+
+    // MARK: - Map Location (read-only)
+
+    private var mapLocationContent: some View {
         VStack {
-            Image(systemName: "plus.bubble")
-                .resizable()
-                .scaledToFit()
-                .frame(width: 40, height: 40) // Adjust the width and height as needed
-                .foregroundColor(.secondary)
+            Spacer()
 
-            if isInLocationView {
-                Text("Add a counter to \(locationName)")
-                    .foregroundColor(.primary)
-                    .padding()
-                    .multilineTextAlignment(.center)
-            } else {
-                (Text("Have ")
-                    .foregroundColor(.secondary) +
-                 Text("multiple counters?")
-                    .foregroundColor(.primary) +
-                 Text("\nAdd them here!")
-                    .foregroundColor(.secondary))
-                    .padding()
-                    .multilineTextAlignment(.center)
-            }
-            
-            if let errorMessage = errorMessage {
-                Text(errorMessage)
-                    .foregroundColor(.red)
-                    .padding(.bottom)
-            }
+            VStack(spacing: 4) {
+                Image(systemName: "map.fill")
+                    .resizable()
+                    .scaledToFit()
+                    .frame(width: 36, height: 36)
+                    .foregroundColor(.green)
+                    .padding(.bottom, 8)
 
-            HStack {
-                TextField("Enter Device ID", text: $userId, onEditingChanged: { _ in clearErrorMessage() })
-                    .padding()
-                    .background(Color.secondary.opacity(0.25))
-                    .cornerRadius(15)
-                    .focused($focusedField, equals: .userId)
-                    .textContentType(.username)
-                    .autocapitalization(.none)
-                    .disableAutocorrection(true)
+                Text("Map Location")
+                    .font(.callout)
+                    .foregroundColor(.secondary)
+                Text(locationName)
+                    .font(.title2)
+                    .fontWeight(.semibold)
             }
-            .padding(.horizontal, 20)
-
-            HStack {
-                SecureField("Enter Password", text: $password, onCommit: clearErrorMessage)
-                    .padding()
-                    .background(Color.secondary.opacity(0.25))
-                    .cornerRadius(15)
-                    .focused($focusedField, equals: .password)
-                    .textContentType(.password)
-            }
-            .padding(.horizontal, 20)
             .padding(.bottom, 20)
-            
-            Button(action: addUser) {
-                Text("Add Device")
-                    .padding()
-                    .background(Color.secondary.opacity(0.75))
-                    .foregroundColor(.primary)
-                    .cornerRadius(20)
-            }
 
-            if isInLocationView {
-                Group {
-                    if !locationHasCounters {
-                        // Empty location - welcoming message
-                        Text("Add your first counter to get started.")
-                    } else if isLocationOnMap {
-                        // Map location with existing counters
-                        Text("Only counters belonging to '\(locationName)' on the public map can be added here. Other counters will be placed in a new location.")
-                    } else {
-                        // Local location with existing counters
-                        Text("Add another counter to this location.")
+            Text("This location is managed on the CrowdCount map. Its counters are set by the map configuration and can't be changed here.")
+                .font(.subheadline)
+                .foregroundColor(.secondary)
+                .multilineTextAlignment(.center)
+                .padding(.horizontal, 30)
+
+            if let onOpenLocationList {
+                Button(action: onOpenLocationList) {
+                    HStack(spacing: 4) {
+                        Text("Add counters to a different location")
+                        Image(systemName: "chevron.right")
+                            .font(.caption2)
                     }
                 }
                 .font(.caption)
                 .foregroundColor(.secondary)
-                .multilineTextAlignment(.center)
-                .padding(.horizontal, 20)
                 .padding(.top, 16)
+            }
 
-                // Delete Location button - only show for empty locations
-                if !locationHasCounters, onDeleteLocation != nil {
-                    Button(action: {
-                        showDeleteConfirmation = true
-                    }) {
-                        HStack {
-                            Image(systemName: "trash")
-                            Text("Delete Location")
-                        }
-                        .padding()
-                        .background(Color.red.opacity(0.15))
-                        .foregroundColor(.red)
-                        .cornerRadius(20)
+            Spacer()
+        }
+        .padding()
+    }
+
+    // MARK: - Add Counter Form
+
+    private var addCounterContent: some View {
+        VStack {
+            Spacer()
+
+            // Header
+            VStack(spacing: 4) {
+                Image(systemName: "plus.bubble")
+                    .resizable()
+                    .scaledToFit()
+                    .frame(width: 36, height: 36)
+                    .foregroundColor(.secondary)
+                    .padding(.bottom, 8)
+
+                Text(locationHasDevices ? "Add another counter to" : "Add a counter to")
+                    .font(.callout)
+                    .foregroundColor(.secondary)
+                Text(locationName)
+                    .font(.title2)
+                    .fontWeight(.semibold)
+            }
+            .padding(.bottom, 20)
+
+            if let errorMessage = errorMessage {
+                Text(errorMessage)
+                    .font(.subheadline)
+                    .foregroundColor(.red)
+                    .padding(.bottom, 8)
+            }
+
+            // Input fields
+            VStack(spacing: 10) {
+                TextField("Device ID", text: $deviceId, onEditingChanged: { _ in clearErrorMessage() })
+                    .padding()
+                    .background(Color.secondary.opacity(0.2))
+                    .cornerRadius(14)
+                    .focused($focusedField, equals: .deviceId)
+                    .textContentType(.username)
+                    .textInputAutocapitalization(.never)
+                    .autocorrectionDisabled()
+
+                SecureField("Password", text: $password, onCommit: clearErrorMessage)
+                    .padding()
+                    .background(Color.secondary.opacity(0.2))
+                    .cornerRadius(14)
+                    .focused($focusedField, equals: .password)
+                    .textContentType(.password)
+            }
+            .padding(.horizontal, 24)
+            .padding(.bottom, 20)
+
+            // Add button
+            Button(action: addDevice) {
+                Group {
+                    if isAdding {
+                        ProgressView()
+                            .tint(.primary)
+                    } else {
+                        Text("Add Counter")
+                            .fontWeight(.medium)
                     }
-                    .padding(.top, 30)
                 }
+                .frame(minWidth: 140)
+                .padding(.vertical, 14)
+                .padding(.horizontal, 24)
+                .background(Color.blue.opacity(0.75))
+                .foregroundColor(.primary)
+                .cornerRadius(20)
+            }
+            .disabled(isAdding)
+
+            // Subtitle + location list link
+            VStack(spacing: 6) {
+                if !locationHasDevices {
+                    Text("Add your first counter to get started.")
+                } else if let onOpenLocationList {
+                    Button(action: onOpenLocationList) {
+                        HStack(spacing: 4) {
+                            Text("Or go to a different location")
+                            Image(systemName: "chevron.right")
+                                .font(.caption2)
+                        }
+                    }
+                }
+            }
+            .font(.caption)
+            .foregroundColor(.secondary)
+            .padding(.top, 14)
+
+            Spacer()
+
+            // Delete Location button — only for empty locations
+            if !locationHasDevices, onDeleteLocation != nil {
+                Button(action: {
+                    showDeleteConfirmation = true
+                }) {
+                    HStack(spacing: 6) {
+                        Image(systemName: "trash")
+                        Text("Delete Location")
+                    }
+                    .font(.subheadline)
+                    .padding(.vertical, 12)
+                    .padding(.horizontal, 20)
+                    .background(Color.red.opacity(0.12))
+                    .foregroundColor(.red)
+                    .cornerRadius(20)
+                }
+                .padding(.bottom, 20)
             }
         }
         .padding()
+        .onTapGesture {
+            focusedField = nil
+        }
+        .onDisappear {
+            focusedField = nil
+            clearFields()
+        }
         .alert("Delete Location?", isPresented: $showDeleteConfirmation) {
             Button("Cancel", role: .cancel) { }
             Button("Delete", role: .destructive) {
@@ -141,106 +207,53 @@ struct AddUserPage: View {
         }
     }
 
-    func addUser() {
-        guard !userId.isEmpty else {
+    private func addDevice() {
+        guard !deviceId.isEmpty else {
             errorMessage = "Please enter a Device ID"
             return
         }
-
         guard !password.isEmpty else {
             errorMessage = "Please enter a Password"
             return
         }
 
-        checkPassword(userId: userId, password: password) { success in
-            DispatchQueue.main.async {
-                if success {
-                    if !users.contains(where: { $0.userId == userId }) {
-                        // Save deviceId before clearing fields
-                        let deviceId = userId
+        isAdding = true
+        let id = deviceId
+        let pw = password
 
-                        let newUser = User(id: UUID(), userId: deviceId, currentCount: 0)
-                        users.append(newUser)
-                        userPasswords[newUser.id] = password // Save the password for the new user
-                        calculateTotalCount()
+        Task {
+            do {
+                // Validate credentials first
+                let valid = try await APIService.shared.checkPassword(deviceId: id, password: pw)
+                if valid {
+                    await addDeviceToLocation(id, pw, id)
+                    await MainActor.run {
                         clearFields()
-                        saveUsers()
-                        savePasswords() // Save the passwords
-
-                        // Add device to location via closure (handles correct location assignment)
-                        onDeviceAdded(deviceId)
-
-                        startDeviceStatusCheck(newUser)
-                        startLiveCountUpdate()  // Ensure count update starts for the new user
-                        hideKeyboard()
-                    } else {
-                        errorMessage = "Device already added"
-                        clearFields()
+                        isAdding = false
+                        focusedField = nil
                     }
                 } else {
-                    errorMessage = "Incorrect Device ID or Password"
-                    clearFields()
+                    await MainActor.run {
+                        errorMessage = "Incorrect Device ID or Password"
+                        isAdding = false
+                    }
+                }
+            } catch {
+                await MainActor.run {
+                    errorMessage = "Connection error. Please try again."
+                    isAdding = false
                 }
             }
         }
     }
 
-    func calculateTotalCount() {
-        totalCount = users.reduce(0) { $0 + $1.currentCount }
-    }
-    
-    func clearFields() {
-        userId = ""
+    private func clearFields() {
+        deviceId = ""
         password = ""
-    }
-    
-    func saveUsers() {
-        if let encoded = try? JSONEncoder().encode(users) {
-            UserDefaults.standard.set(encoded, forKey: "users")
-        }
-    }
-
-    func savePasswords() {
-        if let encoded = try? JSONEncoder().encode(userPasswords) {
-            UserDefaults.standard.set(encoded, forKey: "userPasswords")
-        }
-    }
-    
-    func clearErrorMessage() {
         errorMessage = nil
     }
 
-    func hideKeyboard() {
-        focusedField = nil
-    }
-    
-    func checkPassword(userId: String, password: String, completion: @escaping (Bool) -> Void) {
-        guard let url = URL(string: "\(serverURL)/check_password") else {
-            completion(false)
-            return
-        }
-
-        var request = URLRequest(url: url)
-        request.httpMethod = "POST"
-        let body: [String: Any] = ["device_id": userId, "password": password]
-        request.httpBody = try? JSONSerialization.data(withJSONObject: body)
-        request.setValue("application/json", forHTTPHeaderField: "Content-Type")
-
-        URLSession.shared.dataTask(with: request) { data, response, error in
-            if let data = data,
-               let response = try? JSONDecoder().decode(PasswordCheckResponse.self, from: data) {
-                completion(response.isPasswordCorrect)
-            } else {
-                completion(false)
-            }
-        }.resume()
-    }
-}
-
-struct PasswordCheckResponse: Decodable {
-    let isPasswordCorrect: Bool
-
-    enum CodingKeys: String, CodingKey {
-        case isPasswordCorrect = "is_password_correct"
+    private func clearErrorMessage() {
+        errorMessage = nil
     }
 }

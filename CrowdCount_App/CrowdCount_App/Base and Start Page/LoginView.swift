@@ -5,6 +5,7 @@ struct LoginView: View {
     @Binding var password: String
     @Binding var locationName: String
     @Binding var errorMessage: String?
+    @Binding var isLoggingIn: Bool
     let setUser: () -> Void
     let serverStatus: String
     let serverStatusColor: Color
@@ -166,6 +167,10 @@ struct LoginView: View {
                     Button(action: {
                         withAnimation(.easeInOut(duration: 0.3)) {
                             showingAddCounter = false
+                            errorMessage = nil
+                            userId = ""
+                            password = ""
+                            locationName = ""
                         }
                     }) {
                         Text("Cancel")
@@ -175,12 +180,21 @@ struct LoginView: View {
                             .cornerRadius(20)
                     }
                     Button(action: setUser) {
-                        Text("Add Device")
-                            .padding()
-                            .background(Color.blue.opacity(0.75))
-                            .foregroundColor(.primary)
-                            .cornerRadius(20)
+                        if isLoggingIn {
+                            ProgressView()
+                                .padding()
+                                .frame(width: 140)
+                                .background(Color.blue.opacity(0.4))
+                                .cornerRadius(20)
+                        } else {
+                            Text("Add Device")
+                                .padding()
+                                .background(Color.blue.opacity(0.75))
+                                .foregroundColor(.primary)
+                                .cornerRadius(20)
+                        }
                     }
+                    .disabled(isLoggingIn)
                 }
                 .transition(.asymmetric(
                     insertion: .opacity.combined(with: .move(edge: .bottom)),
@@ -364,6 +378,7 @@ struct LoginView: View {
             password: .constant(""),
             locationName: .constant(""),
             errorMessage: .constant(nil),
+            isLoggingIn: .constant(false),
             setUser: {},
             serverStatus: "Online",
             serverStatusColor: .green,
@@ -380,6 +395,7 @@ struct LoginView: View {
             password: .constant("password"),
             locationName: .constant("My Location"),
             errorMessage: .constant("Invalid credentials"),
+            isLoggingIn: .constant(false),
             setUser: {},
             serverStatus: "Online",
             serverStatusColor: .green,

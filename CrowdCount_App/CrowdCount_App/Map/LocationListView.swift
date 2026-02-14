@@ -67,7 +67,7 @@ struct LocationListView: View {
         if let demoCoord = ad.demoCoordinate {
             return CLLocation(latitude: demoCoord.latitude, longitude: demoCoord.longitude).distance(from: userCLLocation)
         }
-        guard let location = viewModel.locations.first(where: { $0.userId == ad.locationDeviceId }) else {
+        guard let location = viewModel.locations.first(where: { $0.id == ad.locationId }) else {
             return .infinity
         }
         return CLLocation(latitude: location.coordinate.latitude, longitude: location.coordinate.longitude).distance(from: userCLLocation)
@@ -234,7 +234,7 @@ struct AdListCardView: View {
         if let demoCoord = ad.demoCoordinate {
             return demoCoord
         }
-        guard let location = locations.first(where: { $0.userId == ad.locationDeviceId }) else {
+        guard let location = locations.first(where: { $0.id == ad.locationId }) else {
             return nil
         }
         return location.coordinate

@@ -9,8 +9,7 @@ struct ServerAd: Identifiable, Codable {
     let title: String
     let description: String
     let imagePath: String?
-    let deviceId: String
-    var primaryDevice: String? = nil  // The primary device for grouped locations (used for map matching)
+    let locationId: String
     let durationHours: Int
     let totalPrice: Double?  // Optional - not returned in public API for security
     let ctaText: String?
@@ -25,18 +24,12 @@ struct ServerAd: Identifiable, Codable {
     var demoColor: String? = nil
     var demoCoordinate: CLLocationCoordinate2D? = nil
 
-    /// The device ID to use for map location matching (uses primaryDevice if available, falls back to deviceId)
-    var locationDeviceId: String {
-        primaryDevice ?? deviceId
-    }
-
     enum CodingKeys: String, CodingKey {
         case id
         case title
         case description
         case imagePath = "image_path"
-        case deviceId = "device_id"
-        case primaryDevice = "primary_device"
+        case locationId = "location_id"
         case durationHours = "duration_hours"
         case totalPrice = "total_price"
         case ctaText = "cta_text"
@@ -117,7 +110,7 @@ struct ServerAd: Identifiable, Codable {
             title: "CrowdCount HQ",
             description: "Visit our headquarters! Free demo and swag.",
             imagePath: nil,
-            deviceId: "T0001",
+            locationId: "T0001",
             durationHours: 24,
             totalPrice: 120.0,
             ctaText: "Visit Us",
@@ -135,7 +128,7 @@ struct ServerAd: Identifiable, Codable {
             title: "McCrowd's Pub",
             description: "$2 draft pints for the next hour!",
             imagePath: nil,
-            deviceId: "Demo",
+            locationId: "Demo",
             durationHours: 1,
             totalPrice: 5.0,
             ctaText: "View Details",
@@ -153,7 +146,7 @@ struct ServerAd: Identifiable, Codable {
             title: "City Park",
             description: "Nature walks every weekend. Join the community!",
             imagePath: nil,
-            deviceId: "T0002",
+            locationId: "T0002",
             durationHours: 48,
             totalPrice: 240.0,
             ctaText: "Join Now",
@@ -171,7 +164,7 @@ struct ServerAd: Identifiable, Codable {
             title: "The Pond",
             description: "Fresh seafood daily. Best fish tacos in Boulder!",
             imagePath: nil,
-            deviceId: "T0000",
+            locationId: "T0000",
             durationHours: 12,
             totalPrice: 60.0,
             ctaText: "Order Now",
@@ -543,8 +536,8 @@ struct ServerAdCardView: View {
         if let demoCoord = ad.demoCoordinate {
             return demoCoord
         }
-        // Use locationDeviceId which prefers primaryDevice for grouped locations
-        guard let location = locations.first(where: { $0.userId == ad.locationDeviceId }) else {
+        // Match ad to location by location ID
+        guard let location = locations.first(where: { $0.id == ad.locationId }) else {
             return nil
         }
         return location.coordinate
@@ -756,8 +749,8 @@ struct AdCarouselView: View {
 
     /// Returns distance from user to the ad's associated location, or .infinity if not found
     private func distanceToAd(_ ad: ServerAd, from userCLLocation: CLLocation) -> CLLocationDistance {
-        // Use locationDeviceId which prefers primaryDevice for grouped locations
-        guard let location = locations.first(where: { $0.userId == ad.locationDeviceId }) else {
+        // Match ad to location by location ID
+        guard let location = locations.first(where: { $0.id == ad.locationId }) else {
             return .infinity // No matching location, sort to end
         }
 

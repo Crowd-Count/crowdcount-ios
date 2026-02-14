@@ -123,14 +123,14 @@ struct AlertPage: View {
                             .resizable()
                             .scaledToFit()
                             .symbolRenderingMode(.palette)
-                            .foregroundStyle(.primary, .blue)
+                            .foregroundStyle(.white, .blue)
                             .frame(width: 50, height: 50)
                     case "warning":
                         Image(systemName: "exclamationmark.triangle.fill")
                             .resizable()
                             .scaledToFit()
                             .symbolRenderingMode(.palette)
-                            .foregroundStyle(.primary, .yellow)
+                            .foregroundStyle(.black, .yellow)
                             .frame(width: 50, height: 50)
                     case "celebration":
                         Image(systemName: "sparkles")
@@ -161,7 +161,7 @@ struct AlertPage: View {
                             .resizable()
                             .scaledToFit()
                             .symbolRenderingMode(.palette)
-                            .foregroundStyle(.primary, .blue)
+                            .foregroundStyle(.white, .blue)
                             .frame(width: 50, height: 50)
                     }
                     Text(alertInfo.title)

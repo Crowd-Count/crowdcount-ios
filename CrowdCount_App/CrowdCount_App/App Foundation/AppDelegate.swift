@@ -71,7 +71,7 @@ class AppDelegate: UIResponder, UIApplicationDelegate, UNUserNotificationCenterD
                         userInfo: ["ad_id": adId]
                     )
                 }
-            case "group_overcrowding", "overcrowding":
+            case "group_overcrowding", "overcrowding", "location_overcrowding":
                 NotificationCenter.default.post(
                     name: NSNotification.Name("NavigateToOvercrowdingGroup"),
                     object: nil,

@@ -59,17 +59,17 @@ actor CacheManager {
 
     // TTL constants (in seconds)
     enum TTL {
-        static let serverStatus: TimeInterval = 2.0       // Checked every 3s, cache for 2s
-        static let currentCount: TimeInterval = 0.5       // Short cache for live counts
-        static let overcrowding: TimeInterval = 4.0       // Checked every 5s, cache for 4s
-        static let connectionStatus: TimeInterval = 2.0   // Short cache
-        static let availableDates: TimeInterval = 60.0    // Cache for 1 minute
-        static let dayData: TimeInterval = 30.0           // Cache day data for 30s
-        static let weekData: TimeInterval = 60.0          // Cache week data for 1 min
-        static let yearData: TimeInterval = 120.0         // Cache year data for 2 min
-        static let alertCheck: TimeInterval = 30.0        // Cache alert check for 30s
-        static let locations: TimeInterval = 30.0         // Cache map locations for 30s
-        static let promotionPricing: TimeInterval = 60.0  // Cache pricing for 1 minute
+        static let serverStatus: TimeInterval = 2.0
+        static let currentCount: TimeInterval = 0.5
+        static let overcrowding: TimeInterval = 4.0
+        static let connectionStatus: TimeInterval = 2.0
+        static let availableDates: TimeInterval = 60.0
+        static let dayData: TimeInterval = 30.0
+        static let weekData: TimeInterval = 60.0
+        static let yearData: TimeInterval = 120.0
+        static let alertCheck: TimeInterval = 30.0
+        static let locations: TimeInterval = 30.0
+        static let promotionPricing: TimeInterval = 60.0
     }
 
     func get<T>(_ key: String) -> T? {
@@ -110,7 +110,6 @@ class APIService: ObservableObject {
     // Track last values for change detection
     private var lastServerStatus: Bool?
     private var lastCounts: [String: Int] = [:]
-    private var lastOvercrowding: [String: Int?] = [:]
 
     private init() {
         let config = URLSessionConfiguration.default
@@ -123,6 +122,14 @@ class APIService: ObservableObject {
     private var versionHeaders: [String: String] {
         let version = Bundle.main.infoDictionary?["CFBundleShortVersionString"] as? String ?? "0.0.0"
         return ["X-App-Version": version]
+    }
+
+    // MARK: - Credentials Helper
+
+    /// Build credentials array for location endpoints from Device objects
+    func credentialsBody(from devices: [Device], filterTo deviceIds: [String]) -> [[String: String]] {
+        devices.filter { deviceIds.contains($0.deviceId) }
+            .map { ["device_id": $0.deviceId, "password": $0.password] }
     }
 
     // MARK: - Core Request Method
@@ -223,15 +230,13 @@ class APIService: ObservableObject {
         }
     }
 
-    // MARK: - Current Count
+    // MARK: - Current Count (lightweight, no auth)
     struct CurrentCountResult {
         let count: Int
         let changed: Bool
     }
 
     func fetchCurrentCount(deviceId: String) async throws -> CurrentCountResult {
-        // No caching or deduplication for current count - it needs to be truly live data
-        // Every call makes a fresh request to the server
         guard let url = URL(string: "\(AppSettings.apiBaseURL)/currentcount") else {
             throw APIError.invalidURL
         }
@@ -261,7 +266,53 @@ class APIService: ObservableObject {
         return CurrentCountResult(count: count, changed: changed)
     }
 
-    // MARK: - Set Count
+    // MARK: - Add/Sub Count (single device auth)
+
+    func addToCount(deviceId: String, password: String, amount: Int) async throws {
+        _ = try await request(
+            endpoint: "add_to_count",
+            method: "POST",
+            body: ["device_id": deviceId, "password": password, "count_to_add": amount],
+            credentials: (deviceId, password),
+            idempotent: true
+        )
+        lastCounts.removeValue(forKey: deviceId)
+    }
+
+    func subFromCount(deviceId: String, password: String, amount: Int) async throws {
+        _ = try await request(
+            endpoint: "sub_from_count",
+            method: "POST",
+            body: ["device_id": deviceId, "password": password, "count_to_sub": amount],
+            credentials: (deviceId, password),
+            idempotent: true
+        )
+        lastCounts.removeValue(forKey: deviceId)
+    }
+
+    // MARK: - Location Count
+
+    func locationAddToCount(locationId: String, credentials: [[String: String]], signingDevice: (String, String), amount: Int) async throws {
+        _ = try await request(
+            endpoint: "location/add_to_count",
+            method: "POST",
+            body: ["location_id": locationId, "credentials": credentials, "count_to_add": amount],
+            credentials: signingDevice,
+            idempotent: true
+        )
+    }
+
+    func locationSubFromCount(locationId: String, credentials: [[String: String]], signingDevice: (String, String), amount: Int) async throws {
+        _ = try await request(
+            endpoint: "location/sub_from_count",
+            method: "POST",
+            body: ["location_id": locationId, "credentials": credentials, "count_to_sub": amount],
+            credentials: signingDevice,
+            idempotent: true
+        )
+    }
+
+    // MARK: - Set Count (legacy, kept for device settings reset)
     func setCurrentCount(deviceId: String, password: String, newCount: Int) async throws {
         _ = try await request(
             endpoint: "setcount",
@@ -270,183 +321,10 @@ class APIService: ObservableObject {
             credentials: (deviceId, password),
             idempotent: true
         )
-
-        // Clear the last known count so next fetch sees it as "changed"
         lastCounts.removeValue(forKey: deviceId)
     }
 
-    // MARK: - Overcrowding Limit
-    struct OvercrowdingResult {
-        let limit: Int?
-        let changed: Bool
-    }
-
-    func fetchOvercrowdingLimit(deviceId: String) async throws -> OvercrowdingResult {
-        let cacheKey = "overcrowding:\(deviceId)"
-
-        let data = try await request(
-            endpoint: "get_overcrowding?device_name=\(deviceId)",
-            cacheKey: cacheKey,
-            cacheTTL: CacheManager.TTL.overcrowding
-        )
-
-        let limit: Int?
-        if let json = try? JSONSerialization.jsonObject(with: data) as? [String: Any],
-           let overcrowding = json["overcrowding"] as? Int {
-            limit = overcrowding
-        } else {
-            limit = nil
-        }
-
-        let previousLimit = lastOvercrowding[deviceId] ?? nil
-        let changed = previousLimit != limit
-        lastOvercrowding[deviceId] = limit
-
-        return OvercrowdingResult(limit: limit, changed: changed)
-    }
-
-    // MARK: - Overcrowding Groups (Location-level)
-
-    struct OvercrowdingGroupResult {
-        let groupId: String
-        let limit: Int
-        let currentTotal: Int
-        let deviceIds: [String]
-    }
-
-    /// Create a new overcrowding group for a location
-    func createOvercrowdingGroup(deviceIds: [String], limit: Int, groupName: String?) async throws -> String {
-        var body: [String: Any] = [
-            "device_ids": deviceIds,
-            "limit": limit
-        ]
-        if let name = groupName {
-            body["group_name"] = name
-        }
-
-        let data = try await request(
-            endpoint: "create_overcrowding_group",
-            method: "POST",
-            body: body,
-            idempotent: true
-        )
-
-        guard let json = try? JSONSerialization.jsonObject(with: data) as? [String: Any],
-              let groupId = json["group_id"] as? String else {
-            throw APIError.decodingError
-        }
-
-        return groupId
-    }
-
-    /// Update an existing overcrowding group
-    func updateOvercrowdingGroup(groupId: String, deviceIds: [String]? = nil, limit: Int? = nil) async throws {
-        var body: [String: Any] = ["group_id": groupId]
-        if let deviceIds = deviceIds {
-            body["device_ids"] = deviceIds
-        }
-        if let limit = limit {
-            body["limit"] = limit
-        }
-
-        _ = try await request(
-            endpoint: "update_overcrowding_group",
-            method: "POST",
-            body: body,
-            idempotent: true
-        )
-
-        // Invalidate cache for this group
-        await cache.invalidate("group:\(groupId)")
-    }
-
-    /// Delete an overcrowding group
-    func deleteOvercrowdingGroup(groupId: String) async throws {
-        _ = try await request(
-            endpoint: "delete_overcrowding_group",
-            method: "POST",
-            body: ["group_id": groupId],
-            idempotent: true
-        )
-
-        // Invalidate cache for this group
-        await cache.invalidate("group:\(groupId)")
-    }
-
-    /// Fetch overcrowding group details including current total count
-    func fetchOvercrowdingGroup(groupId: String) async throws -> OvercrowdingGroupResult {
-        let cacheKey = "group:\(groupId)"
-
-        let data = try await request(
-            endpoint: "get_overcrowding_group?group_id=\(groupId)",
-            cacheKey: cacheKey,
-            cacheTTL: CacheManager.TTL.overcrowding
-        )
-
-        guard let json = try? JSONSerialization.jsonObject(with: data) as? [String: Any],
-              let limit = json["limit"] as? Int,
-              let total = json["current_total"] as? Int,
-              let devices = json["device_ids"] as? [String] else {
-            throw APIError.decodingError
-        }
-
-        return OvercrowdingGroupResult(
-            groupId: groupId,
-            limit: limit,
-            currentTotal: total,
-            deviceIds: devices
-        )
-    }
-
-    /// Register an app for group overcrowding notifications
-    func registerGroupNotification(groupId: String, appId: String) async throws {
-        _ = try await request(
-            endpoint: "register_group_notification",
-            method: "POST",
-            body: ["group_id": groupId, "app_id": appId],
-            idempotent: true
-        )
-    }
-
-    /// Unregister from group overcrowding notifications
-    func unregisterGroupNotification(groupId: String, appId: String) async throws {
-        _ = try await request(
-            endpoint: "unregister_group_notification",
-            method: "POST",
-            body: ["group_id": groupId, "app_id": appId],
-            idempotent: true
-        )
-    }
-
-    /// Check if notifications are enabled for a group
-    func checkGroupNotificationStatus(groupId: String, appId: String) async throws -> Bool {
-        let data = try await request(
-            endpoint: "check_group_notification?group_id=\(groupId)&app_id=\(appId)"
-        )
-
-        guard let json = try? JSONSerialization.jsonObject(with: data) as? [String: Any],
-              let enabled = json["notifications_enabled"] as? Bool else {
-            return false
-        }
-
-        return enabled
-    }
-
-    /// Get all group IDs that contain a specific device
-    func fetchGroupIdsForDevice(deviceId: String) async throws -> [String] {
-        let data = try await request(
-            endpoint: "get_groups_for_device?device_id=\(deviceId)"
-        )
-
-        guard let json = try? JSONSerialization.jsonObject(with: data) as? [String: Any],
-              let groupIds = json["group_ids"] as? [String] else {
-            throw APIError.decodingError
-        }
-
-        return groupIds
-    }
-
-    // MARK: - Connection Status
+    // MARK: - Connection Status (lightweight, no auth)
     func checkConnectionStatus(deviceId: String) async throws -> String {
         let cacheKey = "connection:\(deviceId)"
 
@@ -483,223 +361,410 @@ class APIService: ObservableObject {
         return isCorrect
     }
 
-    // MARK: - Available Dates
-    func fetchAvailableDates(deviceId: String, password: String) async throws -> [String] {
-        let cacheKey = "dates:\(deviceId)"
+    // MARK: - Location Endpoints
 
+    /// Get all locations a device belongs to (single device auth)
+    func getLocationsForDevice(deviceId: String, password: String) async throws -> [LocationResponse] {
         let data = try await request(
-            endpoint: "get_user_days",
+            endpoint: "get_locations_for_device",
             method: "POST",
             body: ["device_id": deviceId, "password": password],
-            cacheKey: cacheKey,
-            cacheTTL: CacheManager.TTL.availableDates,
             credentials: (deviceId, password)
         )
 
-        let response = try JSONDecoder().decode(AvailableDatesResponse.self, from: data)
-        return response.dates
+        guard let json = try? JSONSerialization.jsonObject(with: data) as? [String: Any],
+              let locationsArray = json["locations"] as? [[String: Any]] else {
+            throw APIError.decodingError
+        }
+
+        return locationsArray.compactMap { LocationResponse(from: $0) }
     }
 
-    // MARK: - Day Data (Parallel fetch for primary + secondary UTC dates)
-    func fetchDayData(deviceId: String, password: String, utcDate: String) async throws -> [String: Double] {
-        let cacheKey = "daydata:\(deviceId):\(utcDate)"
+    /// Get a specific location's details (credentials auth)
+    func getLocation(locationId: String, credentials: [[String: String]], signingDevice: (String, String)) async throws -> LocationResponse {
+        let data = try await request(
+            endpoint: "get_location",
+            method: "POST",
+            body: ["location_id": locationId, "credentials": credentials],
+            credentials: signingDevice
+        )
+
+        guard let json = try? JSONSerialization.jsonObject(with: data) as? [String: Any],
+              let response = LocationResponse(from: json) else {
+            throw APIError.decodingError
+        }
+
+        return response
+    }
+
+    /// Update a location's name and/or overcrowding limit
+    func updateLocation(locationId: String, name: String? = nil, overcrowdingLimit: Int? = nil, credentials: [[String: String]], signingDevice: (String, String)) async throws {
+        var body: [String: Any] = [
+            "location_id": locationId,
+            "credentials": credentials
+        ]
+        if let name = name {
+            body["name"] = name
+        }
+        if let limit = overcrowdingLimit {
+            body["overcrowding_limit"] = limit
+        }
+
+        _ = try await request(
+            endpoint: "update_location",
+            method: "POST",
+            body: body,
+            credentials: signingDevice,
+            idempotent: true
+        )
+    }
+
+    /// Add a device to a location (existing devices only for auth)
+    func addDeviceToLocation(locationId: String, newDeviceId: String, newDevicePassword: String, label: String, credentials: [[String: String]], signingDevice: (String, String)) async throws {
+        _ = try await request(
+            endpoint: "add_device_to_location",
+            method: "POST",
+            body: [
+                "location_id": locationId,
+                "new_device_id": newDeviceId,
+                "new_device_password": newDevicePassword,
+                "label": label,
+                "credentials": credentials
+            ],
+            credentials: signingDevice,
+            idempotent: true
+        )
+    }
+
+    /// Remove a device from a location (DEPRECATED — use replaceLocation)
+    func removeDeviceFromLocation(locationId: String, targetDeviceId: String, credentials: [[String: String]], signingDevice: (String, String)) async throws {
+        _ = try await request(
+            endpoint: "remove_device_from_location",
+            method: "POST",
+            body: [
+                "location_id": locationId,
+                "target_device_id": targetDeviceId,
+                "credentials": credentials
+            ],
+            credentials: signingDevice,
+            idempotent: true
+        )
+    }
+
+    /// Replace a location with a new device set, preserving metadata.
+    /// Returns the new location_id (may equal old if device set unchanged).
+    func replaceLocation(locationId: String, credentials: [[String: String]], deviceLabels: [String: String]? = nil, signingDevice: (String, String)) async throws -> String {
+        var body: [String: Any] = [
+            "location_id": locationId,
+            "credentials": credentials
+        ]
+        if let labels = deviceLabels {
+            body["device_labels"] = labels
+        }
 
         let data = try await request(
-            endpoint: "get_day_data",
+            endpoint: "replace_location",
             method: "POST",
-            body: ["device_id": deviceId, "password": password, "date": utcDate],
-            cacheKey: cacheKey,
+            body: body,
+            credentials: signingDevice,
+            idempotent: true
+        )
+
+        guard let json = try? JSONSerialization.jsonObject(with: data) as? [String: Any],
+              let newLocationId = json["location_id"] as? String else {
+            throw APIError.decodingError
+        }
+
+        return newLocationId
+    }
+
+    /// Delete a location
+    func deleteLocation(locationId: String, credentials: [[String: String]], signingDevice: (String, String)) async throws {
+        _ = try await request(
+            endpoint: "delete_location",
+            method: "POST",
+            body: [
+                "location_id": locationId,
+                "credentials": credentials
+            ],
+            credentials: signingDevice,
+            idempotent: true
+        )
+    }
+
+    /// Create a new location — returns the new location_id
+    func createLocation(name: String? = nil, credentials: [[String: String]], deviceLabels: [String: String]? = nil, signingDevice: (String, String)) async throws -> String {
+        var body: [String: Any] = [
+            "credentials": credentials
+        ]
+        if let name = name {
+            body["name"] = name
+        }
+        if let labels = deviceLabels {
+            body["device_labels"] = labels
+        }
+
+        let data = try await request(
+            endpoint: "create_location",
+            method: "POST",
+            body: body,
+            credentials: signingDevice,
+            idempotent: true
+        )
+
+        guard let json = try? JSONSerialization.jsonObject(with: data) as? [String: Any],
+              let locationId = json["location_id"] as? String else {
+            throw APIError.decodingError
+        }
+
+        return locationId
+    }
+
+    // MARK: - Location Overcrowding Notifications
+
+    func registerLocationOvercrowdingNotification(locationId: String, appId: String, signingDevice: (String, String)) async throws {
+        _ = try await request(
+            endpoint: "register_location_overcrowding_notification",
+            method: "POST",
+            body: ["location_id": locationId, "app_id": appId, "device_id": signingDevice.0, "password": signingDevice.1],
+            credentials: signingDevice,
+            idempotent: true
+        )
+    }
+
+    func unregisterLocationOvercrowdingNotification(locationId: String, appId: String, signingDevice: (String, String)) async throws {
+        _ = try await request(
+            endpoint: "unregister_location_overcrowding_notification",
+            method: "POST",
+            body: ["location_id": locationId, "app_id": appId, "device_id": signingDevice.0, "password": signingDevice.1],
+            credentials: signingDevice,
+            idempotent: true
+        )
+    }
+
+    func checkLocationOvercrowdingNotification(locationId: String, appId: String) async throws -> Bool {
+        let data = try await request(
+            endpoint: "check_location_overcrowding_notification?location_id=\(locationId)&app_id=\(appId)"
+        )
+
+        guard let json = try? JSONSerialization.jsonObject(with: data) as? [String: Any],
+              let enabled = json["notifications_enabled"] as? Bool else {
+            return false
+        }
+
+        return enabled
+    }
+
+    // MARK: - Location History Endpoints
+    //
+    // All location history endpoints return {"data": {...}} from the server's
+    // generic _location_history_handler. We parse them uniformly.
+
+    private func parseLocationHistoryData(_ data: Data) throws -> [String: Double] {
+        guard let json = try? JSONSerialization.jsonObject(with: data) as? [String: Any],
+              let dataDict = json["data"] as? [String: Double] else {
+            // Server may return empty dict or null values — return empty
+            if let json = try? JSONSerialization.jsonObject(with: data) as? [String: Any],
+               let dataDict = json["data"] as? [String: Any] {
+                // Handle mixed Int/Double values
+                var result: [String: Double] = [:]
+                for (key, value) in dataDict {
+                    if let d = value as? Double { result[key] = d }
+                    else if let i = value as? Int { result[key] = Double(i) }
+                }
+                return result
+            }
+            return [:]
+        }
+        return dataDict
+    }
+
+    func fetchLocationDayData(locationId: String, date: String, credentials: [[String: String]], signingDevice: (String, String)) async throws -> [String: Double] {
+        let data = try await request(
+            endpoint: "get_location_day_data",
+            method: "POST",
+            body: ["location_id": locationId, "date": date, "credentials": credentials],
+            cacheKey: "loc_daydata:\(locationId):\(date)",
             cacheTTL: CacheManager.TTL.dayData,
-            credentials: (deviceId, password)
+            credentials: signingDevice
         )
-
-        let response = try JSONDecoder().decode(DayDataResponse.self, from: data)
-        return response.day_data
+        return try parseLocationHistoryData(data)
     }
 
-    func fetchAverageDayData(deviceId: String, password: String, utcDate: String) async throws -> [String: Double] {
-        let cacheKey = "avgdaydata:\(deviceId):\(utcDate)"
-
+    func fetchLocationAverageDayData(locationId: String, date: String, credentials: [[String: String]], signingDevice: (String, String)) async throws -> [String: Double] {
         let data = try await request(
-            endpoint: "get_average_day_data",
+            endpoint: "get_location_average_day_data",
             method: "POST",
-            body: ["device_id": deviceId, "password": password, "date": utcDate],
-            cacheKey: cacheKey,
+            body: ["location_id": locationId, "date": date, "credentials": credentials],
+            cacheKey: "loc_avgdaydata:\(locationId):\(date)",
             cacheTTL: CacheManager.TTL.dayData,
-            credentials: (deviceId, password)
+            credentials: signingDevice
         )
-
-        let response = try JSONDecoder().decode(AverageDayDataResponse.self, from: data)
-        return response.average_day_data
+        return try parseLocationHistoryData(data)
     }
 
-    // MARK: - Week Data
-    func fetchWeekData(deviceId: String, password: String, date: String) async throws -> [String: Double] {
-        let cacheKey = "weekdata:\(deviceId):\(date)"
-
+    func fetchLocationWeekData(locationId: String, date: String, credentials: [[String: String]], signingDevice: (String, String)) async throws -> [String: Double] {
         let data = try await request(
-            endpoint: "get_week_data",
+            endpoint: "get_location_week_data",
             method: "POST",
-            body: ["device_id": deviceId, "password": password, "date": date],
-            cacheKey: cacheKey,
+            body: ["location_id": locationId, "date": date, "credentials": credentials],
+            cacheKey: "loc_weekdata:\(locationId):\(date)",
             cacheTTL: CacheManager.TTL.weekData,
-            credentials: (deviceId, password)
+            credentials: signingDevice
         )
-
-        let response = try JSONDecoder().decode(WeekDataResponse.self, from: data)
-        return response.week_data
+        return try parseLocationHistoryData(data)
     }
 
-    func fetchAverageWeekData(deviceId: String, password: String, date: String) async throws -> [String: Double] {
-        let cacheKey = "avgweekdata:\(deviceId):\(date)"
-
+    func fetchLocationAverageWeekData(locationId: String, date: String, credentials: [[String: String]], signingDevice: (String, String)) async throws -> [String: Double] {
         let data = try await request(
-            endpoint: "get_average_week_data",
+            endpoint: "get_location_average_week_data",
             method: "POST",
-            body: ["device_id": deviceId, "password": password, "date": date],
-            cacheKey: cacheKey,
+            body: ["location_id": locationId, "date": date, "credentials": credentials],
+            cacheKey: "loc_avgweekdata:\(locationId):\(date)",
             cacheTTL: CacheManager.TTL.weekData,
-            credentials: (deviceId, password)
+            credentials: signingDevice
         )
-
-        let response = try JSONDecoder().decode(AverageWeekDataResponse.self, from: data)
-        return response.average_week_data
+        return try parseLocationHistoryData(data)
     }
 
-    // MARK: - Year Data
-    func fetchYearData(deviceId: String, password: String, year: Int) async throws -> [String: Double] {
-        let cacheKey = "yeardata:\(deviceId):\(year)"
-
+    func fetchLocationYearData(locationId: String, year: Int, credentials: [[String: String]], signingDevice: (String, String)) async throws -> [String: Double] {
         let data = try await request(
-            endpoint: "get_year_data",
+            endpoint: "get_location_year_data",
             method: "POST",
-            body: ["device_id": deviceId, "password": password, "year": year],
-            cacheKey: cacheKey,
+            body: ["location_id": locationId, "year": year, "credentials": credentials],
+            cacheKey: "loc_yeardata:\(locationId):\(year)",
             cacheTTL: CacheManager.TTL.yearData,
-            credentials: (deviceId, password)
+            credentials: signingDevice
         )
-
-        let response = try JSONDecoder().decode(YearDataResponse.self, from: data)
-        return response.year_data
+        return try parseLocationHistoryData(data)
     }
 
-    func fetchAverageYearData(deviceId: String, password: String, year: Int) async throws -> [String: Double]? {
-        let cacheKey = "avgyeardata:\(deviceId):\(year)"
-
+    func fetchLocationAverageYearData(locationId: String, year: Int, credentials: [[String: String]], signingDevice: (String, String)) async throws -> [String: Double]? {
         let data = try await request(
-            endpoint: "get_average_year_data",
+            endpoint: "get_location_average_year_data",
             method: "POST",
-            body: ["device_id": deviceId, "password": password, "year": year],
-            cacheKey: cacheKey,
+            body: ["location_id": locationId, "year": year, "credentials": credentials],
+            cacheKey: "loc_avgyeardata:\(locationId):\(year)",
             cacheTTL: CacheManager.TTL.yearData,
-            credentials: (deviceId, password)
+            credentials: signingDevice
         )
-
-        let response = try JSONDecoder().decode(AverageYearDataResponse.self, from: data)
-        switch response.average_year_data {
-        case .data(let dict):
-            return dict
-        case .notAvailable:
+        // Server returns {"data": "N/A"} when insufficient data
+        if let json = try? JSONSerialization.jsonObject(with: data) as? [String: Any],
+           let dataVal = json["data"] as? String, dataVal == "N/A" {
             return nil
         }
+        return try parseLocationHistoryData(data)
     }
 
-    // MARK: - Entry Data (tracks people who entered, summed per period)
+    // MARK: - Location Entry History Endpoints
 
-    func fetchEntryDayData(deviceId: String, password: String, utcDate: String) async throws -> [String: Double] {
-        let cacheKey = "entrydaydata:\(deviceId):\(utcDate)"
-
+    func fetchLocationEntryDayData(locationId: String, date: String, credentials: [[String: String]], signingDevice: (String, String)) async throws -> [String: Double] {
         let data = try await request(
-            endpoint: "get_entry_day_data",
+            endpoint: "get_location_entry_day_data",
             method: "POST",
-            body: ["device_id": deviceId, "password": password, "date": utcDate],
-            cacheKey: cacheKey,
+            body: ["location_id": locationId, "date": date, "credentials": credentials],
+            cacheKey: "loc_entrydaydata:\(locationId):\(date)",
             cacheTTL: CacheManager.TTL.dayData,
-            credentials: (deviceId, password)
+            credentials: signingDevice
         )
-
-        let response = try JSONDecoder().decode(EntryDayDataResponse.self, from: data)
-        return response.entry_day_data
+        return try parseLocationHistoryData(data)
     }
 
-    func fetchAverageEntryDayData(deviceId: String, password: String, utcDate: String) async throws -> [String: Double] {
-        let cacheKey = "avgEntrydaydata:\(deviceId):\(utcDate)"
-
+    func fetchLocationAverageEntryDayData(locationId: String, date: String, credentials: [[String: String]], signingDevice: (String, String)) async throws -> [String: Double] {
         let data = try await request(
-            endpoint: "get_average_entry_day_data",
+            endpoint: "get_location_average_entry_day_data",
             method: "POST",
-            body: ["device_id": deviceId, "password": password, "date": utcDate],
-            cacheKey: cacheKey,
+            body: ["location_id": locationId, "date": date, "credentials": credentials],
+            cacheKey: "loc_avgEntrydaydata:\(locationId):\(date)",
             cacheTTL: CacheManager.TTL.dayData,
-            credentials: (deviceId, password)
+            credentials: signingDevice
         )
-
-        let response = try JSONDecoder().decode(AverageEntryDayDataResponse.self, from: data)
-        return response.average_entry_day_data
+        return try parseLocationHistoryData(data)
     }
 
-    func fetchEntryWeekData(deviceId: String, password: String, date: String) async throws -> [String: Double] {
-        let cacheKey = "entryweekdata:\(deviceId):\(date)"
-
+    func fetchLocationEntryWeekData(locationId: String, date: String, credentials: [[String: String]], signingDevice: (String, String)) async throws -> [String: Double] {
         let data = try await request(
-            endpoint: "get_entry_week_data",
+            endpoint: "get_location_entry_week_data",
             method: "POST",
-            body: ["device_id": deviceId, "password": password, "date": date],
-            cacheKey: cacheKey,
+            body: ["location_id": locationId, "date": date, "credentials": credentials],
+            cacheKey: "loc_entryweekdata:\(locationId):\(date)",
             cacheTTL: CacheManager.TTL.weekData,
-            credentials: (deviceId, password)
+            credentials: signingDevice
         )
-
-        let response = try JSONDecoder().decode(EntryWeekDataResponse.self, from: data)
-        return response.entry_week_data
+        return try parseLocationHistoryData(data)
     }
 
-    func fetchAverageEntryWeekData(deviceId: String, password: String, date: String) async throws -> [String: Double] {
-        let cacheKey = "avgentryweekdata:\(deviceId):\(date)"
-
+    func fetchLocationAverageEntryWeekData(locationId: String, date: String, credentials: [[String: String]], signingDevice: (String, String)) async throws -> [String: Double] {
         let data = try await request(
-            endpoint: "get_average_entry_week_data",
+            endpoint: "get_location_average_entry_week_data",
             method: "POST",
-            body: ["device_id": deviceId, "password": password, "date": date],
-            cacheKey: cacheKey,
+            body: ["location_id": locationId, "date": date, "credentials": credentials],
+            cacheKey: "loc_avgentryweekdata:\(locationId):\(date)",
             cacheTTL: CacheManager.TTL.weekData,
-            credentials: (deviceId, password)
+            credentials: signingDevice
         )
-
-        let response = try JSONDecoder().decode(AverageEntryWeekDataResponse.self, from: data)
-        return response.average_entry_week_data
+        return try parseLocationHistoryData(data)
     }
 
-    func fetchEntryYearData(deviceId: String, password: String, year: Int) async throws -> [String: Double] {
-        let cacheKey = "entryyeardata:\(deviceId):\(year)"
-
+    func fetchLocationEntryYearData(locationId: String, year: Int, credentials: [[String: String]], signingDevice: (String, String)) async throws -> [String: Double] {
         let data = try await request(
-            endpoint: "get_entry_year_data",
+            endpoint: "get_location_entry_year_data",
             method: "POST",
-            body: ["device_id": deviceId, "password": password, "year": year],
-            cacheKey: cacheKey,
+            body: ["location_id": locationId, "year": year, "credentials": credentials],
+            cacheKey: "loc_entryyeardata:\(locationId):\(year)",
             cacheTTL: CacheManager.TTL.yearData,
-            credentials: (deviceId, password)
+            credentials: signingDevice
         )
-
-        let response = try JSONDecoder().decode(EntryYearDataResponse.self, from: data)
-        return response.entry_year_data
+        return try parseLocationHistoryData(data)
     }
 
-    func fetchAverageEntryYearData(deviceId: String, password: String, year: Int) async throws -> [String: Double] {
-        let cacheKey = "avgentryyeardata:\(deviceId):\(year)"
-
+    func fetchLocationAverageEntryYearData(locationId: String, year: Int, credentials: [[String: String]], signingDevice: (String, String)) async throws -> [String: Double]? {
         let data = try await request(
-            endpoint: "get_average_entry_year_data",
+            endpoint: "get_location_average_entry_year_data",
             method: "POST",
-            body: ["device_id": deviceId, "password": password, "year": year],
-            cacheKey: cacheKey,
+            body: ["location_id": locationId, "year": year, "credentials": credentials],
+            cacheKey: "loc_avgentryyeardata:\(locationId):\(year)",
             cacheTTL: CacheManager.TTL.yearData,
-            credentials: (deviceId, password)
+            credentials: signingDevice
         )
+        if let json = try? JSONSerialization.jsonObject(with: data) as? [String: Any],
+           let dataVal = json["data"] as? String, dataVal == "N/A" {
+            return nil
+        }
+        return try parseLocationHistoryData(data)
+    }
 
-        let response = try JSONDecoder().decode(AverageEntryYearDataResponse.self, from: data)
-        return response.average_entry_year_data
+    // MARK: - Location Available Dates
+
+    /// Aggregates available dates across all devices in the location
+    /// (no server-level endpoint exists — we merge per-device results)
+    func fetchLocationAvailableDates(deviceCredentials: [(deviceId: String, password: String)]) async throws -> [String] {
+        var allDates = Set<String>()
+
+        try await withThrowingTaskGroup(of: [String].self) { group in
+            for cred in deviceCredentials {
+                group.addTask {
+                    let data = try await self.request(
+                        endpoint: "get_user_days",
+                        method: "POST",
+                        body: ["device_id": cred.deviceId, "password": cred.password],
+                        cacheKey: "dates:\(cred.deviceId)",
+                        cacheTTL: CacheManager.TTL.availableDates,
+                        credentials: (cred.deviceId, cred.password)
+                    )
+                    guard let json = try? JSONSerialization.jsonObject(with: data) as? [String: Any],
+                          let dates = json["dates"] as? [String] else {
+                        return []
+                    }
+                    return dates
+                }
+            }
+            for try await dates in group {
+                allDates.formUnion(dates)
+            }
+        }
+
+        return allDates.sorted()
     }
 
     // MARK: - Alert Check
@@ -742,8 +807,6 @@ class APIService: ObservableObject {
 
     // MARK: - Promotion Pricing
 
-    /// Fetch current promotion pricing from server
-    /// Returns price per hour, falls back to 5.0 on error
     func fetchPromotionPricing() async throws -> Double {
         let cacheKey = "promotionPricing"
 
@@ -755,7 +818,7 @@ class APIService: ObservableObject {
 
         guard let json = try? JSONSerialization.jsonObject(with: data) as? [String: Any],
               let pricePerHour = json["price_per_hour"] as? Double else {
-            return 5.0  // Default fallback
+            return 5.0
         }
 
         return pricePerHour
@@ -764,85 +827,140 @@ class APIService: ObservableObject {
     // MARK: - Reset Schedule
 
     struct ResetSchedule {
-        let groupId: String
+        let locationId: String
         let resetHour: Int
         let resetMinute: Int
         let timezone: String
     }
 
-    /// Fetch reset schedule for a group
-    /// Returns nil if no schedule exists
-    func fetchResetSchedule(groupId: String) async throws -> ResetSchedule? {
-        let data = try await request(endpoint: "reset-schedule/\(groupId)")
+    private func parseResetSchedule(from json: [String: Any]) -> ResetSchedule? {
+        guard let locationId = json["location_id"] as? String,
+              let resetHour = json["reset_hour"] as? Int,
+              let resetMinute = json["reset_minute"] as? Int,
+              let timezone = json["timezone"] as? String else {
+            return nil
+        }
+        return ResetSchedule(locationId: locationId, resetHour: resetHour, resetMinute: resetMinute, timezone: timezone)
+    }
+
+    func fetchResetSchedule(locationId: String, credentials: [[String: String]], signingDevice: (String, String)) async throws -> ResetSchedule? {
+        let data = try await request(
+            endpoint: "get_reset_schedule",
+            method: "POST",
+            body: ["location_id": locationId, "credentials": credentials],
+            credentials: signingDevice
+        )
 
         guard let json = try? JSONSerialization.jsonObject(with: data) as? [String: Any] else {
             throw APIError.decodingError
         }
 
-        // schedule can be null if no schedule exists
-        guard let scheduleJson = json["schedule"] as? [String: Any] else {
+        // Server returns {"schedule": null} when no schedule exists
+        if json["schedule"] is NSNull || (json["schedule"] == nil && json["location_id"] == nil) {
             return nil
         }
 
-        guard let groupId = scheduleJson["group_id"] as? String,
-              let resetHour = scheduleJson["reset_hour"] as? Int,
-              let resetMinute = scheduleJson["reset_minute"] as? Int,
-              let timezone = scheduleJson["timezone"] as? String else {
-            throw APIError.decodingError
-        }
-
-        return ResetSchedule(
-            groupId: groupId,
-            resetHour: resetHour,
-            resetMinute: resetMinute,
-            timezone: timezone
-        )
+        // Server returns schedule fields at top level when schedule exists
+        return parseResetSchedule(from: json)
     }
 
-    /// Set or update reset schedule for a group
-    func setResetSchedule(groupId: String, hour: Int, minute: Int, timezone: String) async throws -> ResetSchedule {
+    func setResetSchedule(locationId: String, hour: Int, minute: Int, timezone: String, credentials: [[String: String]], signingDevice: (String, String)) async throws -> ResetSchedule {
         let data = try await request(
-            endpoint: "reset-schedule",
+            endpoint: "set_reset_schedule",
             method: "POST",
             body: [
-                "group_id": groupId,
+                "location_id": locationId,
+                "credentials": credentials,
                 "reset_hour": hour,
                 "reset_minute": minute,
                 "timezone": timezone
             ],
+            credentials: signingDevice,
             idempotent: true
         )
 
         guard let json = try? JSONSerialization.jsonObject(with: data) as? [String: Any],
-              let scheduleJson = json["schedule"] as? [String: Any],
-              let returnedGroupId = scheduleJson["group_id"] as? String,
-              let resetHour = scheduleJson["reset_hour"] as? Int,
-              let resetMinute = scheduleJson["reset_minute"] as? Int,
-              let returnedTimezone = scheduleJson["timezone"] as? String else {
+              let schedule = parseResetSchedule(from: json) else {
             throw APIError.decodingError
         }
 
-        return ResetSchedule(
-            groupId: returnedGroupId,
-            resetHour: resetHour,
-            resetMinute: resetMinute,
-            timezone: returnedTimezone
+        return schedule
+    }
+
+    func deleteResetSchedule(locationId: String, credentials: [[String: String]], signingDevice: (String, String)) async throws {
+        _ = try await request(
+            endpoint: "delete_reset_schedule",
+            method: "POST",
+            body: ["location_id": locationId, "credentials": credentials],
+            credentials: signingDevice,
+            idempotent: true
         )
     }
 
-    /// Delete reset schedule for a group
-    func deleteResetSchedule(groupId: String) async throws {
+    // MARK: - Device Settings
+
+    func getDirectionFlipped(deviceId: String, password: String) async throws -> Bool {
+        let data = try await request(
+            endpoint: "get_direction_flipped",
+            method: "POST",
+            body: ["device_id": deviceId, "password": password],
+            credentials: (deviceId, password)
+        )
+
+        guard let json = try? JSONSerialization.jsonObject(with: data) as? [String: Any],
+              let flipped = json["direction_flipped"] as? Bool else {
+            throw APIError.decodingError
+        }
+
+        return flipped
+    }
+
+    func setDirectionFlipped(deviceId: String, password: String, flipped: Bool) async throws {
         _ = try await request(
-            endpoint: "reset-schedule/\(groupId)",
-            method: "DELETE",
+            endpoint: "set_direction_flipped",
+            method: "POST",
+            body: ["device_id": deviceId, "password": password, "direction_flipped": flipped],
+            credentials: (deviceId, password),
             idempotent: true
+        )
+    }
+
+    func resetDeviceData(deviceId: String, password: String) async throws {
+        _ = try await request(
+            endpoint: "reset_device_data",
+            method: "POST",
+            body: ["device_id": deviceId, "password": password],
+            credentials: (deviceId, password),
+            idempotent: true
+        )
+    }
+
+    func resetLocationData(locationId: String, credentials: [[String: String]], signingDevice: (String, String)) async throws {
+        _ = try await request(
+            endpoint: "reset_location_data",
+            method: "POST",
+            body: ["location_id": locationId, "credentials": credentials],
+            credentials: signingDevice,
+            idempotent: true
+        )
+    }
+
+    // MARK: - App Version Reporting
+
+    func reportAppVersion() async {
+        let version = Bundle.main.infoDictionary?["CFBundleShortVersionString"] as? String ?? "unknown"
+        let build = Bundle.main.infoDictionary?["CFBundleVersion"] as? String ?? "unknown"
+        let platform = "ios"
+        _ = try? await request(
+            endpoint: "report_version",
+            method: "POST",
+            body: ["version": version, "build": build, "platform": platform]
         )
     }
 
     // MARK: - App Registration & Heartbeat
     func registerApp(appId: String) async {
         var body: [String: Any] = ["app_id": appId]
-        // Include device token if already available from a previous session
         if let deviceToken = UserDefaults.standard.string(forKey: "deviceToken") {
             body["device_token"] = deviceToken
         }
@@ -856,7 +974,6 @@ class APIService: ObservableObject {
 
     func sendHeartbeat(appId: String) async {
         var body: [String: Any] = ["app_id": appId]
-        // Include device token in heartbeat so server stays up-to-date
         if let deviceToken = UserDefaults.standard.string(forKey: "deviceToken") {
             body["device_token"] = deviceToken
         }
@@ -867,346 +984,37 @@ class APIService: ObservableObject {
             idempotent: true
         )
     }
+}
 
-    // MARK: - Batch Operations for Multiple Users
+// MARK: - Location Response
 
-    /// Fetch current counts for all users in parallel
-    func fetchAllCurrentCounts(users: [(id: UUID, deviceId: String)]) async -> [UUID: Int] {
-        await withTaskGroup(of: (UUID, Int?).self) { group in
-            for user in users {
-                group.addTask {
-                    let result = try? await self.fetchCurrentCount(deviceId: user.deviceId)
-                    return (user.id, result?.count)
-                }
-            }
+struct LocationResponse {
+    let locationId: String
+    let locationName: String
+    let deviceIds: [String]
+    let isAuto: Bool
+    let overcrowdingLimit: Int?
+    let currentCount: Int?
+    let isOnMap: Bool
+    let mapIcon: String?
+    let mapColor: String?
 
-            var results: [UUID: Int] = [:]
-            for await (id, count) in group {
-                if let count = count {
-                    results[id] = count
-                }
-            }
-            return results
+    init?(from dict: [String: Any]) {
+        guard let id = dict["location_id"] as? String else { return nil }
+        self.locationId = id
+        self.locationName = dict["location_name"] as? String ?? id
+        // devices field is [[device_id, label], ...] tuples
+        if let devices = dict["devices"] as? [[Any]] {
+            self.deviceIds = devices.compactMap { $0.first as? String }
+        } else {
+            self.deviceIds = []
         }
-    }
-
-    /// Fetch overcrowding limits for all users in parallel
-    func fetchAllOvercrowdingLimits(users: [(id: UUID, deviceId: String)]) async -> [UUID: Int?] {
-        await withTaskGroup(of: (UUID, Int?).self) { group in
-            for user in users {
-                group.addTask {
-                    let result = try? await self.fetchOvercrowdingLimit(deviceId: user.deviceId)
-                    return (user.id, result?.limit)
-                }
-            }
-
-            var results: [UUID: Int?] = [:]
-            for await (id, limit) in group {
-                results[id] = limit
-            }
-            return results
-        }
-    }
-
-    /// Fetch connection statuses for all users in parallel
-    func fetchAllConnectionStatuses(users: [(id: UUID, deviceId: String)]) async -> [UUID: String] {
-        await withTaskGroup(of: (UUID, String?).self) { group in
-            for user in users {
-                group.addTask {
-                    let status = try? await self.checkConnectionStatus(deviceId: user.deviceId)
-                    return (user.id, status)
-                }
-            }
-
-            var results: [UUID: String] = [:]
-            for await (id, status) in group {
-                if let status = status {
-                    results[id] = status
-                }
-            }
-            return results
-        }
-    }
-
-    /// Fetch available dates for all users in parallel and merge
-    func fetchAllAvailableDates(users: [(deviceId: String, password: String)]) async -> [String] {
-        await withTaskGroup(of: [String].self) { group in
-            for user in users {
-                group.addTask {
-                    (try? await self.fetchAvailableDates(deviceId: user.deviceId, password: user.password)) ?? []
-                }
-            }
-
-            var allDates = Set<String>()
-            for await dates in group {
-                allDates.formUnion(dates)
-            }
-            return Array(allDates)
-        }
-    }
-
-    /// Fetch day data for multiple users in parallel and aggregate
-    func fetchAggregatedDayData(
-        users: [(deviceId: String, password: String)],
-        utcDates: [String],
-        targetLocalDate: String
-    ) async -> (dayData: [String: Double], averageData: [String: Double]) {
-
-        // Collect all results first, then aggregate (avoids async locking issues)
-        let results = await withTaskGroup(of: ([String: Double], [String: Double]).self) { group -> [([String: Double], [String: Double])] in
-            for user in users {
-                for utcDate in utcDates {
-                    group.addTask {
-                        async let dayTask = self.fetchDayData(deviceId: user.deviceId, password: user.password, utcDate: utcDate)
-                        async let avgTask = self.fetchAverageDayData(deviceId: user.deviceId, password: user.password, utcDate: utcDate)
-
-                        let dayData = (try? await dayTask) ?? [:]
-                        let avgData = (try? await avgTask) ?? [:]
-
-                        // Shift to local time
-                        let localDayData = TZHelper.shiftHourlyBinsUTCtoLocal(forUTCDate: utcDate, bins: dayData, targetLocalDate: targetLocalDate)
-                        let localAvgData = TZHelper.shiftHourlyBinsUTCtoLocal(forUTCDate: utcDate, bins: avgData, targetLocalDate: targetLocalDate)
-
-                        return (localDayData, localAvgData)
-                    }
-                }
-            }
-
-            var collected: [([String: Double], [String: Double])] = []
-            for await result in group {
-                collected.append(result)
-            }
-            return collected
-        }
-
-        // Aggregate results on main actor (no locking needed)
-        var dayDataResults: [String: Double] = [:]
-        var avgDataResults: [String: Double] = [:]
-        for (dayData, avgData) in results {
-            for (hour, count) in dayData {
-                dayDataResults[hour, default: 0] += count
-            }
-            for (hour, count) in avgData {
-                avgDataResults[hour, default: 0] += count
-            }
-        }
-
-        return (dayDataResults, avgDataResults)
-    }
-
-    /// Fetch week data for multiple users in parallel and aggregate
-    func fetchAggregatedWeekData(
-        users: [(deviceId: String, password: String)],
-        date: String
-    ) async -> (weekData: [String: Double], averageData: [String: Double]) {
-
-        // Collect all results first, then aggregate
-        let results = await withTaskGroup(of: ([String: Double], [String: Double]).self) { group -> [([String: Double], [String: Double])] in
-            for user in users {
-                group.addTask {
-                    async let weekTask = self.fetchWeekData(deviceId: user.deviceId, password: user.password, date: date)
-                    async let avgTask = self.fetchAverageWeekData(deviceId: user.deviceId, password: user.password, date: date)
-
-                    let weekData = (try? await weekTask) ?? [:]
-                    let avgData = (try? await avgTask) ?? [:]
-
-                    return (weekData, avgData)
-                }
-            }
-
-            var collected: [([String: Double], [String: Double])] = []
-            for await result in group {
-                collected.append(result)
-            }
-            return collected
-        }
-
-        // Aggregate results
-        var weekDataResults: [String: Double] = [:]
-        var avgDataResults: [String: Double] = [:]
-        for (weekData, avgData) in results {
-            for (day, count) in weekData {
-                weekDataResults[day, default: 0] += count
-            }
-            for (day, count) in avgData {
-                avgDataResults[day, default: 0] += count
-            }
-        }
-
-        return (weekDataResults, avgDataResults)
-    }
-
-    /// Fetch year data for multiple users in parallel and aggregate
-    func fetchAggregatedYearData(
-        users: [(deviceId: String, password: String)],
-        year: Int
-    ) async -> (yearData: [String: Double], averageData: [String: Double]?) {
-
-        // Collect all results first, then aggregate
-        let results = await withTaskGroup(of: ([String: Double], [String: Double]?).self) { group -> [([String: Double], [String: Double]?)] in
-            for user in users {
-                group.addTask {
-                    async let yearTask = self.fetchYearData(deviceId: user.deviceId, password: user.password, year: year)
-                    async let avgTask = self.fetchAverageYearData(deviceId: user.deviceId, password: user.password, year: year)
-
-                    let yearData = (try? await yearTask) ?? [:]
-                    let avgData = try? await avgTask
-
-                    return (yearData, avgData)
-                }
-            }
-
-            var collected: [([String: Double], [String: Double]?)] = []
-            for await result in group {
-                collected.append(result)
-            }
-            return collected
-        }
-
-        // Aggregate results
-        var yearDataResults: [String: Double] = [:]
-        var avgDataResults: [String: Double] = [:]
-        var hasAnyAvgData = false
-        for (yearData, avgData) in results {
-            for (month, count) in yearData {
-                yearDataResults[month, default: 0] += count
-            }
-            if let avgData = avgData {
-                hasAnyAvgData = true
-                for (month, count) in avgData {
-                    avgDataResults[month, default: 0] += count
-                }
-            }
-        }
-
-        return (yearDataResults, hasAnyAvgData ? avgDataResults : nil)
-    }
-
-    /// Fetch entry day data for multiple users in parallel and aggregate
-    func fetchAggregatedEntryDayData(
-        users: [(deviceId: String, password: String)],
-        utcDates: [String],
-        targetLocalDate: String
-    ) async -> (entryData: [String: Double], averageData: [String: Double]) {
-
-        let results = await withTaskGroup(of: ([String: Double], [String: Double]).self) { group -> [([String: Double], [String: Double])] in
-            for user in users {
-                for utcDate in utcDates {
-                    group.addTask {
-                        async let entryTask = self.fetchEntryDayData(deviceId: user.deviceId, password: user.password, utcDate: utcDate)
-                        async let avgTask = self.fetchAverageEntryDayData(deviceId: user.deviceId, password: user.password, utcDate: utcDate)
-
-                        let entryData = (try? await entryTask) ?? [:]
-                        let avgData = (try? await avgTask) ?? [:]
-
-                        // Shift to local time
-                        let localEntryData = TZHelper.shiftHourlyBinsUTCtoLocal(forUTCDate: utcDate, bins: entryData, targetLocalDate: targetLocalDate)
-                        let localAvgData = TZHelper.shiftHourlyBinsUTCtoLocal(forUTCDate: utcDate, bins: avgData, targetLocalDate: targetLocalDate)
-
-                        return (localEntryData, localAvgData)
-                    }
-                }
-            }
-
-            var collected: [([String: Double], [String: Double])] = []
-            for await result in group {
-                collected.append(result)
-            }
-            return collected
-        }
-
-        var entryDataResults: [String: Double] = [:]
-        var avgDataResults: [String: Double] = [:]
-        for (entryData, avgData) in results {
-            for (hour, count) in entryData {
-                entryDataResults[hour, default: 0] += count
-            }
-            for (hour, count) in avgData {
-                avgDataResults[hour, default: 0] += count
-            }
-        }
-
-        return (entryDataResults, avgDataResults)
-    }
-
-    /// Fetch entry week data for multiple users in parallel and aggregate
-    func fetchAggregatedEntryWeekData(
-        users: [(deviceId: String, password: String)],
-        date: String
-    ) async -> (entryData: [String: Double], averageData: [String: Double]) {
-
-        let results = await withTaskGroup(of: ([String: Double], [String: Double]).self) { group -> [([String: Double], [String: Double])] in
-            for user in users {
-                group.addTask {
-                    async let entryTask = self.fetchEntryWeekData(deviceId: user.deviceId, password: user.password, date: date)
-                    async let avgTask = self.fetchAverageEntryWeekData(deviceId: user.deviceId, password: user.password, date: date)
-
-                    let entryData = (try? await entryTask) ?? [:]
-                    let avgData = (try? await avgTask) ?? [:]
-
-                    return (entryData, avgData)
-                }
-            }
-
-            var collected: [([String: Double], [String: Double])] = []
-            for await result in group {
-                collected.append(result)
-            }
-            return collected
-        }
-
-        var entryDataResults: [String: Double] = [:]
-        var avgDataResults: [String: Double] = [:]
-        for (entryData, avgData) in results {
-            for (day, count) in entryData {
-                entryDataResults[day, default: 0] += count
-            }
-            for (day, count) in avgData {
-                avgDataResults[day, default: 0] += count
-            }
-        }
-
-        return (entryDataResults, avgDataResults)
-    }
-
-    /// Fetch entry year data for multiple users in parallel and aggregate
-    func fetchAggregatedEntryYearData(
-        users: [(deviceId: String, password: String)],
-        year: Int
-    ) async -> (entryData: [String: Double], averageData: [String: Double]) {
-
-        let results = await withTaskGroup(of: ([String: Double], [String: Double]).self) { group -> [([String: Double], [String: Double])] in
-            for user in users {
-                group.addTask {
-                    async let entryTask = self.fetchEntryYearData(deviceId: user.deviceId, password: user.password, year: year)
-                    async let avgTask = self.fetchAverageEntryYearData(deviceId: user.deviceId, password: user.password, year: year)
-
-                    let entryData = (try? await entryTask) ?? [:]
-                    let avgData = (try? await avgTask) ?? [:]
-
-                    return (entryData, avgData)
-                }
-            }
-
-            var collected: [([String: Double], [String: Double])] = []
-            for await result in group {
-                collected.append(result)
-            }
-            return collected
-        }
-
-        var entryDataResults: [String: Double] = [:]
-        var avgDataResults: [String: Double] = [:]
-        for (entryData, avgData) in results {
-            for (month, count) in entryData {
-                entryDataResults[month, default: 0] += count
-            }
-            for (month, count) in avgData {
-                avgDataResults[month, default: 0] += count
-            }
-        }
-
-        return (entryDataResults, avgDataResults)
+        self.isAuto = (dict["is_auto"] as? Int) == 1
+        self.overcrowdingLimit = dict["overcrowding_limit"] as? Int
+        self.currentCount = dict["current_count"] as? Int
+        self.isOnMap = (dict["on_map"] as? Int) == 1
+        self.mapIcon = dict["location_icon"] as? String
+        self.mapColor = dict["location_color"] as? String
     }
 }
 
@@ -1274,10 +1082,12 @@ enum TZHelper {
             }
             return (utcAtLocalMidnight, nil)
         } else {
+            // Positive offset (e.g. UTC+5): local midnight = previous UTC date.
+            // Local day spans two UTC dates: utcAtLocalMidnight and the next UTC day.
             let calendar = Calendar(identifier: .iso8601)
-            if let prevDay = calendar.date(byAdding: .day, value: -1, to: localMidnight) {
-                let prevUTCDate = yyyyMMddUTC(from: prevDay)
-                return (utcAtLocalMidnight, prevUTCDate)
+            if let nextDay = calendar.date(byAdding: .day, value: 1, to: localMidnight) {
+                let nextUTCDate = yyyyMMddUTC(from: nextDay)
+                return (utcAtLocalMidnight, nextUTCDate)
             }
             return (utcAtLocalMidnight, nil)
         }

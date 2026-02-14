@@ -1,21 +1,21 @@
 import SwiftUI
 
 struct LocationSettingsView: View {
-    @Binding var location: CounterLocation
-    let users: [User]  // All users (to show which are in this location)
-    let onSave: () -> Void
+    @Binding var location: AppLocation
+    let devices: [Device]
+    let deviceStatuses: [String: String]
+    let onSave: (AppLocation) -> Void
     let onDelete: () -> Void
-    let mapDeviceIds: Set<String>  // Device IDs that are on the public map
-    let isBluetoothSetupRequired: [UUID: Bool]  // Offline status for each device
-    let userPasswords: [UUID: String]  // Passwords for each user
-    let serverURL: String
-    var onCountsReset: (() -> Void)? = nil
+    var removeDeviceFromLocation: ((String) async -> Void)? = nil
 
     @Environment(\.dismiss) var dismiss
     @EnvironmentObject var appSettings: AppSettings
     @State private var locationName: String = ""
+    @State private var originalName: String = ""
     @State private var selectedColor: String = "orange"
     @State private var showDeleteConfirmation: Bool = false
+    @State private var deviceToRemove: String? = nil
+    @State private var showRemoveDeviceConfirmation: Bool = false
 
     // Daily Reset state
     @State private var hasResetSchedule: Bool = false
@@ -50,19 +50,48 @@ struct LocationSettingsView: View {
         ("UTC", "UTC"),
     ]
 
+    /// Credentials for API calls
+    private var credentials: [[String: String]] {
+        devices.filter { location.deviceIds.contains($0.deviceId) }
+            .map { ["device_id": $0.deviceId, "password": $0.password] }
+    }
+
+    private var signingDevice: (String, String)? {
+        guard let first = devices.first(where: { location.deviceIds.contains($0.deviceId) }) else { return nil }
+        return (first.deviceId, first.password)
+    }
+
     var body: some View {
         NavigationView {
             Form {
                 // Location Name
-                Section(header: Text("Location Name"), footer: location.isMapLocation ? Text("Name is synced from the public map. Email info@crowdcount.tech to request changes.") : nil) {
-                    if location.isMapLocation {
+                Section(header: Text("Location Name"), footer: location.isOnMap ? Text("Name is synced from the public map. Email info@crowdcount.tech to request changes.") : nil) {
+                    if location.isOnMap {
                         Text(locationName)
                             .foregroundColor(.secondary)
                     } else {
                         TextField("Location name", text: $locationName)
-                            .onChange(of: locationName) { _, newValue in
-                                location.name = newValue
+                    }
+                }
+
+                // Map Status
+                Section(header: Text("Map Status")) {
+                    if location.isOnMap {
+                        HStack {
+                            Image(systemName: "mappin.and.ellipse")
+                                .foregroundColor(.green)
+                            Text("Live on Map")
+                                .foregroundColor(.primary)
+                        }
+                    } else {
+                        NavigationLink(destination: GetOnMapInfoView()) {
+                            HStack {
+                                Image(systemName: "mappin.slash")
+                                    .foregroundColor(.secondary)
+                                Text("Not on Map")
+                                    .foregroundColor(.primary)
                             }
+                        }
                     }
                 }
 
@@ -74,44 +103,27 @@ struct LocationSettingsView: View {
                     } else {
                         ForEach(location.deviceIds, id: \.self) { deviceId in
                             HStack {
-                                if isDeviceOffline(deviceId: deviceId) {
-                                    Image(systemName: "wifi.slash")
-                                        .foregroundColor(.red)
-                                        .symbolRenderingMode(.hierarchical)
-                                } else {
-                                    Image(systemName: "wifi")
-                                        .foregroundColor(.green)
-                                }
+                                let isOffline = deviceStatuses[deviceId] != "online"
+                                Image(systemName: isOffline ? "wifi.slash" : "wifi")
+                                    .foregroundColor(isOffline ? .red : .green)
+                                    .symbolRenderingMode(.hierarchical)
                                 VStack(alignment: .leading) {
-                                    Text(deviceNickname(for: deviceId))
+                                    Text(NicknameManager.shared.displayName(for: deviceId))
                                         .font(.body)
                                     Text(deviceId)
                                         .font(.caption)
                                         .foregroundColor(.secondary)
                                 }
-                                Spacer()
-                                // Show warning if this counter is not on the map (only for map locations)
-                                if location.isMapLocation && !mapDeviceIds.contains(deviceId) && deviceId != "Demo" {
-                                    Image(systemName: "exclamationmark.triangle.fill")
-                                        .foregroundColor(.orange)
-                                        .font(.caption)
-                                }
                             }
-                        }
-                    }
-                }
-
-                // Warning about non-map counters (only for map locations)
-                if location.isMapLocation {
-                    let nonMapCounters = location.deviceIds.filter { !mapDeviceIds.contains($0) && $0 != "Demo" }
-                    if !nonMapCounters.isEmpty {
-                        Section {
-                            HStack(spacing: 8) {
-                                Image(systemName: "exclamationmark.triangle.fill")
-                                    .foregroundColor(.orange)
-                                Text("\(nonMapCounters.count) counter\(nonMapCounters.count == 1 ? " is" : "s are") not on the public map.")
-                                    .font(.caption)
-                                    .foregroundColor(.orange)
+                            .swipeActions(edge: .trailing, allowsFullSwipe: false) {
+                                if removeDeviceFromLocation != nil {
+                                    Button(role: .destructive) {
+                                        deviceToRemove = deviceId
+                                        showRemoveDeviceConfirmation = true
+                                    } label: {
+                                        Label("Remove", systemImage: "minus.circle")
+                                    }
+                                }
                             }
                         }
                     }
@@ -133,7 +145,7 @@ struct LocationSettingsView: View {
                         .disabled(isSavingSchedule || location.deviceIds.isEmpty)
                         .onChange(of: hasResetSchedule) { _, newValue in
                             Task {
-                                await handleScheduleToggleWithGroupCreation(enabled: newValue)
+                                await handleScheduleToggle(enabled: newValue)
                             }
                         }
 
@@ -145,15 +157,12 @@ struct LocationSettingsView: View {
                             )
                             .disabled(isSavingSchedule)
                             .onChange(of: selectedResetTime) { _, newValue in
-                                if let groupId = location.overcrowdingGroupId {
-                                    Task {
-                                        await saveResetSchedule(groupId: groupId, time: newValue)
-                                    }
+                                Task {
+                                    await saveResetSchedule(time: newValue)
                                 }
                             }
 
                             Picker("Timezone", selection: $selectedTimezone) {
-                                // Show device timezone first if not in common list
                                 if !commonTimezones.contains(where: { $0.id == TimeZone.current.identifier }) {
                                     Text("Device (\(TimeZone.current.identifier))")
                                         .tag(TimeZone.current.identifier)
@@ -164,49 +173,38 @@ struct LocationSettingsView: View {
                             }
                             .disabled(isSavingSchedule)
                             .onChange(of: selectedTimezone) { _, _ in
-                                if let groupId = location.overcrowdingGroupId {
-                                    Task {
-                                        await saveResetSchedule(groupId: groupId, time: selectedResetTime)
-                                    }
+                                Task {
+                                    await saveResetSchedule(time: selectedResetTime)
                                 }
                             }
                         }
                     }
                 }
 
-                // Location Info
-                Section(header: Text("Info"), footer: infoFooter) {
-                    HStack {
-                        Text("Type")
-                        Spacer()
-                        Text(location.isMapLocation ? "Live on Map" : "Local")
-                            .foregroundColor(location.isMapLocation ? .green : .secondary)
-                    }
-                }
-
-                // Folder Color
-                Section(header: Text("Folder Color")) {
-                    LazyVGrid(columns: [GridItem(.adaptive(minimum: 44))], spacing: 12) {
-                        ForEach(CounterLocation.availableColors, id: \.name) { colorOption in
-                            Button(action: {
-                                selectedColor = colorOption.name
-                                location.colorName = colorOption.name
-                            }) {
-                                ZStack {
-                                    Circle()
-                                        .fill(colorOption.color)
-                                        .frame(width: 36, height: 36)
-                                    if selectedColor == colorOption.name {
-                                        Image(systemName: "checkmark")
-                                            .font(.system(size: 16, weight: .bold))
-                                            .foregroundColor(.white)
+                // Folder Color (only for non-map locations)
+                if !location.isOnMap {
+                    Section(header: Text("Folder Color")) {
+                        LazyVGrid(columns: [GridItem(.adaptive(minimum: 44))], spacing: 12) {
+                            ForEach(AppLocation.availableColors, id: \.name) { colorOption in
+                                Button(action: {
+                                    selectedColor = colorOption.name
+                                }) {
+                                    ZStack {
+                                        Circle()
+                                            .fill(colorOption.color)
+                                            .frame(width: 36, height: 36)
+                                        if selectedColor == colorOption.name {
+                                            Image(systemName: "checkmark")
+                                                .font(.system(size: 16, weight: .bold))
+                                                .foregroundColor(.white)
+                                        }
                                     }
                                 }
+                                .buttonStyle(.plain)
                             }
-                            .buttonStyle(.plain)
                         }
+                        .padding(.vertical, 8)
                     }
-                    .padding(.vertical, 8)
                 }
 
                 // Appearance
@@ -226,8 +224,8 @@ struct LocationSettingsView: View {
                     }
                 }
 
-                // Reset All Counters
-                Section(header: Text("Data Management"), footer: Text("This will permanently delete all history and count data for every counter in this location. This cannot be undone.")) {
+                // Reset Location Data
+                Section(header: Text("Data Management"), footer: Text("This will permanently delete all history and count data for this location. Individual counter data will not be affected. This cannot be undone.")) {
                     Button(role: .destructive, action: {
                         showResetAllConfirmation = true
                     }) {
@@ -238,7 +236,7 @@ struct LocationSettingsView: View {
                                     .scaleEffect(0.8)
                                 Text("Resetting...")
                             } else {
-                                Text("Reset All Counters' Data")
+                                Text("Reset Location Data")
                             }
                             Spacer()
                         }
@@ -269,33 +267,32 @@ struct LocationSettingsView: View {
                 }
                 ToolbarItem(placement: .navigationBarTrailing) {
                     Button("Save") {
-                        onSave()
+                        // Apply all local edits to the location
+                        var updated = location
+                        if !location.isOnMap && locationName != originalName {
+                            updated.name = locationName
+                            if let signing = signingDevice {
+                                Task {
+                                    try? await apiService.updateLocation(
+                                        locationId: location.id,
+                                        name: locationName,
+                                        credentials: credentials,
+                                        signingDevice: signing
+                                    )
+                                }
+                            }
+                        }
+                        updated.colorName = selectedColor
+                        onSave(updated)
                         dismiss()
                     }
                 }
             }
             .onAppear {
                 locationName = location.name
+                originalName = location.name
                 selectedColor = location.colorName ?? "orange"
-                // Load reset schedule if group exists
-                print("[DailyReset] onAppear - local overcrowdingGroupId: \(location.overcrowdingGroupId ?? "nil")")
-                print("[DailyReset] onAppear - deviceIds: \(location.deviceIds)")
-
-                if let groupId = location.overcrowdingGroupId {
-                    print("[DailyReset] Using local group ID: \(groupId)")
-                    Task {
-                        await loadResetSchedule(groupId: groupId)
-                    }
-                } else if !location.deviceIds.isEmpty {
-                    // No local group ID - check server for existing group across all devices
-                    print("[DailyReset] No local group ID, checking server...")
-                    Task {
-                        await checkForExistingGroup()
-                    }
-                } else {
-                    print("[DailyReset] No devices in location, skipping")
-                    isLoadingSchedule = false
-                }
+                loadResetSchedule()
             }
             .alert("Delete Location?", isPresented: $showDeleteConfirmation) {
                 Button("Cancel", role: .cancel) { }
@@ -304,187 +301,93 @@ struct LocationSettingsView: View {
                     dismiss()
                 }
             } message: {
-                Text("This will remove the location and all counters in it. You will need to re-add the counters if you want to use them again.")
+                Text("This will remove the location. You will need to re-add the counters if you want to use them again.")
             }
-            .alert("Reset All Counters?", isPresented: $showResetAllConfirmation) {
+            .alert("Reset Location Data?", isPresented: $showResetAllConfirmation) {
                 Button("Cancel", role: .cancel) { }
-                Button("Reset All", role: .destructive) {
+                Button("Reset", role: .destructive) {
                     Task {
-                        await resetAllCounters()
+                        await resetLocationData()
                     }
                 }
             } message: {
-                Text("This will permanently delete all history and data for \(location.deviceIds.count) counter\(location.deviceIds.count == 1 ? "" : "s") in this location. This cannot be undone.")
+                Text("This will permanently delete all history and count data for this location. This cannot be undone.")
             }
             .alert("Reset Result", isPresented: $showResetAllResult) {
                 Button("OK", role: .cancel) { }
             } message: {
                 Text(resetAllResult ?? "")
             }
+            .alert("Remove Counter?", isPresented: $showRemoveDeviceConfirmation) {
+                Button("Cancel", role: .cancel) {
+                    deviceToRemove = nil
+                }
+                Button("Remove", role: .destructive) {
+                    if let deviceId = deviceToRemove, let remove = removeDeviceFromLocation {
+                        Task {
+                            await remove(deviceId)
+                            dismiss()
+                        }
+                        deviceToRemove = nil
+                    }
+                }
+            } message: {
+                if let deviceId = deviceToRemove {
+                    Text("Remove \(NicknameManager.shared.displayName(for: deviceId)) from this location? You will need to re-add it if you want to use it again.")
+                }
+            }
         }
         .preferredColorScheme(appSettings.isDarkMode ? .dark : .light)
     }
 
-    private var infoFooter: some View {
-        VStack(alignment: .leading, spacing: 4) {
-            Text("Local: This location is only stored on this device.")
-            Text("Live on Map: This location is visible on the public map with live count updates.")
+    // MARK: - Reset Schedule
+
+    private func loadResetSchedule() {
+        guard !location.deviceIds.isEmpty, let signing = signingDevice else {
+            isLoadingSchedule = false
+            return
         }
-    }
 
-    private func deviceNickname(for deviceId: String) -> String {
-        NicknameManager.shared.displayName(for: deviceId)
-    }
-
-    private func isDeviceOffline(deviceId: String) -> Bool {
-        // Find the user with this deviceId and check their offline status
-        if let user = users.first(where: { $0.userId == deviceId }) {
-            return isBluetoothSetupRequired[user.id] == true
-        }
-        return false
-    }
-
-    // MARK: - Reset Schedule Functions
-
-    private func loadResetSchedule(groupId: String) async {
-        print("[DailyReset] Loading reset schedule for group: \(groupId)")
-        do {
-            if let schedule = try await apiService.fetchResetSchedule(groupId: groupId) {
-                print("[DailyReset] Found schedule: hour=\(schedule.resetHour), minute=\(schedule.resetMinute), timezone=\(schedule.timezone)")
-                await MainActor.run {
-                    hasResetSchedule = true
-                    // Convert hour/minute to Date
-                    if let time = Calendar.current.date(from: DateComponents(hour: schedule.resetHour, minute: schedule.resetMinute)) {
-                        selectedResetTime = time
+        // Use the location_id to fetch reset schedule from server
+        Task {
+            do {
+                if let schedule = try await apiService.fetchResetSchedule(locationId: location.id, credentials: credentials, signingDevice: signing) {
+                    await MainActor.run {
+                        hasResetSchedule = true
+                        if let time = Calendar.current.date(from: DateComponents(hour: schedule.resetHour, minute: schedule.resetMinute)) {
+                            selectedResetTime = time
+                        }
+                        selectedTimezone = schedule.timezone
+                        isLoadingSchedule = false
                     }
-                    // Load saved timezone
-                    selectedTimezone = schedule.timezone
-                    isLoadingSchedule = false
+                } else {
+                    await MainActor.run {
+                        hasResetSchedule = false
+                        selectedTimezone = TimeZone.current.identifier
+                        isLoadingSchedule = false
+                    }
                 }
-            } else {
-                print("[DailyReset] No schedule found for group \(groupId)")
+            } catch {
+                print("Error loading reset schedule: \(error)")
                 await MainActor.run {
                     hasResetSchedule = false
-                    // Default to device timezone for new schedules
                     selectedTimezone = TimeZone.current.identifier
                     isLoadingSchedule = false
                 }
             }
-        } catch {
-            print("[DailyReset] Error loading reset schedule: \(error)")
-            await MainActor.run {
-                hasResetSchedule = false
-                selectedTimezone = TimeZone.current.identifier
-                isLoadingSchedule = false
-            }
         }
     }
 
-    private func checkForExistingGroup() async {
-        // Check ALL devices in this location for existing group membership
-        // This ensures any user with the same location devices can see existing reset schedules
-        print("[DailyReset] Checking for existing group across \(location.deviceIds.count) devices: \(location.deviceIds)")
-
-        for deviceIdToCheck in location.deviceIds {
-            // Skip demo device
-            if deviceIdToCheck == "Demo" {
-                print("[DailyReset] Skipping Demo device")
-                continue
-            }
-
-            do {
-                print("[DailyReset] Checking device: \(deviceIdToCheck)")
-                let groupIds = try await apiService.fetchGroupIdsForDevice(deviceId: deviceIdToCheck)
-                print("[DailyReset] Device \(deviceIdToCheck) is in groups: \(groupIds)")
-
-                if let existingGroupId = groupIds.first {
-                    print("[DailyReset] Found existing group: \(existingGroupId)")
-                    // Found existing group on server - update local state
-                    await MainActor.run {
-                        location.overcrowdingGroupId = existingGroupId
-                    }
-                    // Sync devices to ensure all current location devices are in the group
-                    do {
-                        try await apiService.updateOvercrowdingGroup(groupId: existingGroupId, deviceIds: location.deviceIds)
-                        print("[DailyReset] Synced devices to group")
-                    } catch {
-                        print("[DailyReset] Error syncing group devices: \(error)")
-                    }
-                    await loadResetSchedule(groupId: existingGroupId)
-                    return // Found a group, stop searching
-                }
-            } catch {
-                print("[DailyReset] Error checking group for device \(deviceIdToCheck): \(error)")
-                // Continue checking other devices
-            }
-        }
-
-        // No existing group found for any device
-        print("[DailyReset] No existing group found for any device")
-        await MainActor.run {
-            isLoadingSchedule = false
-        }
-    }
-
-    private func handleScheduleToggle(enabled: Bool, groupId: String) async {
+    private func handleScheduleToggle(enabled: Bool) async {
         if enabled {
-            // Create new schedule with current selected time
-            await saveResetSchedule(groupId: groupId, time: selectedResetTime)
+            await saveResetSchedule(time: selectedResetTime)
         } else {
-            // Delete existing schedule
-            await deleteSchedule(groupId: groupId)
+            await deleteSchedule()
         }
     }
 
-    private func handleScheduleToggleWithGroupCreation(enabled: Bool) async {
-        if enabled {
-            // If no group exists, create one first
-            if location.overcrowdingGroupId == nil {
-                await MainActor.run {
-                    isSavingSchedule = true
-                }
-
-                do {
-                    // Create a group with limit 0 (just for reset scheduling, no overcrowding alert)
-                    let groupId = try await apiService.createOvercrowdingGroup(
-                        deviceIds: location.deviceIds,
-                        limit: 0,
-                        groupName: location.name
-                    )
-
-                    await MainActor.run {
-                        location.overcrowdingGroupId = groupId
-                    }
-
-                    // Now create the schedule
-                    await saveResetSchedule(groupId: groupId, time: selectedResetTime)
-                } catch {
-                    print("Error creating group for reset schedule: \(error)")
-                    await MainActor.run {
-                        hasResetSchedule = false
-                        isSavingSchedule = false
-                    }
-                }
-            } else {
-                // Group exists - sync devices to match current location, then create/update schedule
-                let groupId = location.overcrowdingGroupId!
-                do {
-                    try await apiService.updateOvercrowdingGroup(groupId: groupId, deviceIds: location.deviceIds)
-                } catch {
-                    print("Error syncing group devices: \(error)")
-                }
-                await saveResetSchedule(groupId: groupId, time: selectedResetTime)
-            }
-        } else {
-            // Disable - delete the schedule
-            if let groupId = location.overcrowdingGroupId {
-                await deleteSchedule(groupId: groupId)
-            }
-        }
-    }
-
-    private func saveResetSchedule(groupId: String, time: Date) async {
-        guard hasResetSchedule else { return }
+    private func saveResetSchedule(time: Date) async {
+        guard hasResetSchedule, let signing = signingDevice else { return }
 
         await MainActor.run {
             isSavingSchedule = true
@@ -495,7 +398,14 @@ struct LocationSettingsView: View {
         let minute = components.minute ?? 0
 
         do {
-            _ = try await apiService.setResetSchedule(groupId: groupId, hour: hour, minute: minute, timezone: selectedTimezone)
+            _ = try await apiService.setResetSchedule(
+                locationId: location.id,
+                hour: hour,
+                minute: minute,
+                timezone: selectedTimezone,
+                credentials: credentials,
+                signingDevice: signing
+            )
             await MainActor.run {
                 isSavingSchedule = false
             }
@@ -507,13 +417,19 @@ struct LocationSettingsView: View {
         }
     }
 
-    private func deleteSchedule(groupId: String) async {
+    private func deleteSchedule() async {
+        guard let signing = signingDevice else { return }
+
         await MainActor.run {
             isSavingSchedule = true
         }
 
         do {
-            try await apiService.deleteResetSchedule(groupId: groupId)
+            try await apiService.deleteResetSchedule(
+                locationId: location.id,
+                credentials: credentials,
+                signingDevice: signing
+            )
             await MainActor.run {
                 isSavingSchedule = false
             }
@@ -525,111 +441,33 @@ struct LocationSettingsView: View {
         }
     }
 
-    // MARK: - Reset All Counters
+    // MARK: - Reset Location Data
 
-    private func resetAllCounters() async {
+    private func resetLocationData() async {
+        guard let signing = signingDevice else { return }
+
         await MainActor.run {
             isResettingAll = true
         }
 
-        var successCount = 0
-        var missingCredentials: [String] = []
-        var apiErrors: [String] = []
-
-        for deviceId in location.deviceIds {
-            // Skip demo device
-            if deviceId == "Demo" {
-                continue
-            }
-
-            // Find the user and their password
-            guard let user = users.first(where: { $0.userId == deviceId }),
-                  let password = userPasswords[user.id] else {
-                missingCredentials.append(NicknameManager.shared.displayName(for: deviceId))
-                continue
-            }
-
-            // Call reset endpoint
-            let success = await resetDeviceData(deviceId: deviceId, password: password)
-            if success {
-                successCount += 1
-            } else {
-                apiErrors.append(NicknameManager.shared.displayName(for: deviceId))
-            }
-        }
-
-        let failCount = missingCredentials.count + apiErrors.count
-
-        await MainActor.run {
-            isResettingAll = false
-
-            var lines: [String] = []
-
-            if successCount > 0 {
-                lines.append("Successfully reset \(successCount) counter\(successCount == 1 ? "" : "s").")
-            }
-
-            if !missingCredentials.isEmpty {
-                lines.append("Missing credentials for: \(missingCredentials.joined(separator: ", ")). Try logging out and back in.")
-            }
-
-            if !apiErrors.isEmpty {
-                lines.append("Server error for: \(apiErrors.joined(separator: ", ")). Check your connection and try again.")
-            }
-
-            if failCount == 0 && successCount == 0 {
-                lines.append("No counters to reset.")
-            }
-
-            resetAllResult = lines.joined(separator: "\n\n")
-            showResetAllResult = true
-
-            if successCount > 0 {
-                onCountsReset?()
-            }
-        }
-    }
-
-    private func resetDeviceData(deviceId: String, password: String) async -> Bool {
-        guard let url = URL(string: "\(serverURL)/reset_device_data") else {
-            return false
-        }
-
-        var request = URLRequest(url: url)
-        request.httpMethod = "POST"
-        let body: [String: Any] = ["device_id": deviceId, "password": password]
-        request.httpBody = try? JSONSerialization.data(withJSONObject: body)
-        request.setValue("application/json", forHTTPHeaderField: "Content-Type")
-
         do {
-            let (_, response) = try await URLSession.shared.data(for: request)
-            if let httpResponse = response as? HTTPURLResponse, httpResponse.statusCode == 200 {
-                return true
+            try await apiService.resetLocationData(
+                locationId: location.id,
+                credentials: credentials,
+                signingDevice: signing
+            )
+            await MainActor.run {
+                isResettingAll = false
+                resetAllResult = "Location data reset successfully."
+                showResetAllResult = true
             }
-            return false
         } catch {
-            print("Error resetting device \(deviceId): \(error)")
-            return false
+            print("Error resetting location data: \(error)")
+            await MainActor.run {
+                isResettingAll = false
+                resetAllResult = "Failed to reset location data. Check your connection and try again."
+                showResetAllResult = true
+            }
         }
     }
-}
-
-#Preview {
-    LocationSettingsView(
-        location: .constant(CounterLocation(
-            id: UUID(),
-            name: "Grand Central",
-            deviceIds: ["T0001", "T0002"],
-            overcrowdingLimit: 2000,
-            isMapLocation: true,
-            mapPrimaryDevice: "T0001"
-        )),
-        users: [],
-        onSave: {},
-        onDelete: {},
-        mapDeviceIds: ["T0001"],  // T0002 will show warning
-        isBluetoothSetupRequired: [:],
-        userPasswords: [:],
-        serverURL: "https://api.crowdcount.tech"
-    )
 }

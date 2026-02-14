@@ -1,230 +1,282 @@
 import SwiftUI
 
 struct LocationPickerView: View {
-    @Binding var locations: [CounterLocation]
-    let users: [User]  // Pass users for LocationSettingsView
-    let currentlyViewingLocationId: UUID?  // Which location is currently being viewed (nil = main/all)
+    @Binding var locations: [AppLocation]
+    let devices: [Device]
+    let deviceStatuses: [String: String]
+    let currentlyViewingLocationId: String?
     let onSave: () -> Void
-    let onCreate: (String) -> Void
-    let onDelete: (UUID) -> Void
-    let onNavigateToLocation: (CounterLocation) -> Void  // Navigate to location page
-    let onGoToAllCounters: () -> Void  // Go back to main view (pops navigation)
-    let mapDeviceIds: Set<String>  // Device IDs that are on the public map
-    let isBluetoothSetupRequired: [UUID: Bool]  // Offline status for each device
-    let userPasswords: [UUID: String]  // Passwords for each user
-    let serverURL: String
+    let onDelete: (String) -> Void
+    let onNavigateToLocation: (AppLocation) -> Void
+    let onGoToAllLocations: () -> Void
+    let onCreate: (String) async -> AppLocation?
+    @ObservedObject var alertViewModel: AlertViewModel
 
     @Environment(\.dismiss) var dismiss
-    @State private var showAddLocation: Bool = false
-    @State private var newLocationName: String = ""
-    @State private var editingLocationId: UUID? = nil
+    @State private var editingLocationId: String? = nil
     @State private var editingName: String = ""
     @State private var settingsLocationIndex: Int? = nil
+    @State private var showCreateLocation: Bool = false
+    @State private var newLocationName: String = ""
+    @State private var isCreating: Bool = false
 
-    /// Whether we're currently viewing from inside a location
     private var isInLocationView: Bool {
         currentlyViewingLocationId != nil
     }
 
     var body: some View {
         NavigationView {
-            List {
-                // "All Counters" option
-                Section {
-                    Button(action: {
-                        onGoToAllCounters()
-                        dismiss()
-                    }) {
-                        HStack {
-                            Image(systemName: "square.grid.2x2")
+            listContent
+                .navigationTitle("Locations")
+                .navigationBarTitleDisplayMode(.inline)
+                .toolbar {
+                    ToolbarItem(placement: .navigationBarTrailing) {
+                        Button("Done") { dismiss() }
+                    }
+                }
+                .alert("Rename Location", isPresented: renameBinding) {
+                    renameAlertContent
+                } message: {
+                    Text("Enter a new name for this location")
+                }
+                .sheet(isPresented: settingsBinding) {
+                    settingsSheetContent
+                }
+                .alert("Create Location", isPresented: $showCreateLocation) {
+                    createAlertContent
+                } message: {
+                    Text("Enter a name for the new location")
+                }
+        }
+    }
+
+    // MARK: - Subviews
+
+    private var listContent: some View {
+        List {
+            // "All Locations" option
+            Section {
+                Button(action: {
+                    onGoToAllLocations()
+                    dismiss()
+                }) {
+                    HStack {
+                        Image(systemName: "square.grid.2x2")
+                            .foregroundColor(.blue)
+                        Text("All Locations")
+                            .foregroundColor(.primary)
+                        Spacer()
+                        if !isInLocationView {
+                            Image(systemName: "checkmark")
                                 .foregroundColor(.blue)
-                            Text("All Counters")
-                                .foregroundColor(.primary)
-                            Spacer()
-                            if !isInLocationView {
-                                Image(systemName: "checkmark")
-                                    .foregroundColor(.blue)
-                            }
-                        }
-                    }
-                }
-
-                // Location list
-                if !locations.isEmpty {
-                    Section(header: Text("Locations")) {
-                        ForEach(Array(locations.enumerated()), id: \.element.id) { index, location in
-                            HStack {
-                                Image(systemName: location.isMapLocation ? "mappin.circle.fill" : "folder.fill")
-                                    .foregroundColor(location.folderColor)
-                                VStack(alignment: .leading, spacing: 2) {
-                                    Text(location.name)
-                                        .foregroundColor(.primary)
-                                    HStack(spacing: 4) {
-                                        Text("\(location.deviceIds.count) counter\(location.deviceIds.count == 1 ? "" : "s")")
-                                            .font(.caption)
-                                            .foregroundColor(.secondary)
-                                        if offlineCount(for: location) > 0 {
-                                            Text("- \(offlineCount(for: location)) offline")
-                                                .font(.caption)
-                                                .foregroundColor(.red)
-                                        }
-                                    }
-                                }
-                                Spacer()
-                                if currentlyViewingLocationId == location.id {
-                                    Image(systemName: "checkmark")
-                                        .foregroundColor(.blue)
-                                }
-
-                                // Settings button
-                                Button(action: {
-                                    settingsLocationIndex = index
-                                }) {
-                                    Image(systemName: "gearshape.fill")
-                                        .foregroundColor(.secondary)
-                                        .padding(.leading, 8)
-                                }
-                                .buttonStyle(.plain)
-                            }
-                            .contentShape(Rectangle())
-                            .onTapGesture {
-                                // If already viewing this location, just dismiss
-                                if currentlyViewingLocationId == location.id {
-                                    dismiss()
-                                } else {
-                                    onNavigateToLocation(location)
-                                    dismiss()
-                                }
-                            }
-                            .swipeActions(edge: .trailing, allowsFullSwipe: false) {
-                                Button(role: .destructive) {
-                                    onDelete(location.id)
-                                } label: {
-                                    Label("Delete", systemImage: "trash")
-                                }
-
-                                Button {
-                                    editingLocationId = location.id
-                                    editingName = location.name
-                                } label: {
-                                    Label("Edit", systemImage: "pencil")
-                                }
-                                .tint(.blue)
-                            }
-                        }
-                    }
-                }
-
-                // Add location
-                Section {
-                    Button(action: {
-                        showAddLocation = true
-                    }) {
-                        HStack {
-                            Image(systemName: "plus.circle.fill")
-                                .foregroundColor(.green)
-                            Text("Add Location")
-                                .foregroundColor(.primary)
                         }
                     }
                 }
             }
-            .navigationTitle("Locations")
-            .navigationBarTitleDisplayMode(.inline)
-            .toolbar {
-                ToolbarItem(placement: .navigationBarTrailing) {
-                    Button("Done") {
+
+            // Location list
+            if !locations.isEmpty {
+                Section(header: Text("Locations")) {
+                    ForEach(Array(locations.enumerated()), id: \.element.id) { index, location in
+                        locationRow(index: index, location: location)
+                    }
+                }
+            }
+
+            // Create Location
+            Section {
+                Button(action: {
+                    newLocationName = ""
+                    showCreateLocation = true
+                }) {
+                    HStack {
+                        Image(systemName: "plus.circle.fill")
+                            .foregroundColor(.green)
+                        Text("Create Location")
+                            .foregroundColor(.primary)
+                    }
+                }
+                .disabled(devices.isEmpty)
+            }
+        }
+    }
+
+    private func locationRow(index: Int, location: AppLocation) -> some View {
+        HStack {
+            Image(systemName: "folder.fill")
+                .foregroundColor(location.folderColor)
+            VStack(alignment: .leading, spacing: 2) {
+                Text(location.name)
+                    .foregroundColor(.primary)
+                HStack(spacing: 4) {
+                    Text("\(location.deviceIds.count) counter\(location.deviceIds.count == 1 ? "" : "s")")
+                        .font(.caption)
+                        .foregroundColor(.secondary)
+                    if offlineCount(for: location) > 0 {
+                        Text("- \(offlineCount(for: location)) offline")
+                            .font(.caption)
+                            .foregroundColor(.red)
+                    }
+                }
+            }
+            Spacer()
+            if currentlyViewingLocationId == location.id {
+                Image(systemName: "checkmark")
+                    .foregroundColor(.blue)
+            }
+
+            // Settings button
+            Button(action: {
+                settingsLocationIndex = index
+            }) {
+                Image(systemName: "gearshape.fill")
+                    .foregroundColor(.secondary)
+                    .padding(.leading, 8)
+            }
+            .buttonStyle(.plain)
+        }
+        .contentShape(Rectangle())
+        .onTapGesture {
+            if currentlyViewingLocationId == location.id {
+                dismiss()
+            } else {
+                onNavigateToLocation(location)
+                dismiss()
+            }
+        }
+        .swipeActions(edge: .trailing, allowsFullSwipe: false) {
+            Button(role: .destructive) {
+                onDelete(location.id)
+            } label: {
+                Label("Delete", systemImage: "trash")
+            }
+
+            Button {
+                editingLocationId = location.id
+                editingName = location.name
+            } label: {
+                Label("Edit", systemImage: "pencil")
+            }
+            .tint(.blue)
+        }
+    }
+
+    // MARK: - Alert / Sheet Bindings
+
+    private var renameBinding: Binding<Bool> {
+        Binding(
+            get: { editingLocationId != nil },
+            set: { if !$0 { editingLocationId = nil } }
+        )
+    }
+
+    private var settingsBinding: Binding<Bool> {
+        Binding(
+            get: { settingsLocationIndex != nil },
+            set: { if !$0 { settingsLocationIndex = nil } }
+        )
+    }
+
+    // MARK: - Alert / Sheet Content
+
+    @ViewBuilder
+    private var renameAlertContent: some View {
+        TextField("Location name", text: $editingName)
+        Button("Cancel", role: .cancel) {
+            editingLocationId = nil
+            editingName = ""
+        }
+        Button("Save") {
+            if let id = editingLocationId,
+               let index = locations.firstIndex(where: { $0.id == id }) {
+                let oldName = locations[index].name
+                locations[index].name = editingName
+
+                // Update name on server
+                let location = locations[index]
+                let creds = devices.filter { location.deviceIds.contains($0.deviceId) }
+                    .map { ["device_id": $0.deviceId, "password": $0.password] }
+                if let firstDevice = devices.first(where: { location.deviceIds.contains($0.deviceId) }) {
+                    Task {
+                        do {
+                            try await APIService.shared.updateLocation(
+                                locationId: location.id,
+                                name: editingName,
+                                overcrowdingLimit: nil,
+                                credentials: creds,
+                                signingDevice: (firstDevice.deviceId, firstDevice.password)
+                            )
+                        } catch {
+                            print("Error renaming location on server: \(error)")
+                            await MainActor.run {
+                                if let idx = locations.firstIndex(where: { $0.id == id }) {
+                                    locations[idx].name = oldName
+                                }
+                            }
+                        }
+                    }
+                }
+                onSave()
+            }
+            editingLocationId = nil
+            editingName = ""
+        }
+    }
+
+    @ViewBuilder
+    private var settingsSheetContent: some View {
+        if let index = settingsLocationIndex, index < locations.count {
+            LocationSettingsView(
+                location: $locations[index],
+                devices: devicesForLocation(locations[index]),
+                deviceStatuses: deviceStatuses,
+                onSave: { updatedLocation in
+                    if let idx = locations.firstIndex(where: { $0.id == updatedLocation.id }) {
+                        locations[idx] = updatedLocation
+                    }
+                    onSave()
+                },
+                onDelete: {
+                    onDelete(locations[index].id)
+                    settingsLocationIndex = nil
+                }
+            )
+        }
+    }
+
+    @ViewBuilder
+    private var createAlertContent: some View {
+        TextField("Location name", text: $newLocationName)
+        Button("Cancel", role: .cancel) {
+            newLocationName = ""
+        }
+        Button("Create") {
+            let name = newLocationName.trimmingCharacters(in: .whitespacesAndNewlines)
+            guard !name.isEmpty else { return }
+            isCreating = true
+            Task {
+                if let newLocation = await onCreate(name) {
+                    await MainActor.run {
+                        onNavigateToLocation(newLocation)
+                        isCreating = false
                         dismiss()
                     }
-                }
-            }
-            .alert("New Location", isPresented: $showAddLocation) {
-                TextField("Location name", text: $newLocationName)
-                Button("Cancel", role: .cancel) {
-                    newLocationName = ""
-                }
-                Button("Create") {
-                    if !newLocationName.isEmpty {
-                        onCreate(newLocationName)
-                        newLocationName = ""
+                } else {
+                    await MainActor.run {
+                        isCreating = false
                     }
-                }
-            } message: {
-                Text("Enter a name for the new location")
-            }
-            .alert("Rename Location", isPresented: Binding(
-                get: { editingLocationId != nil },
-                set: { if !$0 { editingLocationId = nil } }
-            )) {
-                TextField("Location name", text: $editingName)
-                Button("Cancel", role: .cancel) {
-                    editingLocationId = nil
-                    editingName = ""
-                }
-                Button("Save") {
-                    if let id = editingLocationId,
-                       let index = locations.firstIndex(where: { $0.id == id }) {
-                        locations[index].name = editingName
-                        onSave()
-                    }
-                    editingLocationId = nil
-                    editingName = ""
-                }
-            } message: {
-                Text("Enter a new name for this location")
-            }
-            .sheet(isPresented: Binding(
-                get: { settingsLocationIndex != nil },
-                set: { if !$0 { settingsLocationIndex = nil } }
-            )) {
-                if let index = settingsLocationIndex, index < locations.count {
-                    LocationSettingsView(
-                        location: $locations[index],
-                        users: users,
-                        onSave: onSave,
-                        onDelete: {
-                            onDelete(locations[index].id)
-                            settingsLocationIndex = nil
-                        },
-                        mapDeviceIds: mapDeviceIds,
-                        isBluetoothSetupRequired: isBluetoothSetupRequired,
-                        userPasswords: userPasswords,
-                        serverURL: serverURL
-                    )
                 }
             }
         }
     }
 
-    /// Count how many devices in a location are offline
-    private func offlineCount(for location: CounterLocation) -> Int {
-        var count = 0
-        for deviceId in location.deviceIds {
-            if let user = users.first(where: { $0.userId == deviceId }),
-               isBluetoothSetupRequired[user.id] == true {
-                count += 1
-            }
-        }
-        return count
-    }
-}
+    // MARK: - Helpers
 
-#Preview {
-    LocationPickerView(
-        locations: .constant([
-            CounterLocation(id: UUID(), name: "Grand Central", deviceIds: ["T0001", "T0002"], overcrowdingLimit: 2000, isMapLocation: true, mapPrimaryDevice: "T0001"),
-            CounterLocation(id: UUID(), name: "My Local", deviceIds: ["T0003"], overcrowdingLimit: nil, isMapLocation: false, mapPrimaryDevice: nil)
-        ]),
-        users: [],
-        currentlyViewingLocationId: nil,
-        onSave: {},
-        onCreate: { _ in },
-        onDelete: { _ in },
-        onNavigateToLocation: { _ in },
-        onGoToAllCounters: {},
-        mapDeviceIds: ["T0001"],
-        isBluetoothSetupRequired: [:],
-        userPasswords: [:],
-        serverURL: "https://api.crowdcount.tech"
-    )
+    private func offlineCount(for location: AppLocation) -> Int {
+        location.deviceIds.filter { deviceStatuses[$0] != "online" }.count
+    }
+
+    private func devicesForLocation(_ location: AppLocation) -> [Device] {
+        devices.filter { location.deviceIds.contains($0.deviceId) }
+    }
 }

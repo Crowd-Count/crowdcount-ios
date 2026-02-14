@@ -1,66 +1,65 @@
 import SwiftUI
 
-/// A view that shows all counters across all locations in a stacked list format
-struct AllCountersListView: View {
-    let users: [User]
-    @Binding var allUsers: [User]
-    @Binding var userPasswords: [UUID: String]
-    let serverURL: String
-    let setCurrentCount: (User, String) -> Void
-    let isBluetoothSetupRequired: [UUID: Bool]
-    let isCountLoaded: [UUID: Bool]
-    @ObservedObject var bluetoothManager: BluetoothManager
-    let sendWiFiCredentials: () -> Void
-    @Binding var updateFrequencies: [UUID: Double]
-    let logOut: (UUID) -> Void
+/// Shows all locations as cards when no specific location is selected
+struct AllLocationsListView: View {
+    let locations: [AppLocation]
+    let locationCounts: [String: Int]
+    let deviceCounts: [String: Int]
+    let devices: [Device]
+    let deviceStatuses: [String: String]
+    let onSelectLocation: (AppLocation) -> Void
     let onOpenLocationPicker: () -> Void
     let alertViewModel: AlertViewModel
-    let locations: [CounterLocation]
-
-    /// Find the location name for a given device ID
-    private func locationName(for deviceId: String) -> String? {
-        locations.first(where: { $0.deviceIds.contains(deviceId) })?.name
-    }
 
     var body: some View {
         GeometryReader { geometry in
             ScrollView {
-                VStack(spacing: 12) {
+                VStack(spacing: 16) {
                     // Header
-                    Text("All Counters")
-                        .font(.title2.bold())
-                        .frame(maxWidth: .infinity, alignment: .leading)
-                        .padding(.bottom, 4)
+                    HStack {
+                        Text("Locations")
+                            .font(.title2.bold())
+                        Spacer()
+                    }
+                    .padding(.top, 8)
 
-                    ForEach(users) { user in
-                        AllCountersRowView(
-                            user: user,
-                            allUsers: $allUsers,
-                            userPasswords: $userPasswords,
-                            serverURL: serverURL,
-                            setCurrentCount: setCurrentCount,
-                            isOffline: isBluetoothSetupRequired[user.id] ?? false,
-                            isCountLoaded: isCountLoaded[user.id] ?? false,
-                            bluetoothManager: bluetoothManager,
-                            sendWiFiCredentials: sendWiFiCredentials,
-                            updateFrequencies: $updateFrequencies,
-                            logOut: logOut,
-                            locationName: locationName(for: user.userId)
-                        )
+                    if locations.isEmpty {
+                        VStack(spacing: 12) {
+                            Image(systemName: "folder.badge.plus")
+                                .resizable()
+                                .scaledToFit()
+                                .frame(width: 50, height: 50)
+                                .foregroundColor(.secondary)
+                            Text("No locations yet")
+                                .font(.headline)
+                                .foregroundColor(.secondary)
+                        }
+                        .padding(.top, 60)
+                    } else {
+                        ForEach(locations) { location in
+                            LocationCardView(
+                                location: location,
+                                count: locationCounts[location.id] ?? 0,
+                                deviceCount: location.deviceIds.count,
+                                offlineCount: offlineCount(for: location),
+                                onTap: { onSelectLocation(location) },
+                                deviceRows: deviceRows(for: location)
+                            )
+                        }
                     }
 
-                    // Footer note
+                    // Footer
                     VStack(spacing: 8) {
                         Divider()
                             .padding(.top, 8)
 
-                        Text("These are all the counters across all your locations.")
+                        Text("Tap a location to view its live count.")
                             .font(.footnote)
                             .foregroundColor(.secondary)
                             .multilineTextAlignment(.center)
 
                         Button(action: onOpenLocationPicker) {
-                            Text("View Locations")
+                            Text("Manage Locations")
                                 .font(.footnote.bold())
                                 .foregroundColor(.blue)
                         }
@@ -75,247 +74,142 @@ struct AllCountersListView: View {
             }
         }
     }
+
+    private func offlineCount(for location: AppLocation) -> Int {
+        location.deviceIds.filter { deviceStatuses[$0] != "online" }.count
+    }
+
+    private func deviceRows(for location: AppLocation) -> [(name: String, deviceId: String, count: Int, isOffline: Bool)] {
+        location.deviceIds.compactMap { deviceId in
+            guard devices.contains(where: { $0.deviceId == deviceId }) else { return nil }
+            let name = NicknameManager.shared.displayName(for: deviceId)
+            let count = deviceCounts[deviceId] ?? 0
+            let isOffline = deviceStatuses[deviceId] != "online"
+            return (name: name, deviceId: deviceId, count: count, isOffline: isOffline)
+        }
+    }
 }
 
-/// A single counter row in the all counters list
-struct AllCountersRowView: View {
-    let user: User
-    @Binding var allUsers: [User]
-    @Binding var userPasswords: [UUID: String]
-    let serverURL: String
-    let setCurrentCount: (User, String) -> Void
-    let isOffline: Bool
-    let isCountLoaded: Bool
-    @ObservedObject var bluetoothManager: BluetoothManager
-    let sendWiFiCredentials: () -> Void
-    @Binding var updateFrequencies: [UUID: Double]
-    let logOut: (UUID) -> Void
-    let locationName: String?
-
-    @ObservedObject private var nicknameManager = NicknameManager.shared
-    @State private var deviceName: String = ""
-    @State private var isEditingName: Bool = false
-    @State private var showModifyCount: Bool = false
-    @State private var newCount: String = ""
-    @State private var previousCount: String? = nil
-    @State private var showUndoButton: Bool = false
-    @State private var temporaryCount: String? = nil
-    @State private var showSettings: Bool = false
-
-    // WiFi setup
-    @State private var wifiSSID: String = ""
-    @State private var wifiPassword: String = ""
+/// A card representing a single location with optional per-device rows
+struct LocationCardView: View {
+    let location: AppLocation
+    let count: Int
+    let deviceCount: Int
+    let offlineCount: Int
+    let onTap: () -> Void
+    let deviceRows: [(name: String, deviceId: String, count: Int, isOffline: Bool)]
 
     var body: some View {
-        VStack(spacing: 0) {
-            // Main row content
-            HStack(spacing: 12) {
-                // Status icon
-                Image(systemName: isOffline ? "wifi.slash" : "wifi")
-                    .foregroundColor(isOffline ? .red : .green)
-                    .font(.system(size: 20))
-                    .symbolRenderingMode(.hierarchical)
-                    .frame(width: 28)
-
-                // Name and device ID
-                VStack(alignment: .leading, spacing: 2) {
-                    if isEditingName {
-                        HStack {
-                            TextField(user.userId, text: $deviceName)
-                                .font(.headline)
-                                .textFieldStyle(.plain)
-                                .padding(.horizontal, 8)
-                                .padding(.vertical, 4)
-                                .background(Color.secondary.opacity(0.2))
-                                .cornerRadius(6)
-                            Button("Done") {
-                                saveDeviceName()
-                                isEditingName = false
-                            }
-                            .font(.caption.bold())
+        Button(action: onTap) {
+            VStack(spacing: 0) {
+                // Location header row
+                HStack(spacing: 12) {
+                    let _ = print("[CardView] '\(location.name)' isOnMap=\(location.isOnMap) mapIcon=\(location.mapIcon ?? "nil") mapColor=\(location.mapColor ?? "nil")")
+                    if location.isOnMap, let icon = location.mapIcon, let color = location.mapColor {
+                        ZStack {
+                            Circle()
+                                .fill(Color.fromString(color).opacity(0.2))
+                                .frame(width: 32, height: 32)
+                            Image(systemName: icon)
+                                .font(.system(size: 16))
+                                .foregroundColor(Color.fromString(color))
                         }
                     } else {
-                        HStack(spacing: 6) {
-                            Text(deviceName.isEmpty ? user.userId : deviceName)
-                                .font(.headline)
-                            Button(action: { isEditingName = true }) {
-                                Image(systemName: "pencil")
-                                    .font(.caption)
-                                    .foregroundColor(.secondary)
-                            }
-                        }
+                        Image(systemName: "folder.fill")
+                            .resizable()
+                            .scaledToFit()
+                            .frame(width: 28, height: 28)
+                            .foregroundColor(location.folderColor)
                     }
 
-                    if deviceName != user.userId && !deviceName.isEmpty {
-                        Text(user.userId)
-                            .font(.caption)
-                            .foregroundColor(.secondary)
-                    }
-
-                    if let locationName = locationName {
-                        HStack(spacing: 4) {
-                            Image(systemName: "folder.fill")
-                                .font(.system(size: 10))
-                            Text(locationName)
-                        }
-                        .font(.caption)
-                        .foregroundColor(.secondary)
-                    }
-                }
-
-                Spacer()
-
-                // Count display
-                HStack(spacing: 8) {
-                    if !isCountLoaded && temporaryCount == nil {
-                        ProgressView()
-                            .scaleEffect(0.8)
-                    } else {
-                        Text(temporaryCount ?? "\(user.currentCount)")
-                            .font(.title2.bold())
-                            .monospacedDigit()
+                    VStack(alignment: .leading, spacing: 2) {
+                        Text(location.name)
+                            .font(.headline)
+                            .foregroundColor(.primary)
                             .lineLimit(1)
-                            .minimumScaleFactor(0.5)
+
+                        HStack(spacing: 4) {
+                            Text("\(deviceCount) counter\(deviceCount == 1 ? "" : "s")")
+                                .font(.caption)
+                                .foregroundColor(.secondary)
+                            if offlineCount > 0 {
+                                Text("- \(offlineCount) offline")
+                                    .font(.caption)
+                                    .foregroundColor(.red)
+                            }
+                        }
                     }
 
-                    if showUndoButton {
-                        Button(action: undoCount) {
-                            Image(systemName: "arrow.uturn.backward")
+                    Spacer()
+
+                    // Total count
+                    if let limit = location.overcrowdingLimit, limit > 0 {
+                        HStack(spacing: 0) {
+                            Text("\(count)")
+                                .font(.title2.bold())
+                                .monospacedDigit()
+                                .foregroundColor(count >= limit ? .red : .primary)
+                            Text(" / \(limit)")
                                 .font(.caption)
                                 .foregroundColor(.secondary)
                         }
+                    } else {
+                        Text("\(count)")
+                            .font(.title2.bold())
+                            .monospacedDigit()
+                            .foregroundColor(.primary)
                     }
 
-                    // Modify count button
-                    Button(action: { showModifyCount.toggle() }) {
-                        Image(systemName: "plusminus")
-                            .font(.system(size: 14))
-                            .foregroundColor(.primary)
-                            .padding(8)
-                            .background(Color.secondary.opacity(0.3))
-                            .clipShape(Circle())
-                    }
-
-                    // Settings button
-                    Button(action: { showSettings = true }) {
-                        Image(systemName: "gear")
-                            .font(.system(size: 14))
-                            .foregroundColor(.primary)
-                            .padding(8)
-                            .background(Color.secondary.opacity(0.3))
-                            .clipShape(Circle())
-                    }
+                    Image(systemName: "chevron.right")
+                        .font(.caption)
+                        .foregroundColor(.secondary)
                 }
-            }
-            .padding(.horizontal, 16)
-            .padding(.vertical, 12)
+                .padding(.horizontal, 16)
+                .padding(.vertical, 14)
 
-            // Expandable modify count section
-            if showModifyCount {
-                VStack(spacing: 12) {
+                // Per-device rows (only show if more than 1 device)
+                if deviceRows.count > 1 {
                     Divider()
                         .padding(.horizontal, 16)
 
-                    HStack(spacing: 12) {
-                        TextField("New count", text: $newCount)
-                            .keyboardType(.numberPad)
-                            .padding(.horizontal, 12)
-                            .padding(.vertical, 8)
-                            .background(Color.secondary.opacity(0.15))
-                            .cornerRadius(8)
+                    VStack(spacing: 0) {
+                        ForEach(deviceRows, id: \.deviceId) { row in
+                            HStack(spacing: 8) {
+                                Image(systemName: row.isOffline ? "wifi.slash" : "wifi")
+                                    .foregroundColor(row.isOffline ? .red : .green)
+                                    .font(.system(size: 12))
+                                    .symbolRenderingMode(.hierarchical)
+                                    .frame(width: 16)
 
-                        Button(action: submitNewCount) {
-                            Text("Set")
-                                .font(.subheadline.bold())
-                                .foregroundColor(.white)
-                                .padding(.horizontal, 16)
-                                .padding(.vertical, 8)
-                                .background(Color.blue)
-                                .cornerRadius(8)
+                                Text(row.name)
+                                    .font(.caption)
+                                    .foregroundColor(.primary)
+                                    .lineLimit(1)
+
+                                if row.name != row.deviceId {
+                                    Text(row.deviceId)
+                                        .font(.caption2)
+                                        .foregroundColor(.secondary)
+                                }
+
+                                Spacer()
+
+                                Text("\(row.count)")
+                                    .font(.caption.bold().monospacedDigit())
+                                    .foregroundColor(row.isOffline ? .secondary : .primary)
+                            }
+                            .padding(.horizontal, 16)
+                            .padding(.vertical, 6)
                         }
-                        .disabled(newCount.isEmpty)
                     }
-                    .padding(.horizontal, 16)
-                    .padding(.bottom, 12)
-                }
-            }
-
-            // Connect to WiFi button if offline
-            if isOffline {
-                Divider()
-                    .padding(.horizontal, 16)
-
-                NavigationLink(destination: CounterPlacementGuideView(
-                    wifiSSID: $wifiSSID,
-                    wifiPassword: $wifiPassword,
-                    bluetoothManager: bluetoothManager,
-                    sendWiFiCredentials: sendWiFiCredentials
-                )) {
-                    HStack {
-                        Image(systemName: "wifi.exclamationmark")
-                        Text("Connect to WiFi")
-                            .font(.subheadline)
-                    }
-                    .foregroundColor(.red)
-                    .padding(.vertical, 10)
+                    .padding(.bottom, 4)
                 }
             }
         }
+        .buttonStyle(.plain)
         .background {
             RoundedRectangle(cornerRadius: 12)
                 .fill(.ultraThinMaterial)
-        }
-        .onAppear {
-            deviceName = loadDeviceName()
-        }
-        .onChange(of: user.currentCount) { _, _ in
-            temporaryCount = nil
-        }
-        .sheet(isPresented: $showSettings) {
-            SettingsView(
-                showSettings: $showSettings,
-                user: user,
-                updateFrequencies: $updateFrequencies,
-                userPasswords: $userPasswords,
-                logOut: logOut,
-                serverURL: serverURL
-            )
-        }
-    }
-
-    // MARK: - Helper Functions
-
-    private func loadDeviceName() -> String {
-        nicknameManager.nickname(for: user.userId)
-    }
-
-    private func saveDeviceName() {
-        nicknameManager.setNickname(deviceName, for: user.userId)
-    }
-
-    private func submitNewCount() {
-        guard !newCount.isEmpty else { return }
-        previousCount = "\(user.currentCount)"
-        setCurrentCount(user, newCount)
-        temporaryCount = newCount
-        showModifyCount = false
-        newCount = ""
-        showUndoButtonForLimitedTime()
-    }
-
-    private func undoCount() {
-        if let prevCount = previousCount {
-            setCurrentCount(user, prevCount)
-            previousCount = nil
-            showUndoButton = false
-            temporaryCount = nil
-        }
-    }
-
-    private func showUndoButtonForLimitedTime() {
-        showUndoButton = true
-        DispatchQueue.main.asyncAfter(deadline: .now() + 5) {
-            showUndoButton = false
         }
     }
 }

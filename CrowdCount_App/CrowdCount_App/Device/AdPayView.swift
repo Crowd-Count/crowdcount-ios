@@ -439,10 +439,9 @@ extension PaymentHandler: STPAuthenticationContext {
 // MARK: - AdPayView
 
 struct AdPayView: View {
-    @Binding var users: [User]
-    var deviceLocationNames: [String: String] = [:]  // Maps device ID to location name
-    var devicePrimaryDevices: [String: String] = [:]  // Maps device ID to its primary device
-    var preselectedDeviceId: String? = nil  // Optional device ID to auto-select on load
+    let locationId: String
+    let locationName: String
+    let credentials: [[String: String]]
     @StateObject private var viewModel = AdCreationViewModel()
     @State private var selectedPhotoItem: PhotosPickerItem?
     @State private var paymentHandler = PaymentHandler()
@@ -451,31 +450,6 @@ struct AdPayView: View {
     @State private var hasActivePromotion = false
     @Environment(\.colorScheme) private var colorScheme
     @Environment(\.dismiss) private var dismiss
-
-    /// Users filtered to only include devices that are on the map (or Demo for preview)
-    private var usersOnMap: [User] {
-        users.filter { $0.userId == "Demo" || deviceLocationNames.keys.contains($0.userId) }
-    }
-
-    /// Check if the selected device is the Demo device
-    private var isDemoDevice: Bool {
-        viewModel.selectedDeviceId == "Demo" || users.contains { $0.userId == "Demo" }
-    }
-
-    /// The location name for the currently selected device
-    private var selectedLocationName: String {
-        guard !viewModel.selectedDeviceId.isEmpty else { return "" }
-        if viewModel.selectedDeviceId == "Demo" {
-            return "Demo"
-        }
-        return deviceLocationNames[viewModel.selectedDeviceId] ?? viewModel.selectedDeviceId
-    }
-
-    /// The primary device for the currently selected device (for grouped locations)
-    private var selectedPrimaryDevice: String {
-        guard !viewModel.selectedDeviceId.isEmpty else { return "" }
-        return devicePrimaryDevices[viewModel.selectedDeviceId] ?? viewModel.selectedDeviceId
-    }
 
     var canMakePayments: Bool {
         return PKPaymentAuthorizationController.canMakePayments(
@@ -537,19 +511,8 @@ struct AdPayView: View {
             await checkForActivePromotion()
         }
         .onAppear {
-            // Auto-select location if preselected device ID is provided
-            if let preselected = preselectedDeviceId, viewModel.selectedDeviceId.isEmpty {
-                viewModel.selectedDeviceId = preselected
-                // Set title from location name
-                if let locationName = deviceLocationNames[preselected] {
-                    viewModel.title = locationName
-                }
-            }
-            // Handle Demo device - auto-select and set default name
-            if viewModel.selectedDeviceId.isEmpty && users.contains(where: { $0.userId == "Demo" }) {
-                viewModel.selectedDeviceId = "Demo"
-                viewModel.title = "McCrowd's Pub"  // Demo location name
-            }
+            viewModel.title = locationName
+            viewModel.selectedDeviceId = locationId
         }
     }
 
@@ -595,7 +558,7 @@ struct AdPayView: View {
             }
             .padding(.horizontal, 5)
 
-            Text(selectedLocationName.isEmpty ? "Loading..." : selectedLocationName)
+            Text(locationName.isEmpty ? "Loading..." : locationName)
                 .frame(maxWidth: .infinity, alignment: .leading)
                 .padding()
                 .foregroundColor(.secondary)
@@ -741,7 +704,7 @@ struct AdPayView: View {
             title: viewModel.title.isEmpty ? "Your Business" : viewModel.title,
             description: viewModel.description.isEmpty ? "Your promotion description will appear here" : viewModel.description,
             imagePath: nil,
-            deviceId: viewModel.selectedDeviceId,
+            locationId: locationId,
             durationHours: viewModel.hoursSelected,
             totalPrice: viewModel.totalPrice,
             ctaText: viewModel.displayCtaText,
@@ -821,45 +784,6 @@ struct AdPayView: View {
                         }
                     }
                 }
-            }
-        }
-        .padding(.horizontal, 20)
-    }
-
-    // MARK: - Device Selector
-
-    private var deviceSelector: some View {
-        VStack(alignment: .leading, spacing: 6) {
-            Text("Select Location")
-                .font(.caption)
-                .foregroundColor(.secondary)
-                .padding(.leading, 5)
-
-            Menu {
-                ForEach(usersOnMap, id: \.id) { user in
-                    let locationName = deviceLocationNames[user.userId] ?? user.userId
-                    Button(action: {
-                        viewModel.selectedDeviceId = user.userId
-                    }) {
-                        HStack {
-                            Text(locationName)
-                            if viewModel.selectedDeviceId == user.userId {
-                                Image(systemName: "checkmark")
-                            }
-                        }
-                    }
-                }
-            } label: {
-                HStack {
-                    Text(viewModel.selectedDeviceId.isEmpty ? "Select a location" : selectedLocationName)
-                        .foregroundColor(viewModel.selectedDeviceId.isEmpty ? .secondary : .primary)
-                    Spacer()
-                    Image(systemName: "chevron.down")
-                        .foregroundColor(.secondary)
-                }
-                .padding()
-                .background(Color.secondary.opacity(0.25))
-                .cornerRadius(15)
             }
         }
         .padding(.horizontal, 20)
@@ -985,21 +909,7 @@ struct AdPayView: View {
                 .padding(.horizontal, 20)
             }
 
-            if isDemoDevice {
-                // Demo mode - show disabled Apple Pay button with explanation
-                PayWithApplePayButton {
-                    // No-op, button is disabled
-                }
-                .frame(height: 50)
-                .cornerRadius(25)
-                .padding(.horizontal, 20)
-                .disabled(true)
-                .opacity(0.5)
-
-                Text("Payments are disabled in demo mode")
-                    .font(.caption)
-                    .foregroundColor(.orange)
-            } else if canMakePayments {
+            if canMakePayments {
                 PayWithApplePayButton {
                     if viewModel.formIsValid && !viewModel.isProcessingPayment {
                         processPayment()
@@ -1017,7 +927,7 @@ struct AdPayView: View {
                     .padding()
             }
 
-            if !viewModel.formIsValid && !isDemoDevice {
+            if !viewModel.formIsValid {
                 Text("Please fill in all fields to continue")
                     .font(.caption)
                     .foregroundColor(.secondary)
@@ -1097,7 +1007,8 @@ struct AdPayView: View {
             "title": ad.title,
             "description": ad.description,
             "image": imageBase64,
-            "deviceId": ad.deviceId,
+            "locationId": locationId,
+            "credentials": credentials,
             "durationHours": ad.durationHours,
             "totalPrice": ad.totalPrice,
             "ctaText": ad.ctaText,
@@ -1128,10 +1039,9 @@ struct AdPayView: View {
     // MARK: - Check Active Promotion
 
     private func checkForActivePromotion() async {
-        let deviceId = selectedPrimaryDevice.isEmpty ? viewModel.selectedDeviceId : selectedPrimaryDevice
-        guard !deviceId.isEmpty, deviceId != "Demo" else { return }
+        guard !locationId.isEmpty else { return }
 
-        let urlString = "\(AppSettings.apiBaseURL)/get-active-ads-for-device/\(deviceId)"
+        let urlString = "\(AppSettings.apiBaseURL)/get-active-ads-for-location/\(locationId)"
         guard let url = URL(string: urlString) else { return }
 
         do {
@@ -1301,42 +1211,18 @@ struct AdPreviewCard: View {
 
 #Preview("Light Mode") {
     AdPayView(
-        users: .constant([
-            User(id: UUID(), userId: "TestDevice1", currentCount: 42),
-            User(id: UUID(), userId: "TestDevice2", currentCount: 15),
-            User(id: UUID(), userId: "TestDevice3", currentCount: 8)
-        ]),
-        deviceLocationNames: [
-            "TestDevice1": "Joe's Coffee Shop",
-            "TestDevice2": "Main Street Bakery",
-            "TestDevice3": "Joe's Coffee Shop"  // Secondary device at same location
-        ],
-        devicePrimaryDevices: [
-            "TestDevice1": "TestDevice1",  // Primary device
-            "TestDevice2": "TestDevice2",  // Primary device
-            "TestDevice3": "TestDevice1"   // Secondary device -> maps to TestDevice1
-        ]
+        locationId: "test-location-id",
+        locationName: "Joe's Coffee Shop",
+        credentials: [["device_id": "T1234", "password": "test"]]
     )
     .preferredColorScheme(.light)
 }
 
 #Preview("Dark Mode") {
     AdPayView(
-        users: .constant([
-            User(id: UUID(), userId: "TestDevice1", currentCount: 42),
-            User(id: UUID(), userId: "TestDevice2", currentCount: 15),
-            User(id: UUID(), userId: "TestDevice3", currentCount: 8)
-        ]),
-        deviceLocationNames: [
-            "TestDevice1": "Joe's Coffee Shop",
-            "TestDevice2": "Main Street Bakery",
-            "TestDevice3": "Joe's Coffee Shop"  // Secondary device at same location
-        ],
-        devicePrimaryDevices: [
-            "TestDevice1": "TestDevice1",  // Primary device
-            "TestDevice2": "TestDevice2",  // Primary device
-            "TestDevice3": "TestDevice1"   // Secondary device -> maps to TestDevice1
-        ]
+        locationId: "test-location-id",
+        locationName: "Joe's Coffee Shop",
+        credentials: [["device_id": "T1234", "password": "test"]]
     )
     .preferredColorScheme(.dark)
 }

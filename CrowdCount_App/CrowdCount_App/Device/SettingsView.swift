@@ -2,38 +2,24 @@ import SwiftUI
 
 struct SettingsView: View {
     @Binding var showSettings: Bool
-    var user: User
-    @Binding var updateFrequencies: [UUID: Double]
-    @Binding var userPasswords: [UUID: String]
-    let logOut: (UUID) -> Void
+    let device: Device
+    let logOut: (String) -> Void
+
     @State private var isServerRunning: Bool = true
-
-    @State private var currentPassword: String = ""
-    @State private var newPassword: String = ""
-    @State private var confirmPassword: String = ""
-    @State private var errorMessage: String?
-    @State private var successMessage: String?
-    @State private var showPasswordFields: Bool = false
-    @State private var showSlider: Bool = false
-
-    @State private var showAlert: Bool = false
-    @State private var showConfirmationAlert: Bool = false
-    @State private var showDemoAlert: Bool = false
     @State private var showDirectionFlipAlert: Bool = false
-    @State private var confirmationUserId: String = ""
-    @State private var confirmationPassword: String = ""
     @State private var showDirectionConfirmAlert: Bool = false
-
     @State private var directionFlipped: Bool = false
     @State private var isLoadingDirection: Bool = true
+    @State private var errorMessage: String?
+    @State private var successMessage: String?
 
     @EnvironmentObject var appSettings: AppSettings
 
-    let serverURL: String
-
     @Environment(\.presentationMode) var presentationMode
     @Environment(\.colorScheme) private var colorScheme
-    
+
+    private let apiService = APIService.shared
+
     var body: some View {
         NavigationView {
             VStack {
@@ -55,302 +41,81 @@ struct SettingsView: View {
                     + Text("device settings")
                         .bold()
                         .foregroundColor(.primary)
-                    Text("they will only affect device \(user.userId)")
+                    Text("they will only affect device \(device.deviceId)")
                         .foregroundColor(.secondary)
-                        .padding(.bottom,10)
-                    if !showPasswordFields {
-                        if !showSlider {
-                            Button(action: {
-                                showSlider.toggle()
-                            }) {
-                                Text("Update Frequency")
-                                    .padding()
-                                    .background(
-                                        RoundedRectangle(cornerRadius: 20)
-                                            .fill(colorScheme == .dark ?
-                                                Color(UIColor.tertiarySystemBackground) :
-                                                Color(UIColor.secondarySystemBackground))
-                                    )
-                                    .foregroundColor(.primary)
-                            }
-                            .padding(10)
-                        }
-                        
-                        if showSlider {
-                            HStack {
-                                Text("Update Frequency:")
-                                    .bold()
-                                    .foregroundColor(.secondary)
-                                Text("\(Int(updateFrequencies[user.id, default: 1.0])) sec")
-                                    .bold()
-                                    .foregroundColor(.primary)
-                            }
-                            .padding()
-                            Slider(value: Binding(
-                                get: {
-                                    updateFrequencies[user.id] ?? 1.0
-                                },
-                                set: { newValue in
-                                    let validValues: [Double] = [1, 3, 5, 10, 15, 30, 45, 60]
-                                    updateFrequencies[user.id] = validValues.min(by: { abs($0 - newValue) < abs($1 - newValue) }) ?? newValue
-                                }
-                            ), in: 1...60, step: 1)
-                                .accentColor(.blue)
-                                .padding(.horizontal,40)
-                            
-                            Button(action: {
-                                showSlider.toggle()
-                            }) {
-                                Text("Close")
-                                    .padding()
-                                    .background(
-                                        RoundedRectangle(cornerRadius: 20)
-                                            .fill(colorScheme == .dark ?
-                                                Color(UIColor.tertiarySystemBackground) :
-                                                Color(UIColor.secondarySystemBackground))
-                                    )
-                                    .foregroundColor(.primary)
-                            }
-                            .padding(10)
-                        }
-                    }
+                        .padding(.bottom, 10)
 
-//       REMOVED FOR NOW SINCE IT PRESENTS SOME ISSUES AND THERS NO NEED FOR IT
-//                    if !showPasswordFields {
-//                        HStack {
-//                            Button(action: {
-//                                showPasswordFields.toggle()
-//                                errorMessage = nil
-//                                successMessage = nil
-//                            }) {
-//                                Text("Change Password")
-//                                    .padding()
-//                                    .background(
-//                                        RoundedRectangle(cornerRadius: 20)
-//                                            .fill(colorScheme == .dark ?
-//                                                Color(UIColor.tertiarySystemBackground) :
-//                                                Color(UIColor.secondarySystemBackground))
-//                                    )
-//                                    .foregroundColor(.primary)
-//                            }
-//                        }
-//                        .padding(10)
-//                    }
-                    
-                    if showPasswordFields {
-                        VStack(spacing: 20) {
-                            HStack{
-                                SecureField("Enter Current Password", text: $currentPassword)
-                                    .padding()
-                                    .background(
-                                        RoundedRectangle(cornerRadius: 15)
-                                            .fill(colorScheme == .dark ?
-                                                Color(UIColor.tertiarySystemBackground) :
-                                                Color(UIColor.secondarySystemBackground))
-                                    )
-                                    .textContentType(.password)
-                                    .onTapGesture {
-                                        hideKeyboard()
-                                    }
-                            }
-                            .padding(.horizontal, 20)
-
-                            HStack{
-                                SecureField("Enter New Password", text: $newPassword)
-                                    .padding()
-                                    .background(
-                                        RoundedRectangle(cornerRadius: 15)
-                                            .fill(colorScheme == .dark ?
-                                                Color(UIColor.tertiarySystemBackground) :
-                                                Color(UIColor.secondarySystemBackground))
-                                    )
-                                    .textContentType(.newPassword)
-                                    .onTapGesture {
-                                        hideKeyboard()
-                                    }
-                            }
-                            .padding(.horizontal, 20)
-
-                            HStack{
-                                SecureField("Confirm New Password", text: $confirmPassword)
-                                    .padding()
-                                    .background(
-                                        RoundedRectangle(cornerRadius: 15)
-                                            .fill(colorScheme == .dark ?
-                                                Color(UIColor.tertiarySystemBackground) :
-                                                Color(UIColor.secondarySystemBackground))
-                                    )
-                                    .textContentType(.newPassword)
-                                    .onTapGesture {
-                                        hideKeyboard()
-                                    }
-                            }
-                            .padding(.horizontal, 20)
-                                
-                            HStack {
-                                Button(action: {
-                                    showPasswordFields = false
-                                    errorMessage = nil
-                                    successMessage = nil
-                                }) {
-                                    Text("Cancel")
-                                        .padding()
-                                        .background(
-                                            RoundedRectangle(cornerRadius: 20)
-                                                .fill(colorScheme == .dark ?
-                                                    Color(UIColor.tertiarySystemBackground) :
-                                                    Color(UIColor.secondarySystemBackground))
-                                        )
-                                        .foregroundColor(.primary)
-                                }
-                                Button(action: {
-                                    changePassword()
-                                }) {
-                                    Text("Set New Password")
-                                        .padding()
-                                        .background(
-                                            RoundedRectangle(cornerRadius: 20)
-                                                .fill(Color.blue.opacity(0.8))
-                                        )
-                                        .foregroundColor(.white)
-                                }
-                            }
-                            .padding()
-                            
-                            if let errorMessage = errorMessage {
-                                Text(errorMessage)
-                                    .foregroundColor(.red)
-                                    .padding()
-                            }
-                            
-                            if let successMessage = successMessage {
-                                Text(successMessage)
-                                    .foregroundColor(.green)
-                                    .padding()
-                            }
-                        }
-                        .padding()
-                        Spacer()
-                    }
-                    
-                    if !showPasswordFields {
-                        HStack {
-                            Button(action:{
-                                showDirectionConfirmAlert = true
-                            }){
-                                Text("Flip Counting Direction")
-                                    .padding()
-                                    .background(
-                                        RoundedRectangle(cornerRadius: 20)
-                                            .fill(colorScheme == .dark ?
-                                                Color(UIColor.tertiarySystemBackground) :
-                                                Color(UIColor.secondarySystemBackground))
-                                    )
-                                    .foregroundColor(.primary)
-                            }
-                        }
-                        .padding(10)
-                        HStack {
-                            Button(action: {
-                                showAlert = true
-                            }) {
-                                Text("Reset This Counter's Data")
-                                    .padding()
-                                    .bold()
-                                    .background(
-                                        RoundedRectangle(cornerRadius: 20)
-                                            .fill(Color.red.opacity(0.2))
-                                    )
-                                    .foregroundColor(.red)
-                            }
-                        }
-                        .padding(10)
-                        HStack {
-                            Button(action: {
-                                logOut(user.id)
-                                presentationMode.wrappedValue.dismiss()
-                                print("Remove Device pressed. showSettings is now: \(showSettings)")
-                            }) {
-                                Text("Remove Device")
-                                    .padding()
-                                    .bold()
-                                    .background(
-                                        RoundedRectangle(cornerRadius: 20)
-                                            .fill(colorScheme == .dark ?
-                                                Color(UIColor.tertiarySystemBackground).opacity(0.5) :
-                                                Color(UIColor.secondarySystemBackground))
-                                    )
-                                    .foregroundColor(.red)
-                            }
-                        }
-                        .padding(10)
-                        Spacer()
-                        HStack {
-                            Text(appSettings.isDarkMode ? "Change to light mode  -" : "Change to dark mode  -")
-                                .foregroundColor(.primary)
-                            Image(systemName: appSettings.isDarkMode ? "sun.max.fill" : "moon.fill")
+                    // Flip Counting Direction
+                    HStack {
+                        Button(action: {
+                            showDirectionConfirmAlert = true
+                        }) {
+                            Text("Flip Counting Direction")
+                                .padding()
+                                .background(
+                                    RoundedRectangle(cornerRadius: 20)
+                                        .fill(colorScheme == .dark ?
+                                            Color(UIColor.tertiarySystemBackground) :
+                                            Color(UIColor.secondarySystemBackground))
+                                )
                                 .foregroundColor(.primary)
                         }
-                        .onTapGesture {
-                            toggleMode()
-                        }
-                        .padding(.bottom,10)
-                        Text("Need some help?")
-                            .foregroundColor(.secondary)
-                        Link("info@crowdcount.tech", destination: URL(string: "mailto:info@crowdcount.tech")!)
-                            .foregroundColor(.blue)
                     }
+                    .padding(10)
+
+                    // Remove Device
+                    HStack {
+                        Button(action: {
+                            logOut(device.deviceId)
+                            presentationMode.wrappedValue.dismiss()
+                        }) {
+                            Text("Remove Device")
+                                .padding()
+                                .bold()
+                                .background(
+                                    RoundedRectangle(cornerRadius: 20)
+                                        .fill(colorScheme == .dark ?
+                                            Color(UIColor.tertiarySystemBackground).opacity(0.5) :
+                                            Color(UIColor.secondarySystemBackground))
+                                )
+                                .foregroundColor(.red)
+                        }
+                    }
+                    .padding(10)
+
+                    Spacer()
+
+                    // Dark/Light mode toggle
+                    HStack {
+                        Text(appSettings.isDarkMode ? "Change to light mode  -" : "Change to dark mode  -")
+                            .foregroundColor(.primary)
+                        Image(systemName: appSettings.isDarkMode ? "sun.max.fill" : "moon.fill")
+                            .foregroundColor(.primary)
+                    }
+                    .onTapGesture {
+                        withAnimation {
+                            appSettings.isDarkMode.toggle()
+                        }
+                    }
+                    .padding(.bottom, 10)
+
+                    Text("Need some help?")
+                        .foregroundColor(.secondary)
+                    Link("info@crowdcount.tech", destination: URL(string: "mailto:info@crowdcount.tech")!)
+                        .foregroundColor(.blue)
                 }
             }
-            .navigationTitle("Settings - \(user.userId)")
+            .navigationTitle("Settings - \(device.deviceId)")
             .navigationBarItems(trailing: Button(action: {
                 presentationMode.wrappedValue.dismiss()
-                print("Done pressed. showSettings is now: \(showSettings)")
             }) {
                 Text("Done")
                     .foregroundColor(.blue)
                     .bold()
             })
             .onAppear {
-                // Check the server status when the view appears
                 checkServerStatus()
-                // Fetch the current direction flip setting
                 fetchDirectionFlipped()
-            }
-            .alert(isPresented: $showAlert) {
-                Alert(
-                    title: Text("Reset \(user.userId)?"),
-                    message: Text("This will permanently delete all history and data for this counter only. This cannot be undone."),
-                    primaryButton: .destructive(Text("Reset")) {
-                        if user.userId == "Demo"{
-                            showDemoAlert = true
-                        }
-                        else {
-                            showConfirmationAlert = true
-                        }
-                    },
-                    secondaryButton: .cancel()
-                )
-            }
-            .alert("Sorry, but you can't reset the demo data", isPresented: $showDemoAlert) {
-                Button("Ah geeze...", role: .cancel) {}
-            } message: {
-                Text("Good try though")
-            }
-            .alert("Confirm Device ID and password", isPresented: $showConfirmationAlert) {
-                TextField("\(user.userId)", text: $confirmationUserId)
-                    .foregroundColor(.primary)
-                    .textContentType(.username)
-                    .autocapitalization(.none)
-                SecureField("Password", text: $confirmationPassword)
-                    .foregroundColor(.primary)
-                    .textContentType(.password)
-                Button("Cancel", role: .cancel) {}
-                Button("Confirm") {
-                    resetDeviceData()
-                }
-            } message: {
-                Text("Please enter your Device ID to confirm:")
             }
             .alert("Direction Flipped", isPresented: $showDirectionFlipAlert) {
                 Button("OK", role: .cancel) {}
@@ -372,269 +137,64 @@ struct SettingsView: View {
             } message: {
                 Text("Flipping the entry and exit direction may take up to a minute to take effect.")
             }
-
         }
         .preferredColorScheme(appSettings.isDarkMode ? .dark : .light)
     }
-    
-    func toggleMode() {
-        withAnimation {
-            appSettings.isDarkMode.toggle()
+
+    // MARK: - Server Calls
+
+    private func checkServerStatus() {
+        Task {
+            let running = await apiService.checkServerStatus()
+            await MainActor.run {
+                isServerRunning = running
+            }
         }
     }
 
-    func changePassword() {
-        guard !currentPassword.isEmpty else {
-            errorMessage = "Please enter the current password"
-            return
-        }
-        
-        guard !newPassword.isEmpty else {
-            errorMessage = "Please enter a new password"
-            return
-        }
-        
-        guard newPassword == confirmPassword else {
-            errorMessage = "New passwords do not match"
-            return
-        }
-        
-        let urlString = "\(serverURL)/set_password"
-        guard let url = URL(string: urlString) else {
-            errorMessage = "Invalid URL"
-            return
-        }
-        
-        var request = URLRequest(url: url)
-        request.httpMethod = "POST"
-
-        let body: [String: Any] = [
-            "device_id": user.userId,
-            "current_password": currentPassword,
-            "new_password": newPassword
-        ]
-        request.httpBody = try? JSONSerialization.data(withJSONObject: body)
-        request.setValue("application/json", forHTTPHeaderField: "Content-Type")
-
-        URLSession.shared.dataTask(with: request) { data, response, error in
-            if let error = error {
-                print("Error changing password: \(error.localizedDescription)")
-                DispatchQueue.main.async {
-                    self.errorMessage = "Network error: \(error.localizedDescription)"
-                }
-                return
-            }
-            
-            guard let httpResponse = response as? HTTPURLResponse else {
-                print("No response from server")
-                DispatchQueue.main.async {
-                    self.errorMessage = "No response from server"
-                }
-                return
-            }
-            
-            print("Received response: \(httpResponse.statusCode)")
-            
-            if httpResponse.statusCode == 200 {
-                DispatchQueue.main.async {
-                    self.errorMessage = nil
-                    self.successMessage = "Password changed successfully"
-                }
-            } else {
-                DispatchQueue.main.async {
-                    self.errorMessage = "Failed to change password"
-                }
-            }
-        }.resume()
-    }
-
-    func resetDeviceData() {
-        guard confirmationUserId == user.userId else {
-            errorMessage = "Device ID does not match"
-            return
-        }
-        
-        let urlString = "\(serverURL)/reset_device_data"
-        guard let url = URL(string: urlString) else {
-            errorMessage = "Invalid URL"
-            return
-        }
-
-        var request = URLRequest(url: url)
-        request.httpMethod = "POST"
-        let body: [String: Any] = ["device_id": user.userId, "password": confirmationPassword]
-        request.httpBody = try? JSONSerialization.data(withJSONObject: body)
-        request.setValue("application/json", forHTTPHeaderField: "Content-Type")
-
-        URLSession.shared.dataTask(with: request) { data, response, error in
-            if let error = error {
-                print("Error resetting data: \(error.localizedDescription)")
-                DispatchQueue.main.async {
-                    self.errorMessage = "Network error: \(error.localizedDescription)"
-                }
-                return
-            }
-            
-            guard let httpResponse = response as? HTTPURLResponse else {
-                print("No response from server")
-                DispatchQueue.main.async {
-                    self.errorMessage = "No response from server"
-                }
-                return
-            }
-            
-            print("Received response: \(httpResponse.statusCode)")
-            
-            if httpResponse.statusCode == 200 {
-                DispatchQueue.main.async {
-                    self.errorMessage = nil
-                    self.successMessage = "Device data reset successfully"
-                }
-            } else {
-                DispatchQueue.main.async {
-                    self.errorMessage = "Failed to reset device data"
-                }
-            }
-        }.resume()
-    }
-
-    func checkServerStatus() {
-        let urlString = "\(serverURL)/healthcheck"
-        guard let url = URL(string: urlString) else {
-            DispatchQueue.main.async {
-                self.isServerRunning = false
-            }
-            return
-        }
-
-        URLSession.shared.dataTask(with: url) { _, response, _ in
-            DispatchQueue.main.async {
-                if let httpResponse = response as? HTTPURLResponse, httpResponse.statusCode == 200 {
-                    self.isServerRunning = true
-                } else {
-                    self.isServerRunning = false
-                }
-            }
-        }.resume()
-    }
-
-    func fetchDirectionFlipped() {
-        guard let password = userPasswords[user.id] else {
-            print("No password found for user")
-            DispatchQueue.main.async {
-                self.isLoadingDirection = false
-            }
-            return
-        }
-
-        let urlString = "\(serverURL)/get_direction_flipped"
-        guard let url = URL(string: urlString) else {
-            print("Invalid URL for direction flip")
-            DispatchQueue.main.async {
-                self.isLoadingDirection = false
-            }
-            return
-        }
-
-        var request = URLRequest(url: url)
-        request.httpMethod = "POST"
-        let body: [String: Any] = ["device_id": user.userId, "password": password]
-        request.httpBody = try? JSONSerialization.data(withJSONObject: body)
-        request.setValue("application/json", forHTTPHeaderField: "Content-Type")
-
-        URLSession.shared.dataTask(with: request) { data, response, error in
-            DispatchQueue.main.async {
-                self.isLoadingDirection = false
-            }
-
-            if let error = error {
-                print("Error fetching direction flip: \(error.localizedDescription)")
-                return
-            }
-
-            guard let httpResponse = response as? HTTPURLResponse, httpResponse.statusCode == 200 else {
-                print("Failed to fetch direction flip setting")
-                return
-            }
-
-            guard let data = data else {
-                print("No data received")
-                return
-            }
-
+    private func fetchDirectionFlipped() {
+        Task {
             do {
-                if let json = try JSONSerialization.jsonObject(with: data) as? [String: Any],
-                   let flipped = json["direction_flipped"] as? Bool {
-                    DispatchQueue.main.async {
-                        self.directionFlipped = flipped
-                        print("Direction flipped setting loaded: \(flipped)")
-                    }
+                let flipped = try await apiService.getDirectionFlipped(
+                    deviceId: device.deviceId,
+                    password: device.password
+                )
+                await MainActor.run {
+                    directionFlipped = flipped
+                    isLoadingDirection = false
                 }
             } catch {
-                print("Error parsing direction flip response: \(error)")
+                print("Error fetching direction flip: \(error)")
+                await MainActor.run {
+                    isLoadingDirection = false
+                }
             }
-        }.resume()
+        }
     }
 
-    func flipDirection() {
-        guard let password = userPasswords[user.id] else {
-            print("No password found for user")
-            errorMessage = "Authentication error"
-            return
-        }
-
+    private func flipDirection() {
         let newValue = !directionFlipped
 
-        let urlString = "\(serverURL)/set_direction_flipped"
-        guard let url = URL(string: urlString) else {
-            print("Invalid URL for updating direction flip")
-            errorMessage = "Invalid URL"
-            return
+        Task {
+            do {
+                try await apiService.setDirectionFlipped(
+                    deviceId: device.deviceId,
+                    password: device.password,
+                    flipped: newValue
+                )
+                await MainActor.run {
+                    directionFlipped = newValue
+                    showDirectionFlipAlert = true
+                }
+            } catch {
+                print("Error updating direction flip: \(error)")
+                await MainActor.run {
+                    errorMessage = "Failed to update direction flip"
+                }
+            }
         }
-
-        var request = URLRequest(url: url)
-        request.httpMethod = "POST"
-
-        let body: [String: Any] = [
-            "device_id": user.userId,
-            "password": password,
-            "direction_flipped": newValue
-        ]
-        request.httpBody = try? JSONSerialization.data(withJSONObject: body)
-        request.setValue("application/json", forHTTPHeaderField: "Content-Type")
-
-        URLSession.shared.dataTask(with: request) { data, response, error in
-            if let error = error {
-                print("Error updating direction flip: \(error.localizedDescription)")
-                DispatchQueue.main.async {
-                    self.errorMessage = "Network error: \(error.localizedDescription)"
-                }
-                return
-            }
-
-            guard let httpResponse = response as? HTTPURLResponse else {
-                print("No response from server")
-                DispatchQueue.main.async {
-                    self.errorMessage = "No response from server"
-                }
-                return
-            }
-
-            if httpResponse.statusCode == 200 {
-                print("Direction flip updated successfully to: \(newValue)")
-                DispatchQueue.main.async {
-                    self.directionFlipped = newValue
-                    // Show alert on screen confirming that the direction has been flipped
-                    self.showDirectionFlipAlert = true
-                }
-            } else {
-                print("Failed to update direction flip: HTTP \(httpResponse.statusCode)")
-                DispatchQueue.main.async {
-                    self.errorMessage = "Failed to update direction flip"
-                }
-            }
-        }.resume()
     }
+
 }
 
 // Extension to handle keyboard avoidance
@@ -647,14 +207,14 @@ extension View {
 // Extension for adaptive keyboard
 struct KeyboardAdaptive: ViewModifier {
     @State private var currentHeight: CGFloat = 0
-    
+
     func body(content: Content) -> some View {
         GeometryReader { geometry in
             content
                 .padding(.bottom, currentHeight)
                 .onAppear {
                     let safeAreaInsetsBottom = geometry.safeAreaInsets.bottom
-                    
+
                     NotificationCenter.default.addObserver(forName: UIResponder.keyboardWillShowNotification, object: nil, queue: .main) { notification in
                         if let keyboardFrame = notification.userInfo?[UIResponder.keyboardFrameEndUserInfoKey] as? CGRect {
                             let keyboardHeight = keyboardFrame.height
@@ -663,7 +223,7 @@ struct KeyboardAdaptive: ViewModifier {
                             }
                         }
                     }
-                    
+
                     NotificationCenter.default.addObserver(forName: UIResponder.keyboardWillHideNotification, object: nil, queue: .main) { _ in
                         DispatchQueue.main.async {
                             currentHeight = 0
@@ -683,11 +243,3 @@ extension View {
         self.modifier(KeyboardAdaptive())
     }
 }
-
-struct SettingsView_Previews: PreviewProvider {
-    static var previews: some View {
-        SettingsView(showSettings: .constant(true), user: User(id: UUID(), userId: "SampleUser", currentCount: 0), updateFrequencies: .constant([:]), userPasswords: .constant([:]), logOut: { _ in }, serverURL: "\(AppSettings.apiBaseURL)")
-            .environmentObject(AppSettings())
-    }
-}
-

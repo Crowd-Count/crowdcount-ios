@@ -502,20 +502,25 @@ class MapViewModel: ObservableObject {
             var seenIds = Set<String>()
             
             for location in fetchedLocations {
-                guard let name = location["location_name"] as? String,
+                guard let locationId = location["location_id"] as? String,
+                      let name = location["location_name"] as? String,
                       let latitude = location["location_latitude"] as? Double,
                       let longitude = location["location_longitude"] as? Double,
-                      let userId = location["location_device"] as? String,
                       let color = location["location_color"] as? String,
                       let icon = location["location_icon"] as? String,
-                      let currentCount = location["location_current_count"] as? Int,
-                      let comparison = location["location_comparison"] as? String else {
+                      let currentCount = location["current_count"] as? Int else {
                     continue
                 }
 
-                // Parsing the overcrowding value
+                // Parse devices array: [[device_id, label], ...]
+                var deviceIds: [String] = []
+                if let devices = location["devices"] as? [[Any]] {
+                    deviceIds = devices.compactMap { $0.first as? String }
+                }
+
+                // Parse overcrowding limit
                 var overcrowding: Int? = nil
-                if let overcrowdingValue = location["location_overcrowding_count"] {
+                if let overcrowdingValue = location["overcrowding_limit"] {
                     if let overcrowdingInt = overcrowdingValue as? Int {
                         overcrowding = overcrowdingInt
                     } else if let overcrowdingStr = overcrowdingValue as? String,
@@ -525,8 +530,10 @@ class MapViewModel: ObservableObject {
                 }
 
                 let coordinate = CLLocationCoordinate2D(latitude: latitude, longitude: longitude)
-                let locationId = userId + "_" + name
-                
+
+                // Parse comparison trend
+                let comparison = location["location_comparison"] as? String ?? "neutral"
+
                 // Only add if we haven't seen this ID before
                 if !seenIds.contains(locationId) {
                     seenIds.insert(locationId)
@@ -534,7 +541,7 @@ class MapViewModel: ObservableObject {
                         id: locationId,
                         name: name,
                         coordinate: coordinate,
-                        userId: userId,
+                        deviceIds: deviceIds,
                         color: color,
                         icon: icon,
                         currentCount: currentCount,
@@ -637,40 +644,35 @@ class MapViewModel: ObservableObject {
 // MARK: - Location Model
 
 struct Location: Identifiable {
-    let id: String
+    let id: String          // Server location_id (UUID)
     let name: String
     let coordinate: CLLocationCoordinate2D
-    let userId: String
+    let deviceIds: [String] // All device IDs in this location
     let color: String
     let icon: String
     let currentCount: Int
-    let comparison: String
+    let comparison: String  // "up", "down", or "neutral"
     let overcrowding: Int?
 
     var comparisonSymbol: String {
         switch comparison {
-        case "up":
-            return "↑"
-        case "down":
-            return "↓"
-        case "neutral":
-            return ""
-        default:
-            return ""
+        case "up": return "↑"
+        case "down": return "↓"
+        default: return ""
         }
     }
 
     var comparisonColor: Color {
         switch comparison {
-        case "up":
-            return .green
-        case "down":
-            return .red
-        case "neutral":
-            return .gray
-        default:
-            return .gray
+        case "up": return .green
+        case "down": return .red
+        default: return .gray
         }
+    }
+
+    /// Whether this location contains the given device ID (used for ad matching)
+    func containsDevice(_ deviceId: String) -> Bool {
+        deviceIds.contains(deviceId)
     }
 
     // Sample locations for previews (Boulder, CO area)
@@ -679,7 +681,7 @@ struct Location: Identifiable {
             id: "sample-1",
             name: "CrowdCount HQ",
             coordinate: CLLocationCoordinate2D(latitude: 40.0192959, longitude: -105.28284905),
-            userId: "T0001",
+            deviceIds: ["T0001"],
             color: "red",
             icon: "flag.2.crossed.fill",
             currentCount: 5,
@@ -690,29 +692,29 @@ struct Location: Identifiable {
             id: "sample-2",
             name: "City Park",
             coordinate: CLLocationCoordinate2D(latitude: 40.01783, longitude: -105.2684),
-            userId: "T0002",
+            deviceIds: ["T0002"],
             color: "green",
             icon: "tree.fill",
             currentCount: 23,
-            comparison: "neutral",
+            comparison: "down",
             overcrowding: nil
         ),
         Location(
             id: "sample-3",
             name: "The Pond",
             coordinate: CLLocationCoordinate2D(latitude: 40.00087, longitude: -105.25944),
-            userId: "T0000",
+            deviceIds: ["T0000"],
             color: "blue",
             icon: "fish.fill",
             currentCount: 29,
-            comparison: "down",
+            comparison: "neutral",
             overcrowding: nil
         ),
         Location(
             id: "sample-4",
             name: "McCrowd's Pub",
             coordinate: CLLocationCoordinate2D(latitude: 40.00846, longitude: -105.27546),
-            userId: "Demo",
+            deviceIds: ["Demo"],
             color: "orange",
             icon: "mug.fill",
             currentCount: 86,
