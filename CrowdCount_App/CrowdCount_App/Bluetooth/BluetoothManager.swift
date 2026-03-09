@@ -21,10 +21,19 @@ class BluetoothManager: NSObject, ObservableObject, CBCentralManagerDelegate, CB
     private let tailscaleKeyUUID = CBUUID(string: "e3e65276-1db1-11ec-9621-0242ac130002")
     private let serverIPUUID = CBUUID(string: "e3e65398-1db1-11ec-9621-0242ac130002")
     private let streamNameUUID = CBUUID(string: "e3e654ba-1db1-11ec-9621-0242ac130002")
+    private let statusUUID = CBUUID(string: "e3e655dc-1db1-11ec-9621-0242ac130002")
+    private let wifiScanUUID = CBUUID(string: "e3e656fe-1db1-11ec-9621-0242ac130002")
 
     // MARK: - Bluetooth Components
     private var centralManager: CBCentralManager!
     private var peripheral: CBPeripheral?
+
+    // WiFi scan results
+    @Published var availableNetworks: [(ssid: String, signal: Int)] = []
+    @Published var isScanningWifi: Bool = false
+
+    // Provisioning status from device
+    @Published var deviceStatus: Int = 0
 
     // Characteristics
     private var authCharacteristic: CBCharacteristic?
@@ -33,11 +42,14 @@ class BluetoothManager: NSObject, ObservableObject, CBCentralManagerDelegate, CB
     private var tailscaleKeyCharacteristic: CBCharacteristic?
     private var serverIPCharacteristic: CBCharacteristic?
     private var streamNameCharacteristic: CBCharacteristic?
+    private var statusCharacteristic: CBCharacteristic?
+    private var wifiScanCharacteristic: CBCharacteristic?
 
     // MARK: - State Management
     private var retryCount = 0
     private let maxRetryCount = 3
     private var isAuthenticated = false
+    private var wifiScanRetries = 0
 
     override init() {
         super.init()
@@ -77,6 +89,24 @@ class BluetoothManager: NSObject, ObservableObject, CBCentralManagerDelegate, CB
             print("Disconnecting from peripheral")
             centralManager.cancelPeripheralConnection(peripheral)
         }
+    }
+
+    func scanForWifiNetworks() {
+        guard let peripheral = peripheral, let char = wifiScanCharacteristic else {
+            print("Cannot scan WiFi: not connected or characteristic not found")
+            return
+        }
+        isScanningWifi = true
+        availableNetworks = []
+        print("Requesting WiFi scan from counter...")
+        peripheral.readValue(for: char)
+    }
+
+    func readDeviceStatus() {
+        guard let peripheral = peripheral, let char = statusCharacteristic else {
+            return
+        }
+        peripheral.readValue(for: char)
     }
 
     // MARK: - Send Provisioning Data
@@ -238,6 +268,10 @@ class BluetoothManager: NSObject, ObservableObject, CBCentralManagerDelegate, CB
         tailscaleKeyCharacteristic = nil
         serverIPCharacteristic = nil
         streamNameCharacteristic = nil
+        statusCharacteristic = nil
+        wifiScanCharacteristic = nil
+        availableNetworks = []
+        deviceStatus = 0
     }
 
     // MARK: - CBPeripheralDelegate
@@ -264,7 +298,9 @@ class BluetoothManager: NSObject, ObservableObject, CBCentralManagerDelegate, CB
                     passwordUUID,
                     tailscaleKeyUUID,
                     serverIPUUID,
-                    streamNameUUID
+                    streamNameUUID,
+                    statusUUID,
+                    wifiScanUUID
                 ], for: service)
             }
         }
@@ -306,6 +342,12 @@ class BluetoothManager: NSObject, ObservableObject, CBCentralManagerDelegate, CB
             case streamNameUUID:
                 streamNameCharacteristic = characteristic
                 print("  → Stream name characteristic assigned")
+            case statusUUID:
+                statusCharacteristic = characteristic
+                print("  → Status characteristic assigned")
+            case wifiScanUUID:
+                wifiScanCharacteristic = characteristic
+                print("  → WiFi scan characteristic assigned")
             default:
                 print("  → Unknown characteristic")
             }
@@ -332,10 +374,58 @@ class BluetoothManager: NSObject, ObservableObject, CBCentralManagerDelegate, CB
         } else {
             print("✓ Successfully wrote to characteristic: \(characteristic.uuid)")
 
-            // If this was the auth characteristic, mark as authenticated
+            // If this was the auth characteristic, mark as authenticated and auto-scan WiFi
+            // Delay first read to give the Pi time to complete its background scan
             if characteristic.uuid == authUUID {
                 isAuthenticated = true
                 print("✓ Device authenticated successfully")
+                isScanningWifi = true
+                DispatchQueue.main.asyncAfter(deadline: .now() + 4) {
+                    self.scanForWifiNetworks()
+                }
+            }
+        }
+    }
+
+    func peripheral(_ peripheral: CBPeripheral, didUpdateValueFor characteristic: CBCharacteristic, error: Error?) {
+        if let error = error {
+            print("✗ Error reading characteristic \(characteristic.uuid): \(error.localizedDescription)")
+            if characteristic.uuid == wifiScanUUID {
+                isScanningWifi = false
+            }
+            return
+        }
+
+        if characteristic.uuid == statusUUID, let data = characteristic.value, let firstByte = data.first {
+            deviceStatus = Int(firstByte)
+            print("  Device status updated: \(deviceStatus)")
+            return
+        }
+
+        if characteristic.uuid == wifiScanUUID, let data = characteristic.value {
+            // Parse compact pipe-delimited format: "SSID|signal\nSSID2|signal2\n..."
+            if let text = String(data: data, encoding: .utf8) {
+                let parsed = text.split(separator: "\n").compactMap { line -> (ssid: String, signal: Int)? in
+                    let parts = line.split(separator: "|", maxSplits: 1)
+                    guard parts.count == 2, let signal = Int(parts[1]) else { return nil }
+                    return (ssid: String(parts[0]), signal: signal)
+                }
+                if parsed.isEmpty && wifiScanRetries < 3 {
+                    // Pi scan might still be running — retry after a delay
+                    wifiScanRetries += 1
+                    print("  WiFi scan returned empty, retrying (\(wifiScanRetries)/3)...")
+                    DispatchQueue.main.asyncAfter(deadline: .now() + 3) {
+                        self.scanForWifiNetworks()
+                    }
+                } else {
+                    isScanningWifi = false
+                    wifiScanRetries = 0
+                    availableNetworks = parsed
+                    print("✓ Received \(availableNetworks.count) WiFi networks from counter")
+                }
+            } else {
+                isScanningWifi = false
+                print("✗ Failed to decode WiFi scan data")
             }
         }
     }

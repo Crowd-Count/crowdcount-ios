@@ -155,7 +155,8 @@ struct DeviceManagementRow: View {
                     wifiSSID: $wifiSSID,
                     wifiPassword: $wifiPassword,
                     bluetoothManager: bluetoothManager,
-                    sendWiFiCredentials: {}
+                    sendWiFiCredentials: {},
+                    knownDevicePassword: device.password
                 )) {
                     HStack {
                         Image(systemName: "wifi.exclamationmark")

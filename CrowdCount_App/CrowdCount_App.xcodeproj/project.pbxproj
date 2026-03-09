@@ -10,6 +10,7 @@
 		7C077D5E2E611AA70042C0AD /* LocationListView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 7C077D5D2E611AA40042C0AD /* LocationListView.swift */; };
 		7C2469DD2E09E05200409394 /* BarGraphYear.swift in Sources */ = {isa = PBXBuildFile; fileRef = 7C2469DC2E09E04E00409394 /* BarGraphYear.swift */; };
 		7C2EF95F2F3C44ED00FB437F /* LocationHistoricView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 7C2EF95E2F3C44ED00FB437F /* LocationHistoricView.swift */; };
+		7C2EF9602F3C450000FB437F /* HistoryPrefetchCache.swift in Sources */ = {isa = PBXBuildFile; fileRef = 7C2EF9612F3C450000FB437F /* HistoryPrefetchCache.swift */; };
 		7C349C012F0F19A9001A87C1 /* CountersListView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 7C349C002F0F19A9001A87C1 /* CountersListView.swift */; };
 		7C349C032F0F238C001A87C1 /* AllCountersListView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 7C349C022F0F238C001A87C1 /* AllCountersListView.swift */; };
 		7C349C052F0F2AE4001A87C1 /* NicknameManager.swift in Sources */ = {isa = PBXBuildFile; fileRef = 7C349C042F0F2AE4001A87C1 /* NicknameManager.swift */; };
@@ -56,6 +57,7 @@
 		7CC381212F0C11C8001C3A41 /* LocationPickerView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 7CC3811E2F0C11C8001C3A41 /* LocationPickerView.swift */; };
 		7CC381232F0C1AF2001C3A41 /* LocationCountersView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 7CC381222F0C1AF2001C3A41 /* LocationCountersView.swift */; };
 		7CC3BE372C3C1BF400C5DEFC /* HistoricView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 7CC3BE362C3C1BF200C5DEFC /* HistoricView.swift */; };
+		7CCB26042F5BBADA004CA344 /* PopularTimesChart.swift in Sources */ = {isa = PBXBuildFile; fileRef = 7CCB26032F5BBADA004CA344 /* PopularTimesChart.swift */; };
 		7CD02E952C2CF693000EAFC5 /* LoginView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 7CD02E942C2CF690000EAFC5 /* LoginView.swift */; };
 		7CD02E992C2DFD59000EAFC5 /* TotalCountView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 7CD02E982C2DFD56000EAFC5 /* TotalCountView.swift */; };
 		7CD02E9B2C2DFD69000EAFC5 /* AddUserPage.swift in Sources */ = {isa = PBXBuildFile; fileRef = 7CD02E9A2C2DFD65000EAFC5 /* AddUserPage.swift */; };
@@ -85,6 +87,7 @@
 		7C077D5D2E611AA40042C0AD /* LocationListView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = LocationListView.swift; sourceTree = "<group>"; };
 		7C2469DC2E09E04E00409394 /* BarGraphYear.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = BarGraphYear.swift; sourceTree = "<group>"; };
 		7C2EF95E2F3C44ED00FB437F /* LocationHistoricView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = LocationHistoricView.swift; sourceTree = "<group>"; };
+		7C2EF9612F3C450000FB437F /* HistoryPrefetchCache.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = HistoryPrefetchCache.swift; sourceTree = "<group>"; };
 		7C349C002F0F19A9001A87C1 /* CountersListView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = CountersListView.swift; sourceTree = "<group>"; };
 		7C349C022F0F238C001A87C1 /* AllCountersListView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = AllCountersListView.swift; sourceTree = "<group>"; };
 		7C349C042F0F2AE4001A87C1 /* NicknameManager.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = NicknameManager.swift; sourceTree = "<group>"; };
@@ -132,6 +135,7 @@
 		7CC3811F2F0C11C8001C3A41 /* LocationSettingsView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = LocationSettingsView.swift; sourceTree = "<group>"; };
 		7CC381222F0C1AF2001C3A41 /* LocationCountersView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = LocationCountersView.swift; sourceTree = "<group>"; };
 		7CC3BE362C3C1BF200C5DEFC /* HistoricView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = HistoricView.swift; sourceTree = "<group>"; };
+		7CCB26032F5BBADA004CA344 /* PopularTimesChart.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = PopularTimesChart.swift; sourceTree = "<group>"; };
 		7CD02E942C2CF690000EAFC5 /* LoginView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = LoginView.swift; sourceTree = "<group>"; };
 		7CD02E982C2DFD56000EAFC5 /* TotalCountView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = TotalCountView.swift; sourceTree = "<group>"; };
 		7CD02E9A2C2DFD65000EAFC5 /* AddUserPage.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = AddUserPage.swift; sourceTree = "<group>"; };
@@ -176,6 +180,7 @@
 				7C5A120B2C18D0BB0050C4D8 /* CrowdCount_AppApp.swift */,
 				7CA9C98D2C7E2B1800356DB5 /* AppDelegate.swift */,
 				7C54AF992C5BD1F800D9226B /* AppSettings.swift */,
+				7C2EF9612F3C450000FB437F /* HistoryPrefetchCache.swift */,
 			);
 			path = "App Foundation";
 			sourceTree = "<group>";
@@ -247,6 +252,7 @@
 		7C7F1B182C4D2F2E005A5D18 /* Map */ = {
 			isa = PBXGroup;
 			children = (
+				7CCB26032F5BBADA004CA344 /* PopularTimesChart.swift */,
 				7C8F953A2EF6FE4F008FE41B /* AdDetailView.swift */,
 				7CADFA4D2C5F96FF00657A09 /* MapView.swift */,
 				7C7F1B162C4D2F24005A5D18 /* ReportView.swift */,
@@ -463,6 +469,7 @@
 				7CC3810D2F0126A5001C3A41 /* APIService.swift in Sources */,
 				7C91DCB62F34000100191C98 /* CryptoHelper.swift in Sources */,
 				7C8FF56B2C3EAAC0008D039F /* BarGraphWeek.swift in Sources */,
+				7CCB26042F5BBADA004CA344 /* PopularTimesChart.swift in Sources */,
 				7C8FF5692C3D47B8008D039F /* BarGraphDay.swift in Sources */,
 				7C349C012F0F19A9001A87C1 /* CountersListView.swift in Sources */,
 				7CD02E9B2C2DFD69000EAFC5 /* AddUserPage.swift in Sources */,
@@ -505,6 +512,7 @@
 				7C7F1B212C4F9FA2005A5D18 /* Alert.swift in Sources */,
 				7CA9C98E2C7E2B1D00356DB5 /* AppDelegate.swift in Sources */,
 				7C2EF95F2F3C44ED00FB437F /* LocationHistoricView.swift in Sources */,
+				7C2EF9602F3C450000FB437F /* HistoryPrefetchCache.swift in Sources */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};
@@ -674,7 +682,7 @@
 				ASSETCATALOG_COMPILER_INCLUDE_ALL_APPICON_ASSETS = YES;
 				CODE_SIGN_ENTITLEMENTS = CrowdCount_App/CrowdCount_App.entitlements;
 				CODE_SIGN_STYLE = Automatic;
-				CURRENT_PROJECT_VERSION = 74;
+				CURRENT_PROJECT_VERSION = 44;
 				DEVELOPMENT_ASSET_PATHS = "\"CrowdCount_App/Preview Content\"";
 				ENABLE_PREVIEWS = YES;
 				GENERATE_INFOPLIST_FILE = YES;
@@ -696,7 +704,7 @@
 					"$(inherited)",
 					"@executable_path/Frameworks",
 				);
-				MARKETING_VERSION = 5.0.0;
+				MARKETING_VERSION = 5.3.0;
 				PRODUCT_BUNDLE_IDENTIFIER = "CrowdCount.CrowdCount-App";
 				PRODUCT_NAME = "$(TARGET_NAME)";
 				SUPPORTED_PLATFORMS = "iphoneos iphonesimulator";
@@ -717,7 +725,7 @@
 				ASSETCATALOG_COMPILER_INCLUDE_ALL_APPICON_ASSETS = YES;
 				CODE_SIGN_ENTITLEMENTS = CrowdCount_App/CrowdCount_App.entitlements;
 				CODE_SIGN_STYLE = Automatic;
-				CURRENT_PROJECT_VERSION = 74;
+				CURRENT_PROJECT_VERSION = 44;
 				DEVELOPMENT_ASSET_PATHS = "\"CrowdCount_App/Preview Content\"";
 				ENABLE_PREVIEWS = YES;
 				GENERATE_INFOPLIST_FILE = YES;
@@ -739,7 +747,7 @@
 					"$(inherited)",
 					"@executable_path/Frameworks",
 				);
-				MARKETING_VERSION = 5.0.0;
+				MARKETING_VERSION = 5.3.0;
 				PRODUCT_BUNDLE_IDENTIFIER = "CrowdCount.CrowdCount-App";
 				PRODUCT_NAME = "$(TARGET_NAME)";
 				SUPPORTED_PLATFORMS = "iphoneos iphonesimulator";

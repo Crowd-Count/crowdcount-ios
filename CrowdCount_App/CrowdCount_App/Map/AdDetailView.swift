@@ -42,12 +42,6 @@ struct AdDetailView: View {
     var body: some View {
         NavigationStack {
             VStack(spacing: 28) {
-                // Custom drag indicator (positioned lower than system default)
-                Capsule()
-                    .fill(Color.secondary.opacity(0.4))
-                    .frame(width: 36, height: 5)
-                    .padding(.top, 8)
-
                 // Logos: CrowdCount | Ad
                 HStack(spacing: 20) {
                     // CrowdCount Logo
@@ -163,7 +157,7 @@ struct AdDetailView: View {
             }
         }
         .presentationDetents([.large])
-        .presentationDragIndicator(.hidden)
+        .presentationDragIndicator(.visible)
         .preferredColorScheme(appSettings.isDarkMode ? .dark : .light)
     }
 

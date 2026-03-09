@@ -415,6 +415,18 @@ struct StatisticsCalculator {
         return nil
     }
 
+    // MARK: - Dwell Time
+
+    /// Format dwell time in minutes to a human-readable string
+    static func formatDwellTime(_ minutes: Double) -> String {
+        if minutes < 1 { return "<1 min" }
+        if minutes < 60 { return "\(Int(minutes.rounded())) min" }
+        let hours = Int(minutes / 60)
+        let remaining = Int(minutes.rounded()) % 60
+        if remaining == 0 { return "\(hours)h" }
+        return "\(hours)h \(remaining)m"
+    }
+
     // MARK: - Helper Functions
 
     /// Format hour as display string (e.g., "2pm", "11am")

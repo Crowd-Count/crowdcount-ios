@@ -93,6 +93,7 @@ struct ContentView: View {
     @State private var devices: [Device] = []
     @State private var locations: [AppLocation] = []
     @State private var locationCounts: [String: Int] = [:]    // locationId → count
+    @State private var locationClosedStates: [String: Bool] = [:] // locationId → is closed
     @State private var deviceCounts: [String: Int] = [:]      // deviceId → count
     @State private var deviceStatuses: [String: String] = [:] // deviceId → "online"/"offline"
     @State private var viewingLocationId: String? = UserDefaults.standard.string(forKey: "cc_lastViewingLocationId")
@@ -115,6 +116,7 @@ struct ContentView: View {
     @State private var locationName: String = ""
     @State private var errorMessage: String?
     @State private var isLoggingIn: Bool = false
+    @State private var additionalCounters: [CounterEntry] = []
 
     @State private var incompleteLocationWarnings: [IncompleteLocationWarning] = []
     @State private var dismissedIncompleteWarnings: Set<String> = {
@@ -156,6 +158,7 @@ struct ContentView: View {
                             locationName: $locationName,
                             errorMessage: $errorMessage,
                             isLoggingIn: $isLoggingIn,
+                            additionalCounters: $additionalCounters,
                             setUser: setUser,
                             serverStatus: serverStatus,
                             serverStatusColor: serverStatusColor,
@@ -169,6 +172,7 @@ struct ContentView: View {
                                 locationName: $locationName,
                                 errorMessage: $errorMessage,
                                 isLoggingIn: $isLoggingIn,
+                                additionalCounters: $additionalCounters,
                                 setUser: setUser,
                                 serverStatus: serverStatus,
                                 serverStatusColor: serverStatusColor,
@@ -179,6 +183,7 @@ struct ContentView: View {
                             LocationCountersView(
                                 location: currentLocation,
                                 currentCount: locationCounts[locationId] ?? 0,
+                                isClosed: locationClosedStates[locationId] ?? false,
                                 devices: devices,
                                 deviceStatuses: $deviceStatuses,
                                 locations: $locations,
@@ -212,6 +217,7 @@ struct ContentView: View {
                             AllLocationsListView(
                                 locations: locations,
                                 locationCounts: locationCounts,
+                                locationClosedStates: locationClosedStates,
                                 deviceCounts: deviceCounts,
                                 devices: devices,
                                 deviceStatuses: deviceStatuses,
@@ -224,6 +230,7 @@ struct ContentView: View {
                         }
                     }
                 }
+                .id(isServerRunning)
                 .navigationBarTitleDisplayMode(.inline)
                 .toolbar {
                     ToolbarItem(placement: .principal) {
@@ -595,7 +602,7 @@ struct ContentView: View {
         await withTaskGroup(of: (String, Int?).self) { group in
             for device in devices {
                 group.addTask {
-                    let result = try? await self.apiService.fetchCurrentCount(deviceId: device.deviceId)
+                    let result = try? await self.apiService.fetchCurrentCount(deviceId: device.deviceId, password: device.password)
                     return (device.deviceId, result?.count)
                 }
             }
@@ -623,6 +630,7 @@ struct ContentView: View {
                     signingDevice: auth.signingDevice
                 )
                 locationCounts[location.id] = response.currentCount ?? 0
+                locationClosedStates[location.id] = response.isClosed
                 if let index = locations.firstIndex(where: { $0.id == location.id }) {
                     var changed = false
                     if locations[index].name != response.locationName {
@@ -673,7 +681,7 @@ struct ContentView: View {
         await withTaskGroup(of: (String, String).self) { group in
             for device in devices {
                 group.addTask {
-                    let status = (try? await self.apiService.checkConnectionStatus(deviceId: device.deviceId)) ?? "offline"
+                    let status = (try? await self.apiService.checkConnectionStatus(deviceId: device.deviceId, password: device.password)) ?? "offline"
                     return (device.deviceId, status)
                 }
             }
@@ -711,10 +719,56 @@ struct ContentView: View {
             showLoginScreen = false
             startCountPolling()
             startStatusPolling()
+            prefetchLocationHistory()
             Task {
                 // Wait for server to be reachable before checking
                 try? await Task.sleep(nanoseconds: 3_000_000_000)
                 await checkForIncompleteOnMapLocations()
+            }
+        }
+    }
+
+    /// Pre-fetch insights bundle for each location so Count Analytics loads instantly.
+    func prefetchLocationHistory() {
+        for location in locations {
+            let creds = devices.filter { location.deviceIds.contains($0.deviceId) }
+                .map { ["device_id": $0.deviceId, "password": $0.password] }
+            guard let first = devices.first(where: { location.deviceIds.contains($0.deviceId) }) else { continue }
+            let signing = (first.deviceId, first.password)
+
+            Task {
+                // Fetch available dates
+                if let dates = try? await apiService.fetchLocationAvailableDates(
+                    locationId: location.id, credentials: creds, signingDevice: signing
+                ) {
+                    HistoryPrefetchCache.shared.setDates(locationId: location.id, dates: dates)
+                }
+
+                // Compute today's parameters
+                let localDate = TZHelper.yyyyMMddLocal(from: Date())
+                let utcDates = TZHelper.utcDatesForLocalDay(localDate)
+                let currentYear = Calendar.current.component(.year, from: Date())
+
+                // Compute week start (Monday)
+                var cal = Calendar.current
+                cal.firstWeekday = 2
+                let startOfWeek = cal.date(from: cal.dateComponents([.yearForWeekOfYear, .weekOfYear], from: Date()))!
+                let fmt = DateFormatter()
+                fmt.dateFormat = "yyyy-MM-dd"
+                let weekStartDate = fmt.string(from: startOfWeek)
+
+                // Fetch insights bundle
+                if let bundle = try? await apiService.fetchLocationInsightsBundle(
+                    locationId: location.id,
+                    date: utcDates.primary,
+                    date2: utcDates.secondary,
+                    weekDate: weekStartDate,
+                    year: currentYear,
+                    credentials: creds,
+                    signingDevice: signing
+                ) {
+                    HistoryPrefetchCache.shared.set(locationId: location.id, bundle: bundle)
+                }
             }
         }
     }
@@ -853,12 +907,27 @@ struct ContentView: View {
         locationName = ""
         errorMessage = nil
 
+        // Process additional counters from multi-counter login
+        if !additionalCounters.isEmpty {
+            for counter in additionalCounters {
+                guard let currentLocationId = viewingLocationId else { break }
+                await addDeviceToLocationAsync(
+                    locationId: currentLocationId,
+                    newDeviceId: counter.deviceId,
+                    password: counter.password,
+                    label: counter.deviceId
+                )
+            }
+            additionalCounters = []
+        }
+
         Task { await checkForIncompleteOnMapLocations() }
     }
 
     // MARK: - Count Modification
 
     func addToCount(locationId: String, amount: Int) {
+        guard locationClosedStates[locationId] != true else { return }
         guard let location = locations.first(where: { $0.id == locationId }),
               let auth = locationAuth(for: location) else { return }
 
@@ -877,6 +946,7 @@ struct ContentView: View {
     }
 
     func subFromCount(locationId: String, amount: Int) {
+        guard locationClosedStates[locationId] != true else { return }
         guard let location = locations.first(where: { $0.id == locationId }),
               let auth = locationAuth(for: location) else { return }
 
@@ -1022,8 +1092,13 @@ struct ContentView: View {
             let localDeviceSet = Set(allDeviceIds)
 
             // Check if a server location already exists with all these devices
+            // For on-map locations, only match when device sets are exactly equal
+            // (prevents adopting a 3-device map location when user only has 2 devices)
             let sharedServerLoc = serverLocations.first(where: { serverLoc in
                 let serverSet = Set(serverLoc.deviceIds)
+                if serverLoc.isOnMap {
+                    return serverSet == localDeviceSet
+                }
                 return serverSet.isSuperset(of: localDeviceSet)
             })
 
@@ -1051,6 +1126,7 @@ struct ContentView: View {
                     viewingLocationId = sharedLoc.locationId
                 }
                 locationCounts[sharedLoc.locationId] = sharedLoc.currentCount ?? 0
+                locationClosedStates[sharedLoc.locationId] = sharedLoc.isClosed
                 print("Switched to existing server location \(sharedLoc.locationId) (\(sharedLoc.locationName))")
             } else {
                 // No shared server location — need to create one on the server
@@ -1089,6 +1165,7 @@ struct ContentView: View {
                     var serverOvercrowdingLimit: Int? = nil
                     var serverIsOnMap = false
                     var serverCount = 0
+                    var serverIsClosed = false
                     var serverMapIcon: String? = nil
                     var serverMapColor: String? = nil
                     if let serverLoc = try? await apiService.getLocation(
@@ -1100,6 +1177,7 @@ struct ContentView: View {
                         serverOvercrowdingLimit = serverLoc.overcrowdingLimit
                         serverIsOnMap = serverLoc.isOnMap
                         serverCount = serverLoc.currentCount ?? 0
+                        serverIsClosed = serverLoc.isClosed
                         serverMapIcon = serverLoc.mapIcon
                         serverMapColor = serverLoc.mapColor
                     }
@@ -1123,6 +1201,7 @@ struct ContentView: View {
                         mapColor: serverMapColor
                     )
                     locationCounts[newLocId] = serverCount
+                    locationClosedStates[newLocId] = serverIsClosed
                     if viewingLocationId == locationId {
                         viewingLocationId = newLocId
                     }
@@ -1166,6 +1245,7 @@ struct ContentView: View {
                     var serverOvercrowdingLimit: Int? = nil
                     var serverIsOnMap = false
                     var serverCount = 0
+                    var serverIsClosed = false
                     var serverMapIcon: String? = nil
                     var serverMapColor: String? = nil
                     if let serverLoc = try? await apiService.getLocation(
@@ -1177,6 +1257,7 @@ struct ContentView: View {
                         serverOvercrowdingLimit = serverLoc.overcrowdingLimit
                         serverIsOnMap = serverLoc.isOnMap
                         serverCount = serverLoc.currentCount ?? 0
+                        serverIsClosed = serverLoc.isClosed
                         serverMapIcon = serverLoc.mapIcon
                         serverMapColor = serverLoc.mapColor
                     }
@@ -1200,6 +1281,7 @@ struct ContentView: View {
                         mapColor: serverMapColor
                     )
                     locationCounts[newLocId] = serverCount
+                    locationClosedStates[newLocId] = serverIsClosed
                     if viewingLocationId == locationId {
                         viewingLocationId = newLocId
                     }
@@ -1663,7 +1745,10 @@ struct ContentView: View {
     func registerApp() {
         Task {
             await apiService.registerApp(appId: getAppId())
-            await apiService.reportAppVersion()
+            // Report version for each managed device
+            for device in devices {
+                await apiService.reportAppVersion(deviceId: device.deviceId, password: device.password)
+            }
         }
     }
 

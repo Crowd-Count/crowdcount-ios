@@ -4,6 +4,7 @@ import SwiftUI
 struct AllLocationsListView: View {
     let locations: [AppLocation]
     let locationCounts: [String: Int]
+    let locationClosedStates: [String: Bool]
     let deviceCounts: [String: Int]
     let devices: [Device]
     let deviceStatuses: [String: String]
@@ -40,6 +41,7 @@ struct AllLocationsListView: View {
                             LocationCardView(
                                 location: location,
                                 count: locationCounts[location.id] ?? 0,
+                                isClosed: locationClosedStates[location.id] ?? false,
                                 deviceCount: location.deviceIds.count,
                                 offlineCount: offlineCount(for: location),
                                 onTap: { onSelectLocation(location) },
@@ -94,6 +96,7 @@ struct AllLocationsListView: View {
 struct LocationCardView: View {
     let location: AppLocation
     let count: Int
+    let isClosed: Bool
     let deviceCount: Int
     let offlineCount: Int
     let onTap: () -> Void
@@ -104,7 +107,6 @@ struct LocationCardView: View {
             VStack(spacing: 0) {
                 // Location header row
                 HStack(spacing: 12) {
-                    let _ = print("[CardView] '\(location.name)' isOnMap=\(location.isOnMap) mapIcon=\(location.mapIcon ?? "nil") mapColor=\(location.mapColor ?? "nil")")
                     if location.isOnMap, let icon = location.mapIcon, let color = location.mapColor {
                         ZStack {
                             Circle()
@@ -143,7 +145,11 @@ struct LocationCardView: View {
                     Spacer()
 
                     // Total count
-                    if let limit = location.overcrowdingLimit, limit > 0 {
+                    if isClosed {
+                        Text("Closed")
+                            .font(.subheadline.bold())
+                            .foregroundColor(.secondary)
+                    } else if let limit = location.overcrowdingLimit, limit > 0 {
                         HStack(spacing: 0) {
                             Text("\(count)")
                                 .font(.title2.bold())
@@ -193,10 +199,6 @@ struct LocationCardView: View {
                                 }
 
                                 Spacer()
-
-                                Text("\(row.count)")
-                                    .font(.caption.bold().monospacedDigit())
-                                    .foregroundColor(row.isOffline ? .secondary : .primary)
                             }
                             .padding(.horizontal, 16)
                             .padding(.vertical, 6)

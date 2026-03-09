@@ -41,7 +41,6 @@ struct HistoricCountsContentView: View {
     let averageYearData: [String: Double]?
     let hasDataForSelectedYear: Bool
     let isYearLoading: Bool
-    let hasInsufficientYearData: Bool
 
     // Entry year data
     let entryYearData: [String: Double]
@@ -266,8 +265,7 @@ struct HistoricCountsContentView: View {
                         BarGraphYear(
                             yearData: yearData,
                             averageYearData: averageYearData,
-                            selectedYear: selectedYear,
-                            hasInsufficientData: hasInsufficientYearData
+                            selectedYear: selectedYear
                         )
                         .frame(height: 250)
                     } else {
@@ -278,8 +276,7 @@ struct HistoricCountsContentView: View {
                         BarGraphYear(
                             yearData: entryYearData,
                             averageYearData: averageEntryYearData,
-                            selectedYear: selectedYear,
-                            hasInsufficientData: averageEntryYearData == nil
+                            selectedYear: selectedYear
                         )
                         .frame(height: 250)
                     } else {

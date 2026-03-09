@@ -111,21 +111,33 @@ struct AddDeviceToLocationView: View {
 
             // Input fields
             VStack(spacing: 10) {
-                TextField("Device ID", text: $deviceId, onEditingChanged: { _ in clearErrorMessage() })
-                    .padding()
-                    .background(Color.secondary.opacity(0.2))
-                    .cornerRadius(14)
-                    .focused($focusedField, equals: .deviceId)
-                    .textContentType(.username)
-                    .textInputAutocapitalization(.never)
-                    .autocorrectionDisabled()
+                VStack(alignment: .leading, spacing: 4) {
+                    TextField("Device ID", text: $deviceId, onEditingChanged: { _ in clearErrorMessage() })
+                        .padding()
+                        .background(Color.secondary.opacity(0.2))
+                        .cornerRadius(14)
+                        .focused($focusedField, equals: .deviceId)
+                        .textContentType(.username)
+                        .textInputAutocapitalization(.never)
+                        .autocorrectionDisabled()
+                    Text("Case sensitive")
+                        .font(.caption)
+                        .foregroundColor(.secondary)
+                        .padding(.leading, 4)
+                }
 
-                SecureField("Password", text: $password, onCommit: clearErrorMessage)
-                    .padding()
-                    .background(Color.secondary.opacity(0.2))
-                    .cornerRadius(14)
-                    .focused($focusedField, equals: .password)
-                    .textContentType(.password)
+                VStack(alignment: .leading, spacing: 4) {
+                    SecureField("Password", text: $password, onCommit: clearErrorMessage)
+                        .padding()
+                        .background(Color.secondary.opacity(0.2))
+                        .cornerRadius(14)
+                        .focused($focusedField, equals: .password)
+                        .textContentType(.password)
+                    Text("Case sensitive")
+                        .font(.caption)
+                        .foregroundColor(.secondary)
+                        .padding(.leading, 4)
+                }
             }
             .padding(.horizontal, 24)
             .padding(.bottom, 20)

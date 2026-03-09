@@ -103,8 +103,19 @@ struct LocationPickerView: View {
 
     private func locationRow(index: Int, location: AppLocation) -> some View {
         HStack {
-            Image(systemName: "folder.fill")
-                .foregroundColor(location.folderColor)
+            if location.isOnMap, let icon = location.mapIcon, let color = location.mapColor {
+                ZStack {
+                    Circle()
+                        .fill(Color.fromString(color).opacity(0.2))
+                        .frame(width: 28, height: 28)
+                    Image(systemName: icon)
+                        .font(.system(size: 14))
+                        .foregroundColor(Color.fromString(color))
+                }
+            } else {
+                Image(systemName: "folder.fill")
+                    .foregroundColor(location.folderColor)
+            }
             VStack(alignment: .leading, spacing: 2) {
                 Text(location.name)
                     .foregroundColor(.primary)

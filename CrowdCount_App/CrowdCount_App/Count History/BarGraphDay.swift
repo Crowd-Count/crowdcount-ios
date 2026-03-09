@@ -49,7 +49,7 @@ struct BarGraphDay: View {
                     AxisGridLine().foregroundStyle(Color.gray.opacity(0.5))
                 }
             }
-            .chartYScale(domain: 0...(max(1, dayData.values.map { max(0, $0) }.max() ?? 1, averageDayData?.values.map { max(0, $0) }.max() ?? 1)))
+            .chartYScale(domain: 0...(max(1, dayData.values.map { rounded($0) }.max() ?? 1, averageDayData?.values.map { rounded($0) }.max() ?? 1)))
             .frame(height: 200)
             .padding(.horizontal)
 
@@ -59,13 +59,18 @@ struct BarGraphDay: View {
         .padding([.top, .bottom]) // Add padding to top and bottom of the view
     }
 
+    private func rounded(_ value: Double) -> Double {
+        let r = value.rounded()
+        return r < 1 ? 0 : r
+    }
+
     @ChartContentBuilder
     private func barMarks() -> some ChartContent {
         ForEach(Array(allHours.enumerated()), id: \.element) { index, hour in
-            if let count = dayData[hour] {
+            if let count = dayData[hour], rounded(count) > 0 {
                 BarMark(
                     x: .value("Hour", hour),
-                    y: .value("Count", max(0, count))
+                    y: .value("Count", rounded(count))
                 )
                 .foregroundStyle(shouldHighlightBar(for: hour) ? .green : .blue)
                 .opacity(shouldHighlightBar(for: hour) ? 1.0 : (index % 2 == 0 ? 1.0 : 0.85))
@@ -79,10 +84,10 @@ struct BarGraphDay: View {
     private func averageBarMarks() -> some ChartContent {
         if let averageDayData = averageDayData {
             ForEach(Array(allHours.enumerated()), id: \.element) { index, hour in
-                if let averageCount = averageDayData[hour] {
+                if let averageCount = averageDayData[hour], rounded(averageCount) > 0 {
                     BarMark(
                         x: .value("Hour", hour),
-                        y: .value("Count", max(0, averageCount))
+                        y: .value("Count", rounded(averageCount))
                     )
                     .foregroundStyle(.orange)
                     .opacity(index % 2 == 0 ? 0.85 : 0.7)

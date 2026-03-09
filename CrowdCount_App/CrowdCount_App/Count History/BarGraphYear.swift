@@ -5,8 +5,6 @@ struct BarGraphYear: View {
     var yearData: [String: Double]
     var averageYearData: [String: Double]?
     var selectedYear: String
-    var hasInsufficientData: Bool
-
     var body: some View {
         VStack {
             Chart {
@@ -32,27 +30,32 @@ struct BarGraphYear: View {
                     AxisGridLine().foregroundStyle(Color.gray.opacity(0.5))
                 }
             }
-            .chartYScale(domain: 0...(max(1, yearData.values.map { max(0, $0) }.max() ?? 1, averageYearData?.values.map { max(0, $0) }.max() ?? 1)))
+            .chartYScale(domain: 0...(max(1, yearData.values.map { rounded($0) }.max() ?? 1, averageYearData?.values.map { rounded($0) }.max() ?? 1)))
             .frame(height: 200)
             .padding(.horizontal)
 
             LegendViewYear(
                 selectedYear: selectedYear,
-                showAverage: averageYearData != nil,
-                hasInsufficientData: hasInsufficientData
+                showAverage: averageYearData != nil
             )
             .padding(.top, 20)
         }
         .padding([.top, .bottom])
     }
-    
+
+    private func rounded(_ value: Double) -> Double {
+        let r = value.rounded()
+        return r < 1 ? 0 : r
+    }
+
     @ChartContentBuilder
     private func barMarks() -> some ChartContent {
         let allMonths = getAllMonths()
         ForEach(Array(allMonths.enumerated()), id: \.element) { index, month in
+            let count = rounded(yearData[month] ?? 0)
             BarMark(
                 x: .value("Month", month),
-                y: .value("Count", max(0, yearData[month] ?? 0))
+                y: .value("Count", count)
             )
             .foregroundStyle(.blue)
             .opacity(index % 2 == 0 ? 1.0 : 0.85)
@@ -66,10 +69,10 @@ struct BarGraphYear: View {
         if let averageYearData = averageYearData {
             let allMonths = getAllMonths()
             ForEach(Array(allMonths.enumerated()), id: \.element) { index, month in
-                if let averageCount = averageYearData[month] {
+                if let averageCount = averageYearData[month], rounded(averageCount) > 0 {
                     BarMark(
                         x: .value("Month", month),
-                        y: .value("Count", max(0, averageCount))
+                        y: .value("Count", rounded(averageCount))
                     )
                     .foregroundStyle(.orange)
                     .opacity(index % 2 == 0 ? 0.85 : 0.7)
@@ -93,9 +96,7 @@ struct BarGraphYear: View {
 struct LegendViewYear: View {
     var selectedYear: String
     var showAverage: Bool
-    var hasInsufficientData: Bool
     @State private var showAlert = false
-    @State private var showInsufficientDataAlert = false
 
     var body: some View {
         HStack {
@@ -105,58 +106,27 @@ struct LegendViewYear: View {
             Text(selectedYear)
                 .font(.caption)
                 .foregroundColor(.primary)
-        
-            if showAverage {
-                Circle()
-                    .fill(Color.orange)
-                    .frame(width: 10, height: 10)
-                Button(action: {
-                    self.showAlert = true
-                }) {
-                    HStack{
-                        Text("Monthly Average")
-                            .foregroundColor(.primary)
-                        Image(systemName:"info.circle.fill")
-                            .foregroundColor(.primary)
-                    }
-                    .font(.caption)
+
+            Circle()
+                .fill(Color.orange)
+                .frame(width: 10, height: 10)
+            Button(action: {
+                self.showAlert = true
+            }) {
+                HStack{
+                    Text("Yearly Average")
+                        .foregroundColor(.primary)
+                    Image(systemName:"info.circle.fill")
+                        .foregroundColor(.primary)
                 }
-                .alert(isPresented: $showAlert) {
-                    Alert(title: Text("Info for Monthly Average"),
-                          message: Text("""
-                                      The average is calculated based on data from the same month over the previous 3 years, provided there is enough data. A minimum of 2 years of data is required.
-                                      
-                                      If there isn't sufficient data, the average will not be displayed on the graph.
-                                      """),
-                          dismissButton: .default(Text("OK")))
-                }
+                .font(.caption)
             }
-            
-            // Show insufficient data notice in legend if there's no average data
-            if hasInsufficientData {
-                Circle()
-                    .fill(Color.orange)
-                    .frame(width: 10, height: 10)
-                Button(action: {
-                    self.showInsufficientDataAlert = true
-                }) {
-                    HStack{
-                        Text("Insufficient Data")
-                            .foregroundColor(.orange)
-                        Image(systemName:"info.circle.fill")
-                            .foregroundColor(.orange)
-                    }
-                    .font(.caption)
-                }
-                .alert(isPresented: $showInsufficientDataAlert) {
-                    Alert(title: Text("Insufficient Historical Data"),
-                          message: Text("""
-                                      This device doesn't have enough historic data to calculate monthly averages. At least 2 years of data are required.
-                                      
-                                      As more data is collected over time, monthly averages will become available.
-                                      """),
-                          dismissButton: .default(Text("OK")))
-                }
+            .alert(isPresented: $showAlert) {
+                Alert(title: Text("Info for Yearly Average"),
+                      message: Text("""
+                                  The average is calculated based on data from the same month over the previous 3 years, provided there is enough data. \n\nIf there isn't sufficient data, the average will not be displayed on the graph.
+                                  """),
+                      dismissButton: .default(Text("OK")))
             }
         }
         .padding(.horizontal)
@@ -176,21 +146,19 @@ struct BarGraphYear_Previews: PreviewProvider {
                     "January": 43.0, "February": 41.5, "March": 46.8, "April": 50.2,
                     "May": 53.4, "June": 56.7
                 ],
-                selectedYear: "2024",
-                hasInsufficientData: false
+                selectedYear: "2024"
             )
             .frame(height: 300)
-            
+
             Divider()
-            
-            // Preview with data but insufficient historical data for averages
+
+            // Preview with data but no averages
             BarGraphYear(
                 yearData: [
                     "January": 45.2, "February": 42.8, "March": 48.1
                 ],
                 averageYearData: nil,
-                selectedYear: "2024",
-                hasInsufficientData: true
+                selectedYear: "2024"
             )
             .frame(height: 300)
         }

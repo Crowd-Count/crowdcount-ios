@@ -15,19 +15,29 @@ struct LocationListView: View {
     @ObservedObject var adService: AdService
     var userLocation: CLLocationCoordinate2D?
     var onLocationSelected: ((Location) -> Void)? = nil
+    var activeColorFilters: Set<String> = Set(MapColorCategory.allColorKeys)
     @State private var searchText = ""
     @State private var selectedTab: ListTab = .locations
     @Environment(\.dismiss) private var dismiss
     @Environment(\.colorScheme) private var colorScheme
 
+    private var isFiltered: Bool {
+        activeColorFilters.count < MapColorCategory.allColorKeys.count
+    }
+
+    private var filterLabel: String? {
+        guard isFiltered else { return nil }
+        let matching = MapColorCategory.all.filter { activeColorFilters.contains($0.id) }
+        return matching.map { $0.label }.joined(separator: ", ")
+    }
+
     var filteredLocations: [Location] {
-        let base: [Location]
-        if searchText.isEmpty {
-            base = viewModel.locations
-        } else {
-            base = viewModel.locations.filter { location in
-                location.name.localizedCaseInsensitiveContains(searchText)
-            }
+        var base = viewModel.locations
+        if isFiltered {
+            base = base.filter { activeColorFilters.contains($0.color.lowercased()) }
+        }
+        if !searchText.isEmpty {
+            base = base.filter { $0.name.localizedCaseInsensitiveContains(searchText) }
         }
         if let userLocation = userLocation {
             let userCLLocation = CLLocation(latitude: userLocation.latitude, longitude: userLocation.longitude)
@@ -76,6 +86,21 @@ struct LocationListView: View {
     var body: some View {
         NavigationView {
             VStack(spacing: 0) {
+                // Filter notice
+                if let label = filterLabel {
+                    HStack(spacing: 6) {
+                        Image(systemName: "line.3.horizontal.decrease.circle.fill")
+                            .foregroundColor(.blue)
+                        Text("Filtered: \(label)")
+                            .font(.caption)
+                            .foregroundColor(.secondary)
+                    }
+                    .padding(.horizontal)
+                    .padding(.vertical, 6)
+                    .frame(maxWidth: .infinity, alignment: .leading)
+                    .background(Color.blue.opacity(0.08))
+                }
+
                 // Tab Picker
                 Picker("Tab", selection: $selectedTab) {
                     ForEach(ListTab.allCases, id: \.self) { tab in
@@ -469,15 +494,18 @@ struct LocationRowView: View {
 
     var body: some View {
         HStack(spacing: 12) {
-            // Icon with color
+            // Icon with color background (matches map marker style)
             ZStack {
                 Circle()
-                    .fill(Color.fromString(location.color).opacity(0.2))
+                    .fill(location.color.lowercased() == "yellow"
+                          ? Color(red: 0.82, green: 0.66, blue: 0.0)
+                          : Color.fromString(location.color))
+                    .overlay(colorScheme == .dark && location.color.lowercased() != "yellow" ? Circle().fill(.black.opacity(0.1)) : nil)
                     .frame(width: 45, height: 45)
 
                 Image(systemName: location.icon)
                     .font(.system(size: 20))
-                    .foregroundColor(Color.fromString(location.color))
+                    .foregroundColor(.white)
             }
 
             // Location Info
@@ -488,28 +516,40 @@ struct LocationRowView: View {
                     .foregroundColor(.primary)
 
                 HStack(spacing: 12) {
-                    // Current Count with trend
-                    HStack(spacing: 4) {
-                        Image(systemName: "person.2.fill")
-                            .font(.caption)
-                            .foregroundColor(.secondary)
-                        Text("\(location.currentCount)")
-                            .font(.subheadline)
-                            .fontWeight(.medium)
-                            .foregroundColor(.primary)
-                        if location.comparison != "neutral" {
-                            Text(location.comparisonSymbol)
+                    if location.isClosed {
+                        HStack(spacing: 4) {
+                            Image(systemName: "moon.fill")
+                                .font(.caption)
+                                .foregroundColor(.secondary)
+                            Text("Closed")
                                 .font(.subheadline)
-                                .foregroundColor(location.comparisonColor)
-                                .fontWeight(.bold)
+                                .fontWeight(.medium)
+                                .foregroundColor(.secondary)
                         }
-                    }
+                    } else {
+                        // Current Count with trend
+                        HStack(spacing: 4) {
+                            Image(systemName: "person.2.fill")
+                                .font(.caption)
+                                .foregroundColor(.secondary)
+                            Text("\(location.currentCount)")
+                                .font(.subheadline)
+                                .fontWeight(.medium)
+                                .foregroundColor(.primary)
+                            if location.comparison != "neutral" {
+                                Text(location.comparisonSymbol)
+                                    .font(.subheadline)
+                                    .foregroundColor(location.comparisonColor)
+                                    .fontWeight(.bold)
+                            }
+                        }
 
-                    // Overcrowding if available
-                    if let overcrowding = location.overcrowding {
-                        Text("Max: \(overcrowding)")
-                            .font(.caption)
-                            .foregroundColor(.secondary)
+                        // Overcrowding if available
+                        if let overcrowding = location.overcrowding {
+                            Text("Max: \(overcrowding)")
+                                .font(.caption)
+                                .foregroundColor(.secondary)
+                        }
                     }
                 }
 

@@ -3,6 +3,7 @@ import SwiftUI
 struct LocationCountersView: View {
     let location: AppLocation
     let currentCount: Int
+    let isClosed: Bool
     let devices: [Device]
     @Binding var deviceStatuses: [String: String]
     @Binding var locations: [AppLocation]
@@ -50,6 +51,7 @@ struct LocationCountersView: View {
                 if !locationDevices.isEmpty {
                     LocationTotalCountView(
                         currentCount: currentCount,
+                        isClosed: isClosed,
                         overcrowdingLimit: liveLocation.overcrowdingLimit,
                         locationName: liveLocation.name,
                         locationId: liveLocation.id,
@@ -66,6 +68,9 @@ struct LocationCountersView: View {
                                 locations[index] = updatedLocation
                                 saveLocations()
                             }
+                        },
+                        onEditClosingTime: {
+                            showLocationSettings = true
                         }
                     )
                     .tag(0)
@@ -251,7 +256,8 @@ struct LocationCountersView: View {
                 onDelete: {
                     deleteLocation(location.id)
                 },
-                removeDeviceFromLocation: removeDeviceFromLocation
+                removeDeviceFromLocation: removeDeviceFromLocation,
+                isClosed: isClosed
             )
         }
     }

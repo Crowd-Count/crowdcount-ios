@@ -230,29 +230,19 @@ class APIService: ObservableObject {
         }
     }
 
-    // MARK: - Current Count (lightweight, no auth)
+    // MARK: - Current Count
     struct CurrentCountResult {
         let count: Int
         let changed: Bool
     }
 
-    func fetchCurrentCount(deviceId: String) async throws -> CurrentCountResult {
-        guard let url = URL(string: "\(AppSettings.apiBaseURL)/currentcount") else {
-            throw APIError.invalidURL
-        }
-
-        var request = URLRequest(url: url)
-        request.httpMethod = "POST"
-        request.httpBody = try? JSONSerialization.data(withJSONObject: ["device_id": deviceId])
-        request.setValue("application/json", forHTTPHeaderField: "Content-Type")
-        request.cachePolicy = .reloadIgnoringLocalAndRemoteCacheData
-
-        let (data, response) = try await session.data(for: request)
-
-        guard let httpResponse = response as? HTTPURLResponse,
-              (200...299).contains(httpResponse.statusCode) else {
-            throw APIError.invalidResponse
-        }
+    func fetchCurrentCount(deviceId: String, password: String) async throws -> CurrentCountResult {
+        let data = try await request(
+            endpoint: "currentcount",
+            method: "POST",
+            body: ["device_id": deviceId, "password": password],
+            credentials: (deviceId, password)
+        )
 
         guard let json = try? JSONSerialization.jsonObject(with: data) as? [String: Any],
               let count = json["current_count"] as? Int else {
@@ -324,16 +314,17 @@ class APIService: ObservableObject {
         lastCounts.removeValue(forKey: deviceId)
     }
 
-    // MARK: - Connection Status (lightweight, no auth)
-    func checkConnectionStatus(deviceId: String) async throws -> String {
+    // MARK: - Connection Status
+    func checkConnectionStatus(deviceId: String, password: String) async throws -> String {
         let cacheKey = "connection:\(deviceId)"
 
         let data = try await request(
             endpoint: "connection_status",
             method: "POST",
-            body: ["device_id": deviceId],
+            body: ["device_id": deviceId, "password": password],
             cacheKey: cacheKey,
-            cacheTTL: CacheManager.TTL.connectionStatus
+            cacheTTL: CacheManager.TTL.connectionStatus,
+            credentials: (deviceId, password)
         )
 
         guard let json = try? JSONSerialization.jsonObject(with: data) as? [String: Any],
@@ -607,7 +598,7 @@ class APIService: ObservableObject {
         let data = try await request(
             endpoint: "get_location_week_data",
             method: "POST",
-            body: ["location_id": locationId, "date": date, "credentials": credentials],
+            body: ["location_id": locationId, "date": date, "credentials": credentials, "tz_offset_minutes": TimeZone.current.secondsFromGMT() / 60],
             cacheKey: "loc_weekdata:\(locationId):\(date)",
             cacheTTL: CacheManager.TTL.weekData,
             credentials: signingDevice
@@ -619,7 +610,7 @@ class APIService: ObservableObject {
         let data = try await request(
             endpoint: "get_location_average_week_data",
             method: "POST",
-            body: ["location_id": locationId, "date": date, "credentials": credentials],
+            body: ["location_id": locationId, "date": date, "credentials": credentials, "tz_offset_minutes": TimeZone.current.secondsFromGMT() / 60],
             cacheKey: "loc_avgweekdata:\(locationId):\(date)",
             cacheTTL: CacheManager.TTL.weekData,
             credentials: signingDevice
@@ -686,7 +677,7 @@ class APIService: ObservableObject {
         let data = try await request(
             endpoint: "get_location_entry_week_data",
             method: "POST",
-            body: ["location_id": locationId, "date": date, "credentials": credentials],
+            body: ["location_id": locationId, "date": date, "credentials": credentials, "tz_offset_minutes": TimeZone.current.secondsFromGMT() / 60],
             cacheKey: "loc_entryweekdata:\(locationId):\(date)",
             cacheTTL: CacheManager.TTL.weekData,
             credentials: signingDevice
@@ -698,7 +689,7 @@ class APIService: ObservableObject {
         let data = try await request(
             endpoint: "get_location_average_entry_week_data",
             method: "POST",
-            body: ["location_id": locationId, "date": date, "credentials": credentials],
+            body: ["location_id": locationId, "date": date, "credentials": credentials, "tz_offset_minutes": TimeZone.current.secondsFromGMT() / 60],
             cacheKey: "loc_avgentryweekdata:\(locationId):\(date)",
             cacheTTL: CacheManager.TTL.weekData,
             credentials: signingDevice
@@ -734,37 +725,248 @@ class APIService: ObservableObject {
         return try parseLocationHistoryData(data)
     }
 
-    // MARK: - Location Available Dates
+    // MARK: - Location Dwell Time Endpoints
 
-    /// Aggregates available dates across all devices in the location
-    /// (no server-level endpoint exists — we merge per-device results)
-    func fetchLocationAvailableDates(deviceCredentials: [(deviceId: String, password: String)]) async throws -> [String] {
-        var allDates = Set<String>()
+    func fetchLocationDwellTimeWeek(locationId: String, date: String, credentials: [[String: String]], signingDevice: (String, String)) async throws -> [String: Double] {
+        let data = try await request(
+            endpoint: "get_location_dwell_time_week",
+            method: "POST",
+            body: ["location_id": locationId, "date": date, "credentials": credentials],
+            cacheKey: "loc_dwelltimeweek:\(locationId):\(date)",
+            cacheTTL: CacheManager.TTL.weekData,
+            credentials: signingDevice
+        )
+        return try parseLocationHistoryData(data)
+    }
 
-        try await withThrowingTaskGroup(of: [String].self) { group in
-            for cred in deviceCredentials {
-                group.addTask {
-                    let data = try await self.request(
-                        endpoint: "get_user_days",
-                        method: "POST",
-                        body: ["device_id": cred.deviceId, "password": cred.password],
-                        cacheKey: "dates:\(cred.deviceId)",
-                        cacheTTL: CacheManager.TTL.availableDates,
-                        credentials: (cred.deviceId, cred.password)
-                    )
-                    guard let json = try? JSONSerialization.jsonObject(with: data) as? [String: Any],
-                          let dates = json["dates"] as? [String] else {
-                        return []
-                    }
-                    return dates
-                }
-            }
-            for try await dates in group {
-                allDates.formUnion(dates)
-            }
+    func fetchLocationDwellTimeYear(locationId: String, year: Int, credentials: [[String: String]], signingDevice: (String, String)) async throws -> [String: Double] {
+        let data = try await request(
+            endpoint: "get_location_dwell_time_year",
+            method: "POST",
+            body: ["location_id": locationId, "year": year, "credentials": credentials],
+            cacheKey: "loc_dwelltimeyear:\(locationId):\(year)",
+            cacheTTL: CacheManager.TTL.yearData,
+            credentials: signingDevice
+        )
+        return try parseLocationHistoryData(data)
+    }
+
+    // MARK: - Location Bundle Endpoints
+
+    struct InsightsBundleResponse {
+        let dayView: [String: Double]
+        let averageDayView: [String: Double]
+        let entryDayView: [String: Double]
+        let averageEntryDayView: [String: Double]
+        let dayView2: [String: Double]?
+        let averageDayView2: [String: Double]?
+        let entryDayView2: [String: Double]?
+        let averageEntryDayView2: [String: Double]?
+        let weekView: [String: Double]
+        let averageWeekView: [String: Double]
+        let entryWeekView: [String: Double]
+        let averageEntryWeekView: [String: Double]
+        let yearView: [String: Double]
+        let averageYearView: [String: Double]?
+        let entryYearView: [String: Double]
+        let averageEntryYearView: [String: Double]?
+        let dwellTimeMinutes: Double?
+    }
+
+    struct HistoryBundleResponse {
+        let dayView: [String: Double]
+        let averageDayView: [String: Double]
+        let dayView2: [String: Double]?
+        let averageDayView2: [String: Double]?
+        let weekView: [String: Double]
+        let averageWeekView: [String: Double]
+        let yearView: [String: Double]
+        let averageYearView: [String: Double]?
+    }
+
+    private func parseBundleDict(_ json: [String: Any], key: String) -> [String: Double] {
+        guard let dict = json[key] as? [String: Any] else { return [:] }
+        var result: [String: Double] = [:]
+        for (k, v) in dict {
+            if let d = v as? Double { result[k] = d }
+            else if let i = v as? Int { result[k] = Double(i) }
+        }
+        return result
+    }
+
+    private func parseBundleDictOptional(_ json: [String: Any], key: String) -> [String: Double]? {
+        // Server returns null or "N/A" for insufficient data
+        if json[key] is NSNull { return nil }
+        if let str = json[key] as? String, str == "N/A" { return nil }
+        let result = parseBundleDict(json, key: key)
+        return result.isEmpty ? nil : result
+    }
+
+    func fetchLocationInsightsBundle(
+        locationId: String,
+        date: String,
+        date2: String?,
+        weekDate: String,
+        year: Int,
+        credentials: [[String: String]],
+        signingDevice: (String, String)
+    ) async throws -> InsightsBundleResponse {
+        var body: [String: Any] = [
+            "location_id": locationId,
+            "credentials": credentials,
+            "date": date,
+            "week_date": weekDate,
+            "year": year,
+            "tz_offset_minutes": TimeZone.current.secondsFromGMT() / 60
+        ]
+        if let date2 = date2 {
+            body["date2"] = date2
         }
 
-        return allDates.sorted()
+        let data = try await request(
+            endpoint: "get_location_insights_bundle",
+            method: "POST",
+            body: body,
+            credentials: signingDevice
+        )
+
+        guard let json = try? JSONSerialization.jsonObject(with: data) as? [String: Any] else {
+            throw APIError.decodingError
+        }
+
+        // Parse dwell time (number or empty dict from _safe_view)
+        let dwellTime: Double?
+        if let d = json["dwell_time_view"] as? Double {
+            dwellTime = d
+        } else if let i = json["dwell_time_view"] as? Int {
+            dwellTime = Double(i)
+        } else {
+            dwellTime = nil
+        }
+
+        return InsightsBundleResponse(
+            dayView: parseBundleDict(json, key: "day_view"),
+            averageDayView: parseBundleDict(json, key: "average_day_view"),
+            entryDayView: parseBundleDict(json, key: "entry_day_view"),
+            averageEntryDayView: parseBundleDict(json, key: "average_entry_day_view"),
+            dayView2: date2 != nil ? parseBundleDict(json, key: "day_view_2") : nil,
+            averageDayView2: date2 != nil ? parseBundleDict(json, key: "average_day_view_2") : nil,
+            entryDayView2: date2 != nil ? parseBundleDict(json, key: "entry_day_view_2") : nil,
+            averageEntryDayView2: date2 != nil ? parseBundleDict(json, key: "average_entry_day_view_2") : nil,
+            weekView: parseBundleDict(json, key: "week_view"),
+            averageWeekView: parseBundleDict(json, key: "average_week_view"),
+            entryWeekView: parseBundleDict(json, key: "entry_week_view"),
+            averageEntryWeekView: parseBundleDict(json, key: "average_entry_week_view"),
+            yearView: parseBundleDict(json, key: "year_view"),
+            averageYearView: parseBundleDictOptional(json, key: "average_year_view"),
+            entryYearView: parseBundleDict(json, key: "entry_year_view"),
+            averageEntryYearView: parseBundleDictOptional(json, key: "average_entry_year_view"),
+            dwellTimeMinutes: dwellTime
+        )
+    }
+
+    func fetchLocationHistoryBundle(
+        locationId: String,
+        date: String,
+        date2: String?,
+        weekDate: String,
+        year: Int,
+        dataType: String,
+        credentials: [[String: String]],
+        signingDevice: (String, String)
+    ) async throws -> HistoryBundleResponse {
+        var body: [String: Any] = [
+            "location_id": locationId,
+            "credentials": credentials,
+            "date": date,
+            "week_date": weekDate,
+            "year": year,
+            "data_type": dataType,
+            "tz_offset_minutes": TimeZone.current.secondsFromGMT() / 60
+        ]
+        if let date2 = date2 {
+            body["date2"] = date2
+        }
+
+        let data = try await request(
+            endpoint: "get_location_history_bundle",
+            method: "POST",
+            body: body,
+            credentials: signingDevice
+        )
+
+        guard let json = try? JSONSerialization.jsonObject(with: data) as? [String: Any] else {
+            throw APIError.decodingError
+        }
+
+        return HistoryBundleResponse(
+            dayView: parseBundleDict(json, key: "day_view"),
+            averageDayView: parseBundleDict(json, key: "average_day_view"),
+            dayView2: date2 != nil ? parseBundleDict(json, key: "day_view_2") : nil,
+            averageDayView2: date2 != nil ? parseBundleDict(json, key: "average_day_view_2") : nil,
+            weekView: parseBundleDict(json, key: "week_view"),
+            averageWeekView: parseBundleDict(json, key: "average_week_view"),
+            yearView: parseBundleDict(json, key: "year_view"),
+            averageYearView: parseBundleDictOptional(json, key: "average_year_view")
+        )
+    }
+
+    // MARK: - Detailed Day Data (15-min intervals for CSV downloads)
+
+    struct DayDataDetailedResponse {
+        let data: [String: Double]
+        let average: [String: Double]
+    }
+
+    func fetchLocationDayDataDetailed(
+        locationId: String,
+        date: String,
+        dataType: String,
+        credentials: [[String: String]],
+        signingDevice: (String, String)
+    ) async throws -> DayDataDetailedResponse {
+        let body: [String: Any] = [
+            "location_id": locationId,
+            "credentials": credentials,
+            "date": date,
+            "data_type": dataType,
+            "tz_offset_minutes": TimeZone.current.secondsFromGMT() / 60
+        ]
+
+        let data = try await request(
+            endpoint: "get_location_day_data_detailed",
+            method: "POST",
+            body: body,
+            credentials: signingDevice
+        )
+
+        guard let json = try? JSONSerialization.jsonObject(with: data) as? [String: Any] else {
+            throw APIError.decodingError
+        }
+
+        return DayDataDetailedResponse(
+            data: parseBundleDict(json, key: "data"),
+            average: parseBundleDict(json, key: "average")
+        )
+    }
+
+    // MARK: - Location Available Dates
+
+    /// Fetches available dates for a location via the server-level endpoint
+    func fetchLocationAvailableDates(locationId: String, credentials: [[String: String]], signingDevice: (String, String)) async throws -> [String] {
+        let data = try await request(
+            endpoint: "get_location_available_dates",
+            method: "POST",
+            body: ["location_id": locationId, "credentials": credentials],
+            cacheKey: "loc_dates:\(locationId)",
+            cacheTTL: CacheManager.TTL.availableDates,
+            credentials: signingDevice
+        )
+        guard let json = try? JSONSerialization.jsonObject(with: data) as? [String: Any],
+              let dates = json["dates"] as? [String] else {
+            return []
+        }
+        return dates
     }
 
     // MARK: - Alert Check
@@ -803,6 +1005,33 @@ class APIService: ObservableObject {
         }
 
         return (type: type, title: title, body: body, alertId: alertId)
+    }
+
+    // MARK: - Popular Times
+
+    func fetchPopularTimes(locationId: String) async throws -> PopularTimesData? {
+        let data = try await request(
+            endpoint: "get_popular_times?location_id=\(locationId)",
+            cacheKey: "popular_times_\(locationId)",
+            cacheTTL: 300
+        )
+
+        guard let json = try? JSONSerialization.jsonObject(with: data) as? [String: Any],
+              let popularTimes = json["popular_times"] as? [String: Any],
+              let dayOfWeek = json["day_of_week"] as? String else {
+            return nil
+        }
+
+        var hourlyAverages: [String: Double] = [:]
+        for (key, value) in popularTimes {
+            if let doubleVal = value as? Double {
+                hourlyAverages[key] = doubleVal
+            } else if let intVal = value as? Int {
+                hourlyAverages[key] = Double(intVal)
+            }
+        }
+
+        return PopularTimesData(hourlyAveragesUTC: hourlyAverages, dayOfWeek: dayOfWeek)
     }
 
     // MARK: - Promotion Pricing
@@ -897,6 +1126,105 @@ class APIService: ObservableObject {
         )
     }
 
+    // MARK: - Closing Time
+
+    struct ClosingTimeDay {
+        let dayOfWeek: Int      // 0=Mon..6=Sun
+        let closeHour: Int
+        let closeMinute: Int
+        let openHour: Int
+        let openMinute: Int
+    }
+
+    struct ClosingTimeSchedule {
+        let locationId: String
+        let timezone: String
+        let days: [ClosingTimeDay]
+    }
+
+    private func parseClosingTimeSchedule(from json: [String: Any]) -> ClosingTimeSchedule? {
+        guard let locationId = json["location_id"] as? String,
+              let timezone = json["timezone"] as? String,
+              let daysArray = json["days"] as? [[String: Any]] else {
+            return nil
+        }
+
+        let days = daysArray.compactMap { dayDict -> ClosingTimeDay? in
+            guard let dayOfWeek = dayDict["day_of_week"] as? Int,
+                  let closeHour = dayDict["close_hour"] as? Int,
+                  let closeMinute = dayDict["close_minute"] as? Int,
+                  let openHour = dayDict["open_hour"] as? Int,
+                  let openMinute = dayDict["open_minute"] as? Int else {
+                return nil
+            }
+            return ClosingTimeDay(dayOfWeek: dayOfWeek, closeHour: closeHour, closeMinute: closeMinute, openHour: openHour, openMinute: openMinute)
+        }
+
+        return ClosingTimeSchedule(locationId: locationId, timezone: timezone, days: days)
+    }
+
+    func fetchClosingTime(locationId: String, credentials: [[String: String]], signingDevice: (String, String)) async throws -> ClosingTimeSchedule? {
+        let data = try await request(
+            endpoint: "get_closing_time",
+            method: "POST",
+            body: ["location_id": locationId, "credentials": credentials],
+            credentials: signingDevice
+        )
+
+        guard let json = try? JSONSerialization.jsonObject(with: data) as? [String: Any] else {
+            throw APIError.decodingError
+        }
+
+        // Server returns {"closing_time": null} when no schedule exists
+        if json["closing_time"] is NSNull || (json["closing_time"] == nil && json["location_id"] == nil) {
+            return nil
+        }
+
+        return parseClosingTimeSchedule(from: json)
+    }
+
+    func setClosingTime(locationId: String, timezone: String, days: [ClosingTimeDay], credentials: [[String: String]], signingDevice: (String, String)) async throws -> ClosingTimeSchedule {
+        let daysPayload: [[String: Any]] = days.map { day in
+            [
+                "day_of_week": day.dayOfWeek,
+                "close_hour": day.closeHour,
+                "close_minute": day.closeMinute,
+                "open_hour": day.openHour,
+                "open_minute": day.openMinute
+            ]
+        }
+
+        let data = try await request(
+            endpoint: "set_closing_time",
+            method: "POST",
+            body: [
+                "location_id": locationId,
+                "credentials": credentials,
+                "timezone": timezone,
+                "days": daysPayload
+            ],
+            credentials: signingDevice,
+            idempotent: true
+        )
+
+        guard let json = try? JSONSerialization.jsonObject(with: data) as? [String: Any],
+              let schedule = parseClosingTimeSchedule(from: json) else {
+            throw APIError.decodingError
+        }
+
+        return schedule
+    }
+
+    func deleteClosingTime(locationId: String, credentials: [[String: String]], signingDevice: (String, String)) async throws {
+        _ = try await request(
+            endpoint: "delete_closing_time",
+            method: "POST",
+            body: ["location_id": locationId, "credentials": credentials],
+            credentials: signingDevice,
+            idempotent: true
+        )
+    }
+
     // MARK: - Device Settings
 
     func getDirectionFlipped(deviceId: String, password: String) async throws -> Bool {
@@ -947,14 +1275,16 @@ class APIService: ObservableObject {
 
     // MARK: - App Version Reporting
 
-    func reportAppVersion() async {
+    func reportAppVersion(deviceId: String, password: String) async {
         let version = Bundle.main.infoDictionary?["CFBundleShortVersionString"] as? String ?? "unknown"
         let build = Bundle.main.infoDictionary?["CFBundleVersion"] as? String ?? "unknown"
-        let platform = "ios"
+        let commitHash = "\(version)-\(build)-ios"
         _ = try? await request(
             endpoint: "report_version",
             method: "POST",
-            body: ["version": version, "build": build, "platform": platform]
+            body: ["device_id": deviceId, "password": password, "commit_hash": commitHash],
+            credentials: (deviceId, password),
+            idempotent: true
         )
     }
 
@@ -998,6 +1328,7 @@ struct LocationResponse {
     let isOnMap: Bool
     let mapIcon: String?
     let mapColor: String?
+    let isClosed: Bool
 
     init?(from dict: [String: Any]) {
         guard let id = dict["location_id"] as? String else { return nil }
@@ -1015,6 +1346,7 @@ struct LocationResponse {
         self.isOnMap = (dict["on_map"] as? Int) == 1
         self.mapIcon = dict["location_icon"] as? String
         self.mapColor = dict["location_color"] as? String
+        self.isClosed = dict["is_closed"] as? Bool ?? false
     }
 }
 

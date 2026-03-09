@@ -6,6 +6,7 @@ struct CounterPlacementGuideView: View {
     @Binding var wifiPassword: String
     @ObservedObject var bluetoothManager: BluetoothManager
     let sendWiFiCredentials: () -> Void
+    var knownDevicePassword: String? = nil
 
     var body: some View {
         VStack(spacing: 24) {
@@ -25,7 +26,8 @@ struct CounterPlacementGuideView: View {
                 wifiSSID: $wifiSSID,
                 wifiPassword: $wifiPassword,
                 bluetoothManager: bluetoothManager,
-                sendWiFiCredentials: sendWiFiCredentials
+                sendWiFiCredentials: sendWiFiCredentials,
+                knownDevicePassword: knownDevicePassword
             )) {
                 Text("Continue to WiFi Setup")
                     .bold()

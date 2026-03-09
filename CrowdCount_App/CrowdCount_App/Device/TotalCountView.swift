@@ -3,6 +3,7 @@ import UserNotifications
 
 struct LocationTotalCountView: View {
     let currentCount: Int
+    let isClosed: Bool
     let overcrowdingLimit: Int?
     let locationName: String
     let locationId: String
@@ -15,6 +16,7 @@ struct LocationTotalCountView: View {
     let subFromCount: (Int) -> Void
     @Binding var location: AppLocation
     let onLocationUpdated: (AppLocation) -> Void
+    var onEditClosingTime: (() -> Void)? = nil
 
     @Environment(\.colorScheme) var colorScheme
 
@@ -91,7 +93,7 @@ struct LocationTotalCountView: View {
                 }
 
                 VStack(spacing: 4) {
-                    Text(offlineCounters.isEmpty ? "Live Count for" : "Total Count for")
+                    Text(isClosed ? "Status for" : (offlineCounters.isEmpty ? "Live Count for" : "Total Count for"))
                         .font(.callout)
                         .foregroundColor(.secondary)
                     Text(locationName)
@@ -101,7 +103,21 @@ struct LocationTotalCountView: View {
 
                 // Count display
                 Group {
-                    if let limit = overcrowdingLimit, limit > 0 {
+                    if isClosed {
+                        VStack(spacing: 8) {
+                            Text("Closed")
+                                .font(.system(size: 50))
+                                .fontWeight(.bold)
+                                .foregroundColor(.secondary)
+                            if let onEditClosingTime = onEditClosingTime {
+                                Button(action: onEditClosingTime) {
+                                    Text("Edit Closing Times")
+                                        .font(.subheadline)
+                                        .foregroundColor(.accentColor)
+                                }
+                            }
+                        }
+                    } else if let limit = overcrowdingLimit, limit > 0 {
                         HStack(alignment: .center, spacing: 0) {
                             Text("\(currentCount)")
                                 .fontWeight(.bold)
@@ -113,12 +129,13 @@ struct LocationTotalCountView: View {
                                 .fontWeight(.bold)
                                 .foregroundColor(.secondary)
                         }
+                        .font(.system(size: 75))
                     } else {
                         Text("\(currentCount)")
                             .fontWeight(.bold)
+                            .font(.system(size: 75))
                     }
                 }
-                .font(.system(size: 75))
                 .lineLimit(1)
                 .minimumScaleFactor(0.4)
                 .padding(.horizontal, 20)
@@ -130,10 +147,10 @@ struct LocationTotalCountView: View {
                     Button(action: { subFromCount(1) }) {
                         Image(systemName: "minus")
                             .font(.system(size: 18, weight: .semibold))
-                            .foregroundColor(currentCount <= 0 ? .secondary : .primary)
+                            .foregroundColor(currentCount <= 0 || isClosed ? .secondary : .primary)
                             .frame(width: 44, height: 36)
                     }
-                    .disabled(currentCount <= 0)
+                    .disabled(currentCount <= 0 || isClosed)
 
                     Divider()
                         .frame(height: 20)
@@ -141,12 +158,14 @@ struct LocationTotalCountView: View {
                     Button(action: { addToCount(1) }) {
                         Image(systemName: "plus")
                             .font(.system(size: 18, weight: .semibold))
-                            .foregroundColor(.primary)
+                            .foregroundColor(isClosed ? .secondary : .primary)
                             .frame(width: 44, height: 36)
                     }
+                    .disabled(isClosed)
                 }
                 .background(Color.secondary.opacity(0.25))
                 .clipShape(Capsule())
+                .opacity(isClosed ? 0.5 : 1.0)
                 .padding(.bottom, 8)
 
                 // Incomplete on-map location warning banner

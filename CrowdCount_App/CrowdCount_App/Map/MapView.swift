@@ -11,29 +11,57 @@ struct MapContentView: View {
     @EnvironmentObject var appSettings: AppSettings
     @Environment(\.colorScheme) private var colorScheme
     @State private var showingListView = false
+    @State private var showingFilterView = false
+    @State private var selectedLocationId: String?
     @State private var showAdCarousel: Bool
+    @State private var activeColorFilters: Set<String> = Set(MapColorCategory.allColorKeys)
     private var previewAds: [ServerAd]?
     private var previewLocations: [Location]?
 
     // TEMPORARY: Set to true to show demo ads for screenshots
     private static let useDemoAds = false
 
-    init(showAds: Bool = true, previewAds: [ServerAd]? = nil, previewLocations: [Location]? = nil) {
+    init(showAds: Bool = true, previewAds: [ServerAd]? = nil, previewLocations: [Location]? = nil, initialColorFilter: Set<String>? = nil) {
         _showAdCarousel = State(initialValue: showAds)
         self.previewAds = Self.useDemoAds ? ServerAd.sampleAds : previewAds
         self.previewLocations = previewLocations
+        if let filter = initialColorFilter {
+            _activeColorFilters = State(initialValue: filter)
+        }
+    }
+
+    private var isFilterActive: Bool {
+        activeColorFilters.count < MapColorCategory.allColorKeys.count
     }
 
     private var displayLocations: [Location] {
-        previewLocations ?? viewModel.locations
+        let base = previewLocations ?? viewModel.locations
+        if isFilterActive {
+            return base.filter { activeColorFilters.contains($0.color.lowercased()) }
+        }
+        return base
     }
 
     private var displayMapItems: [MapItem] {
         // In preview mode, show all locations as singles (no clustering)
         if let previewLocs = previewLocations {
-            return previewLocs.map { .single($0) }
+            let filtered = isFilterActive ? previewLocs.filter { activeColorFilters.contains($0.color.lowercased()) } : previewLocs
+            return filtered.map { .single($0) }
         }
-        return viewModel.mapItems
+        if !isFilterActive {
+            return viewModel.mapItems
+        }
+        return viewModel.mapItems.compactMap { item in
+            switch item {
+            case .single(let location):
+                return activeColorFilters.contains(location.color.lowercased()) ? item : nil
+            case .cluster(let id, let coordinate, let locations):
+                let filtered = locations.filter { activeColorFilters.contains($0.color.lowercased()) }
+                if filtered.isEmpty { return nil }
+                if filtered.count == 1 { return .single(filtered[0]) }
+                return .cluster(id: id, coordinate: coordinate, locations: filtered)
+            }
+        }
     }
 
     // Get the bottom safe area inset
@@ -63,50 +91,36 @@ struct MapContentView: View {
         }
     }
 
-    var body: some View {
-        ZStack {
-            Map(position: $viewModel.cameraPosition) {
-                ForEach(displayMapItems) { item in
-                    switch item {
-                    case .single(let location):
-                        Marker(location.name, systemImage: location.icon, coordinate: location.coordinate)
-                            .tint(Color.fromString(location.color))
-                        Annotation("", coordinate: location.coordinate) {
-                            FadeInView {
-                                VStack {
-                                    Text("\(location.name)")
-                                        .font(.caption)
-                                        .bold()
-                                    HStack(spacing: 0) {
-                                        Text("Count: \(location.currentCount)")
-                                            .font(.caption)
-                                        if location.comparison != "neutral" {
-                                            Text(location.comparisonSymbol)
-                                                .font(.caption)
-                                                .foregroundColor(location.comparisonColor)
-                                        }
-                                        if let overcrowding = location.overcrowding {
-                                            Text(" / \(overcrowding)")
-                                                .font(.caption)
-                                                .foregroundColor(.secondary)
-                                        }
-                                    }
-                                    .offset(y: -2)
-                                }
-                                .shadow(color: appSettings.isDarkMode ? .black : .white, radius: 1)
-                                .offset(y: 16)
-                            }
+    @MapContentBuilder
+    private var mapContent: some MapContent {
+        UserAnnotation()
+        ForEach(displayMapItems) { item in
+            switch item {
+            case .single(let location):
+                let tintColor: Color = location.color.lowercased() == "yellow"
+                    ? Color(red: 0.82, green: 0.66, blue: 0.0)
+                    : Color.fromString(location.color)
+                Marker(location.name, systemImage: location.icon, coordinate: location.coordinate)
+                    .tint(tintColor)
+                    .tag(location.id)
+            case .cluster(_, let coordinate, let locations):
+                Annotation("", coordinate: coordinate) {
+                    ClusterMarkerView(locations: locations)
+                        .onTapGesture {
+                            viewModel.zoomToFit(locations)
                         }
-                    case .cluster(_, let coordinate, let locations):
-                        Annotation("", coordinate: coordinate) {
-                            ClusterMarkerView(locations: locations)
-                                .onTapGesture {
-                                    viewModel.zoomToFit(locations)
-                                }
-                        }
-                    }
                 }
             }
+        }
+    }
+
+    var body: some View {
+        ZStack {
+            Map(position: $viewModel.cameraPosition, selection: $selectedLocationId) {
+                mapContent
+            }
+            .mapStyle(.standard(pointsOfInterest: .excludingAll))
+            .mapControls { }
             .onMapCameraChange { context in
                 // Detect if user has manually navigated (zoomed in from initial wide view)
                 // Initial view has span ~50 degrees; if much smaller, user has navigated
@@ -194,6 +208,12 @@ struct MapContentView: View {
                     viewModel.setInitialPosition(userLocation: newLocation)
                 }
             }
+            .onChange(of: selectedLocationId) { _, newValue in
+                if let locationId = newValue,
+                   let location = displayLocations.first(where: { $0.id == locationId }) {
+                    viewModel.centerOnLocation(location.coordinate)
+                }
+            }
             .edgesIgnoringSafeArea(.all)
             .navigationBarTitle("CrowdCount Map", displayMode: .inline)
             .navigationBarItems(trailing:
@@ -208,7 +228,7 @@ struct MapContentView: View {
                 }
             )
 
-            // Buttons and Ad Carousel at bottom
+            // Buttons, Ad Carousel, and Detail Card at bottom
             VStack(spacing: 0) {
                 Spacer()
                 HStack {
@@ -217,18 +237,31 @@ struct MapContentView: View {
                         RefreshButtonOverlay(viewModel: viewModel, adService: adService)
                         LocationButtonOverlay(viewModel: viewModel, locationManager: locationManager)
                         ListModeButtonOverlay(showingListView: $showingListView)
+                        FilterButtonOverlay(showingFilterView: $showingFilterView, isFilterActive: isFilterActive)
                         ReportButtonOverlay()
                     }
                 }
                 .padding(.trailing, 8)
-                .padding(.bottom, 8)
+                .padding(.bottom, {
+                    let cardVisible = selectedLocationId != nil && displayLocations.contains(where: { $0.id == selectedLocationId })
+                    let adVisible = showAdCarousel && !(previewAds ?? adService.activeAds).isEmpty
+                    return cardVisible || adVisible ? 8 : 8 + bottomSafeAreaInset
+                }())
 
-                if showAdCarousel {
+                if let locationId = selectedLocationId,
+                   let location = displayLocations.first(where: { $0.id == locationId }) {
+                    LocationDetailCard(location: location) {
+                        selectedLocationId = nil
+                    }
+                    .transition(.move(edge: .bottom).combined(with: .opacity))
+                } else if showAdCarousel {
                     AdCarouselView(isVisible: $showAdCarousel, adService: adService, userLocation: locationManager.userLocation, locations: displayLocations, previewAds: previewAds)
                         .padding(.horizontal, 8)
-                        .padding(.bottom, adCarouselBottomPadding)
+                        .padding(.bottom, 8)
                 }
             }
+            .animation(.spring(response: 0.3, dampingFraction: 0.9), value: selectedLocationId)
+            .edgesIgnoringSafeArea(.bottom)
 
             if viewModel.isLoading {
                 if #available(iOS 26.0, *) {
@@ -245,10 +278,18 @@ struct MapContentView: View {
             }
         }
         .sheet(isPresented: $showingListView) {
-            LocationListView(viewModel: viewModel, adService: adService, userLocation: locationManager.userLocation) { location in
+            LocationListView(viewModel: viewModel, adService: adService, userLocation: locationManager.userLocation, onLocationSelected: { location in
                 showingListView = false
                 viewModel.centerOnLocation(location.coordinate)
-            }
+                // Select the marker after a short delay so the sheet dismisses
+                // and map centers before the detail card slides up
+                DispatchQueue.main.asyncAfter(deadline: .now() + 0.5) {
+                    selectedLocationId = location.id
+                }
+            }, activeColorFilters: activeColorFilters)
+        }
+        .sheet(isPresented: $showingFilterView) {
+            MapFilterView(activeFilters: $activeColorFilters)
         }
     }
 }
@@ -534,6 +575,9 @@ class MapViewModel: ObservableObject {
                 // Parse comparison trend
                 let comparison = location["location_comparison"] as? String ?? "neutral"
 
+                // Parse closed state
+                let isClosed = location["is_closed"] as? Bool ?? false
+
                 // Only add if we haven't seen this ID before
                 if !seenIds.contains(locationId) {
                     seenIds.insert(locationId)
@@ -545,6 +589,7 @@ class MapViewModel: ObservableObject {
                         color: color,
                         icon: icon,
                         currentCount: currentCount,
+                        isClosed: isClosed,
                         comparison: comparison,
                         overcrowding: overcrowding
                     )
@@ -651,6 +696,7 @@ struct Location: Identifiable {
     let color: String
     let icon: String
     let currentCount: Int
+    let isClosed: Bool
     let comparison: String  // "up", "down", or "neutral"
     let overcrowding: Int?
 
@@ -685,6 +731,7 @@ struct Location: Identifiable {
             color: "red",
             icon: "flag.2.crossed.fill",
             currentCount: 5,
+            isClosed: false,
             comparison: "up",
             overcrowding: 10
         ),
@@ -696,6 +743,7 @@ struct Location: Identifiable {
             color: "green",
             icon: "tree.fill",
             currentCount: 23,
+            isClosed: false,
             comparison: "down",
             overcrowding: nil
         ),
@@ -707,6 +755,7 @@ struct Location: Identifiable {
             color: "blue",
             icon: "fish.fill",
             currentCount: 29,
+            isClosed: false,
             comparison: "neutral",
             overcrowding: nil
         ),
@@ -718,6 +767,7 @@ struct Location: Identifiable {
             color: "orange",
             icon: "mug.fill",
             currentCount: 86,
+            isClosed: false,
             comparison: "up",
             overcrowding: 100
         )
@@ -833,7 +883,7 @@ private struct ListModeButtonOverlay: View {
             showingListView = true
         }) {
             if #available(iOS 26.0, *) {
-                Image(systemName: "list.bullet")
+                Image(systemName: "magnifyingglass")
                     .resizable()
                     .scaledToFit()
                     .frame(width: 20, height: 20)
@@ -843,7 +893,7 @@ private struct ListModeButtonOverlay: View {
                     .shadow(radius: 10)
                     .glassEffect(.regular.interactive(), in: RoundedRectangle(cornerRadius: 20))
             } else {
-                Image(systemName: "list.bullet")
+                Image(systemName: "magnifyingglass")
                     .resizable()
                     .scaledToFit()
                     .frame(width: 20, height: 20)
@@ -880,6 +930,133 @@ private struct ReportButtonOverlay: View {
                     .background(.red)
                     .cornerRadius(20)
                     .shadow(radius: 10)
+            }
+        }
+    }
+}
+
+// MARK: - MapColorCategory
+
+struct MapColorCategory: Identifiable {
+    let id: String      // color key (lowercased)
+    let color: Color
+    let label: String
+
+    static let all: [MapColorCategory] = [
+        MapColorCategory(id: "red", color: .red, label: "General"),
+        MapColorCategory(id: "orange", color: .orange, label: "Restaurants & Bars"),
+        MapColorCategory(id: "yellow", color: Color(red: 0.88, green: 0.72, blue: 0.0), label: "Grocery & Market"),
+        MapColorCategory(id: "green", color: .green, label: "Fashion & Accessories"),
+        MapColorCategory(id: "blue", color: .blue, label: "Retail & Home Goods"),
+        MapColorCategory(id: "purple", color: .purple, label: "Government & Organizations"),
+        MapColorCategory(id: "pink", color: Color(red: 1.0, green: 0.2, blue: 0.55), label: "Entertainment & Venues"),
+    ]
+
+    static let allColorKeys: [String] = all.map { $0.id }
+}
+
+// MARK: - FilterButtonOverlay
+
+private struct FilterButtonOverlay: View {
+    @Binding var showingFilterView: Bool
+    var isFilterActive: Bool
+    @Environment(\.colorScheme) private var colorScheme
+
+    var body: some View {
+        Button(action: { showingFilterView = true }) {
+            if #available(iOS 26.0, *) {
+                Image(systemName: "list.bullet")
+                    .resizable()
+                    .scaledToFit()
+                    .frame(width: 20, height: 20)
+                    .foregroundColor(isFilterActive ? .blue : (colorScheme == .dark ? .white : .primary))
+                    .padding()
+                    .cornerRadius(20)
+                    .shadow(radius: 10)
+                    .glassEffect(.regular.interactive(), in: RoundedRectangle(cornerRadius: 20))
+            } else {
+                Image(systemName: "list.bullet")
+                    .resizable()
+                    .scaledToFit()
+                    .frame(width: 20, height: 20)
+                    .foregroundColor(isFilterActive ? .blue : .primary)
+                    .padding()
+                    .background(.ultraThinMaterial)
+                    .cornerRadius(20)
+                    .shadow(radius: 10)
+            }
+        }
+    }
+}
+
+// MARK: - MapFilterView
+
+struct MapFilterView: View {
+    @Binding var activeFilters: Set<String>
+    @Environment(\.dismiss) private var dismiss
+
+    private var allEnabled: Bool {
+        activeFilters.count == MapColorCategory.allColorKeys.count
+    }
+
+    var body: some View {
+        NavigationView {
+            List {
+                Section {
+                    ForEach(MapColorCategory.all) { category in
+                        Button {
+                            withAnimation(.easeInOut(duration: 0.2)) {
+                                if activeFilters.contains(category.id) {
+                                    activeFilters.remove(category.id)
+                                } else {
+                                    activeFilters.insert(category.id)
+                                }
+                            }
+                        } label: {
+                            let isSelected = activeFilters.contains(category.id)
+                            HStack(spacing: 12) {
+                                ZStack {
+                                    Circle()
+                                        .fill(isSelected ? category.color : .clear)
+                                        .frame(width: 32, height: 32)
+                                    Circle()
+                                        .strokeBorder(category.color, lineWidth: 2.5)
+                                        .frame(width: 32, height: 32)
+                                    Image(systemName: "checkmark")
+                                        .font(.system(size: 14, weight: .bold))
+                                        .foregroundColor(.white)
+                                        .scaleEffect(isSelected ? 1 : 0.01)
+                                        .opacity(isSelected ? 1 : 0)
+                                }
+
+                                Text(category.label)
+                                    .foregroundColor(.primary)
+
+                                Spacer()
+                            }
+                        }
+                    }
+                }
+
+                Section {
+                    Button(allEnabled ? "Deselect All" : "Select All") {
+                        if allEnabled {
+                            activeFilters.removeAll()
+                        } else {
+                            activeFilters = Set(MapColorCategory.allColorKeys)
+                        }
+                    }
+                }
+            }
+            .navigationTitle("Filter by Category")
+            .navigationBarTitleDisplayMode(.inline)
+            .toolbar {
+                ToolbarItem(placement: .navigationBarTrailing) {
+                    Button("Save") {
+                        dismiss()
+                    }
+                    .fontWeight(.semibold)
+                }
             }
         }
     }
@@ -936,6 +1113,210 @@ private struct LocationButtonOverlay: View {
                     .cornerRadius(20)
                     .shadow(radius: 10)
             }
+        }
+    }
+}
+
+// MARK: - LocationDetailCard
+
+private struct LocationDetailCard: View {
+    let location: Location
+    let onDismiss: () -> Void
+    @Environment(\.colorScheme) private var colorScheme
+    @State private var popularTimesData: PopularTimesData?
+    @State private var isLoadingPopularTimes = false
+    @State private var chartCurrentCount: Int = 0
+    @State private var chartIsClosed: Bool = true
+    @State private var isCollapsingChart = false
+
+    private var pinColor: Color {
+        location.color.lowercased() == "yellow"
+            ? Color(red: 0.82, green: 0.66, blue: 0.0)
+            : Color.fromString(location.color)
+    }
+
+    private var cardContent: some View {
+        VStack(spacing: 16) {
+            // Header row: icon circle, name, dismiss button
+            HStack {
+                ZStack {
+                    Circle()
+                        .fill(pinColor)
+                        .overlay(colorScheme == .dark && location.color.lowercased() != "yellow" ? Circle().fill(.black.opacity(0.1)) : nil)
+                        .frame(width: 36, height: 36)
+                    Image(systemName: location.icon)
+                        .font(.system(size: 16))
+                        .foregroundColor(.white)
+                }
+
+                Text(location.name)
+                    .font(.headline)
+                    .lineLimit(1)
+
+                Spacer()
+
+                Button(action: onDismiss) {
+                    Image(systemName: "xmark.circle.fill")
+                        .font(.title2)
+                        .foregroundColor(.secondary)
+                }
+            }
+
+            // Bottom section: count/stats on left, directions button bottom right
+            HStack(alignment: .bottom) {
+                // Left side: count, trend, overcrowding
+                VStack(alignment: .leading, spacing: 2) {
+                    Text("Current count")
+                        .font(.subheadline)
+                        .foregroundColor(.secondary)
+
+                    if location.isClosed {
+                        Text("Closed")
+                            .font(.system(size: 48, weight: .bold))
+                            .foregroundColor(.secondary)
+                    } else {
+                        HStack(alignment: .firstTextBaseline, spacing: 4) {
+                            if let overcrowding = location.overcrowding {
+                                Text("\(location.currentCount)")
+                                    .font(.system(size: 48, weight: .bold))
+                                Text("/")
+                                    .font(.system(size: 28, weight: .medium))
+                                    .foregroundColor(.secondary)
+                                Text("\(overcrowding)")
+                                    .font(.system(size: 28, weight: .medium))
+                                    .foregroundColor(.secondary)
+                            } else {
+                                Text("\(location.currentCount)")
+                                    .font(.system(size: 48, weight: .bold))
+                            }
+
+                            if location.comparison != "neutral" {
+                                Text(location.comparisonSymbol)
+                                    .font(.title)
+                                    .foregroundColor(location.comparisonColor)
+                            }
+                        }
+                    }
+                }
+
+                Spacer()
+
+                // Right side: Get Directions button
+                Button(action: {
+                    let placemark = MKPlacemark(coordinate: location.coordinate)
+                    let mapItem = MKMapItem(placemark: placemark)
+                    mapItem.name = location.name
+                    mapItem.openInMaps(launchOptions: [
+                        MKLaunchOptionsDirectionsModeKey: MKLaunchOptionsDirectionsModeDriving
+                    ])
+                }) {
+                    Label("Directions", systemImage: "arrow.triangle.turn.up.right.diamond.fill")
+                        .font(.subheadline.weight(.medium))
+                        .padding(.horizontal, 14)
+                        .padding(.vertical, 8)
+                        .foregroundColor(.white)
+                        .background(
+                            Capsule().fill(pinColor)
+                                .overlay(colorScheme == .dark && location.color.lowercased() != "yellow" ? Capsule().fill(.black.opacity(0.1)) : nil)
+                        )
+                }
+            }
+
+            // Popular Times chart
+            VStack {
+                if popularTimesData == nil && isLoadingPopularTimes {
+                    RoundedRectangle(cornerRadius: 8)
+                        .fill(Color.secondary.opacity(0.15))
+                        .frame(height: 150)
+                        .redacted(reason: .placeholder)
+                } else if let data = popularTimesData, !data.hourlyAverages.isEmpty {
+                    PopularTimesChart(data: data, accentColor: pinColor, currentCount: chartCurrentCount, isClosed: chartIsClosed)
+                        .frame(height: isCollapsingChart ? 0 : nil, alignment: .top)
+                        .clipped()
+                } else if !isLoadingPopularTimes && popularTimesData == nil {
+                    Text("Popular times will appear after this location has been active for at least a week.")
+                        .font(.caption)
+                        .foregroundColor(.secondary)
+                        .multilineTextAlignment(.center)
+                        .padding(.top, 4)
+                        .transition(.opacity.animation(.easeIn(duration: 0.15)))
+                }
+            }
+        }
+        .padding(.horizontal, 16)
+        .padding(.top, 20)
+        .padding(.bottom, 40)
+        .task(id: location.id) {
+            // First load only: show skeleton while old chart stays visible on switch
+            if popularTimesData == nil {
+                isLoadingPopularTimes = true
+            }
+            do {
+                let result = try await APIService.shared.fetchPopularTimes(locationId: location.id)
+                let hasData = result != nil && !(result?.hourlyAverages.isEmpty ?? true)
+                if hasData {
+                    withAnimation(.easeInOut(duration: 0.3)) {
+                        popularTimesData = result
+                        chartCurrentCount = location.currentCount
+                        chartIsClosed = location.isClosed
+                        isLoadingPopularTimes = false
+                        isCollapsingChart = false
+                    }
+                } else {
+                    // Animate bars to zero + collapse height simultaneously
+                    if popularTimesData != nil {
+                        let zeroed = PopularTimesData(
+                            hourlyAveragesUTC: Dictionary(uniqueKeysWithValues: (0..<24).map { (String($0), 0.0) }),
+                            dayOfWeek: ""
+                        )
+                        withAnimation(.easeInOut(duration: 0.3)) {
+                            popularTimesData = zeroed
+                            chartCurrentCount = 0
+                            chartIsClosed = true
+                            isCollapsingChart = true
+                        }
+                        try? await Task.sleep(nanoseconds: 300_000_000)
+                    }
+                    popularTimesData = nil
+                    isCollapsingChart = false
+                    isLoadingPopularTimes = false
+                }
+            } catch {
+                if popularTimesData != nil {
+                    let zeroed = PopularTimesData(
+                        hourlyAveragesUTC: Dictionary(uniqueKeysWithValues: (0..<24).map { (String($0), 0.0) }),
+                        dayOfWeek: ""
+                    )
+                    withAnimation(.easeInOut(duration: 0.3)) {
+                        popularTimesData = zeroed
+                        chartCurrentCount = 0
+                        chartIsClosed = true
+                        isCollapsingChart = true
+                    }
+                    try? await Task.sleep(nanoseconds: 300_000_000)
+                }
+                popularTimesData = nil
+                isCollapsingChart = false
+                isLoadingPopularTimes = false
+            }
+        }
+    }
+
+    private var cardShape: UnevenRoundedRectangle {
+        UnevenRoundedRectangle(topLeadingRadius: 20, bottomLeadingRadius: 0, bottomTrailingRadius: 0, topTrailingRadius: 20, style: .continuous)
+    }
+
+    var body: some View {
+        if #available(iOS 26.0, *) {
+            cardContent
+                .glassEffect(.regular, in: cardShape)
+        } else {
+            cardContent
+                .background(
+                    cardShape
+                        .fill(.ultraThinMaterial)
+                        .shadow(color: .black.opacity(0.15), radius: 10, x: 0, y: -4)
+                )
         }
     }
 }

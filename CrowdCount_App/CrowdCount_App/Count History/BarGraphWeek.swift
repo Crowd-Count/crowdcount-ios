@@ -34,23 +34,26 @@ struct BarGraphWeek: View {
                     AxisGridLine().foregroundStyle(Color.gray.opacity(0.5))
                 }
             }
-            .chartYScale(domain: 0...(max(1, weekData.values.map { max(0, $0) }.max() ?? 1, averageWeekData?.values.map { max(0, $0) }.max() ?? 1)))
+            .chartYScale(domain: 0...(max(1, weekData.values.map { rounded($0) }.max() ?? 1, averageWeekData?.values.map { rounded($0) }.max() ?? 1)))
             .frame(height: 200)
             .padding(.horizontal)
 
             LegendViewWeek(selectedDate: selectedDate, isTodayView: false, isDeviceOnline: false, showAverage: averageWeekData != nil)
-                .padding(.top, 20) // Adjust padding for more space between graph and legend
+                .padding(.top, 20)
         }
-        .padding([.top, .bottom]) // Add padding to top and bottom of the view
+        .padding([.top, .bottom])
+    }
+
+    private func rounded(_ value: Double) -> Double {
+        let r = value.rounded()
+        return r < 1 ? 0 : r
     }
 
     @ChartContentBuilder
     private func barMarks() -> some ChartContent {
-        // Show bars for all days - visible ones for days with data, invisible placeholders for days without
         ForEach(Array(allDays.enumerated()), id: \.element) { index, day in
-            let count = weekData[day] ?? 0
+            let count = rounded(weekData[day] ?? 0)
             if count > 0 {
-                // Actual bar for days with data
                 BarMark(
                     x: .value("Day", day),
                     y: .value("Count", count)
@@ -60,7 +63,6 @@ struct BarGraphWeek: View {
                 .cornerRadius(3)
                 .position(by: .value("Series", "Data"))
             } else {
-                // Invisible placeholder to ensure day appears on X-axis
                 BarMark(
                     x: .value("Day", day),
                     y: .value("Count", 0)
@@ -75,10 +77,10 @@ struct BarGraphWeek: View {
     private func averageBarMarks() -> some ChartContent {
         if let averageWeekData = averageWeekData {
             ForEach(Array(allDays.enumerated()), id: \.element) { index, day in
-                if let averageCount = averageWeekData[day] {
+                if let averageCount = averageWeekData[day], rounded(averageCount) > 0 {
                     BarMark(
                         x: .value("Day", day),
-                        y: .value("Count", max(0, averageCount))
+                        y: .value("Count", rounded(averageCount))
                     )
                     .foregroundStyle(.orange)
                     .opacity(index % 2 == 0 ? 0.85 : 0.7)

@@ -1,11 +1,24 @@
 import SwiftUI
 
+struct CounterEntry: Identifiable {
+    let id: UUID
+    var deviceId: String
+    var password: String
+
+    init(id: UUID = UUID(), deviceId: String = "", password: String = "") {
+        self.id = id
+        self.deviceId = deviceId
+        self.password = password
+    }
+}
+
 struct LoginView: View {
     @Binding var userId: String
     @Binding var password: String
     @Binding var locationName: String
     @Binding var errorMessage: String?
     @Binding var isLoggingIn: Bool
+    @Binding var additionalCounters: [CounterEntry]
     let setUser: () -> Void
     let serverStatus: String
     let serverStatusColor: Color
@@ -20,6 +33,8 @@ struct LoginView: View {
     @State private var isAnimating = false
     @State private var continuousTapping = false
     @State private var mapButtonTapped = false
+    @State private var counterEntries: [CounterEntry] = [CounterEntry()]
+    @State private var agreedToTerms = false
 
     // Typewriter animation
     @State private var welcomeText = ""
@@ -34,7 +49,9 @@ struct LoginView: View {
 
     var body: some View {
         VStack {
-            Spacer()
+            if !showingAddCounter || counterEntries.count <= 1 {
+                Spacer()
+            }
 
             if !showingAddCounter {
                 if #available(iOS 18.0, *) {
@@ -133,96 +150,69 @@ struct LoginView: View {
             }
 
             if showingAddCounter {
-                HStack {
-                    TextField("Enter Location Name", text: $locationName)
-                        .padding()
-                        .background(Color.secondary.opacity(0.25))
-                        .cornerRadius(15)
-                        .textContentType(.location)
-                }
-                .padding(.horizontal, 20)
-
-                HStack {
-                    TextField("Enter Device ID", text: $userId)
-                        .padding()
-                        .background(Color.secondary.opacity(0.25))
-                        .cornerRadius(15)
-                        .textContentType(.username)
-                        .autocapitalization(.none)
-                        .disableAutocorrection(true)
-                }
-                .padding(.horizontal, 20)
-
-                HStack {
-                    SecureField("Enter Password", text: $password)
-                        .padding()
-                        .background(Color.secondary.opacity(0.25))
-                        .cornerRadius(15)
-                        .textContentType(.password)
-                }
-                .padding(.horizontal, 20)
-                .padding(.bottom, 20)
-
-                HStack {
-                    Button(action: {
-                        withAnimation(.easeInOut(duration: 0.3)) {
-                            showingAddCounter = false
-                            errorMessage = nil
-                            userId = ""
-                            password = ""
-                            locationName = ""
-                        }
-                    }) {
-                        Text("Cancel")
-                            .padding()
-                            .background(Color.secondary.opacity(0.75))
-                            .foregroundColor(.primary)
-                            .cornerRadius(20)
-                    }
-                    Button(action: setUser) {
-                        if isLoggingIn {
-                            ProgressView()
-                                .padding()
-                                .frame(width: 140)
-                                .background(Color.blue.opacity(0.4))
-                                .cornerRadius(20)
-                        } else {
-                            Text("Add Device")
-                                .padding()
-                                .background(Color.blue.opacity(0.75))
-                                .foregroundColor(.primary)
-                                .cornerRadius(20)
+                if counterEntries.count > 1 {
+                    ScrollView {
+                        VStack {
+                            counterFormContent
                         }
                     }
-                    .disabled(isLoggingIn)
+                } else {
+                    counterFormContent
                 }
-                .transition(.asymmetric(
-                    insertion: .opacity.combined(with: .move(edge: .bottom)),
-                    removal: .opacity
-                ))
             } else {
-                NavigationLink(destination: MapContentView()) {
-                    if #available(iOS 26.0, *) {
-                        HStack {
-                            Image(systemName: "map")
-                            Text("View the Map")
+                VStack(spacing: 20) {
+                    NavigationLink(destination: MapContentView()) {
+                        if #available(iOS 26.0, *) {
+                            HStack {
+                                Image(systemName: "map")
+                                Text("View All Locations")
+                            }
+                            .frame(width: 200)
+                            .padding()
+                            .foregroundColor(colorScheme == .dark ? .white : .primary)
+                            .font(.title3)
+                            .background(Color.green.opacity(0.75))
+                            .clipShape(Capsule())
+                            .glassEffect(.regular.interactive())
+                        } else {
+                            HStack {
+                                Image(systemName: "map")
+                                Text("View All Locations")
+                            }
+                            .frame(width: 200)
+                            .padding()
+                            .foregroundColor(.primary)
+                            .font(.title3)
+                            .background(Color.green.opacity(0.75))
+                            .clipShape(Capsule())
                         }
-                        .padding()
-                        .foregroundColor(colorScheme == .dark ? .white : .primary)
-                        .font(.title2)
-                        .background(Color.green.opacity(0.75))
-                        .clipShape(Capsule())
-                        .glassEffect(.regular.interactive())
-                    } else {
-                        HStack {
-                            Image(systemName: "map")
-                            Text("View the Map")
+                    }
+
+                    NavigationLink(destination: MapContentView(initialColorFilter: ["orange"])) {
+                        if #available(iOS 26.0, *) {
+                            HStack {
+                                Image(systemName: "fork.knife")
+                                Text("Bars & Restaurants")
+                            }
+                            .frame(width: 200)
+                            .padding()
+                            .foregroundColor(colorScheme == .dark ? .white : .primary)
+                            .font(.title3)
+                            .background(Color.orange.opacity(0.75))
+                            .clipShape(Capsule())
+                            .glassEffect(.regular.interactive())
+                        } else {
+                            HStack {
+                                Image(systemName: "fork.knife")
+                                Text("Bars & Restaurants")
+                            }
+                            .frame(width: 200)
+                            .padding()
+                            .foregroundColor(.primary)
+                            .font(.title3)
+                            .background(Color.orange.opacity(0.75))
+                            .clipShape(Capsule())
                         }
-                        .padding()
-                        .foregroundColor(.primary)
-                        .font(.title2)
-                        .background(Color.green.opacity(0.75))
-                        .cornerRadius(22.5)
                     }
                 }
                 .simultaneousGesture(TapGesture().onEnded {
@@ -230,7 +220,8 @@ struct LoginView: View {
                 })
                 .sensoryFeedback(.impact(weight: .light), trigger: mapButtonTapped)
                 .padding(.top, 10)
-                
+                .padding(.bottom, 0)
+
                 HStack{
                     Button(action: {
                         withAnimation(.easeInOut(duration: 0.3)) {
@@ -282,7 +273,9 @@ struct LoginView: View {
 //                    .padding(.top, 20)
             }
 
-            Spacer()
+            if !showingAddCounter || counterEntries.count <= 1 {
+                Spacer()
+            }
         }
         .padding()
         .padding(.bottom, 20)
@@ -329,6 +322,156 @@ struct LoginView: View {
         }
     }
     
+    @ViewBuilder
+    private var counterFormContent: some View {
+        HStack {
+            TextField("Enter Location Name", text: $locationName)
+                .padding()
+                .background(Color.secondary.opacity(0.25))
+                .cornerRadius(15)
+                .textContentType(.location)
+        }
+        .padding(.horizontal, 20)
+
+        ForEach($counterEntries) { $entry in
+            VStack(spacing: 8) {
+                if counterEntries.count > 1 {
+                    HStack {
+                        Text("Counter \((counterEntries.firstIndex(where: { $0.id == entry.id }) ?? 0) + 1)")
+                            .font(.caption)
+                            .foregroundColor(.secondary)
+                        Spacer()
+                        if counterEntries.first?.id != entry.id {
+                            Button(action: {
+                                withAnimation(.easeInOut(duration: 0.2)) {
+                                    counterEntries.removeAll { $0.id == entry.id }
+                                }
+                            }) {
+                                Image(systemName: "xmark.circle.fill")
+                                    .foregroundColor(.secondary)
+                            }
+                        }
+                    }
+                    .padding(.horizontal, 20)
+                }
+
+                VStack(alignment: .leading, spacing: 4) {
+                    TextField("Enter Device ID", text: $entry.deviceId)
+                        .padding()
+                        .background(Color.secondary.opacity(0.25))
+                        .cornerRadius(15)
+                        .textContentType(.username)
+                        .autocapitalization(.none)
+                        .disableAutocorrection(true)
+                    Text("Case sensitive")
+                        .font(.caption)
+                        .foregroundColor(.secondary)
+                        .padding(.leading, 4)
+                }
+                .padding(.horizontal, 20)
+
+                VStack(alignment: .leading, spacing: 4) {
+                    SecureField("Enter Password", text: $entry.password)
+                        .padding()
+                        .background(Color.secondary.opacity(0.25))
+                        .cornerRadius(15)
+                        .textContentType(.password)
+                    Text("Case sensitive")
+                        .font(.caption)
+                        .foregroundColor(.secondary)
+                        .padding(.leading, 4)
+                }
+                .padding(.horizontal, 20)
+            }
+        }
+
+        Button(action: {
+            withAnimation(.easeInOut(duration: 0.2)) {
+                counterEntries.append(CounterEntry())
+            }
+        }) {
+            HStack(spacing: 4) {
+                Image(systemName: "plus")
+                    .font(.subheadline)
+                Text("Add Another Counter")
+                    .font(.subheadline)
+            }
+            .foregroundColor(.blue)
+        }
+        .padding(.top, 4)
+        .padding(.bottom, 20)
+
+        HStack(spacing: 8) {
+            Button(action: { agreedToTerms.toggle() }) {
+                Image(systemName: agreedToTerms ? "checkmark.square.fill" : "square")
+                    .foregroundColor(agreedToTerms ? .blue : .secondary)
+                    .font(.system(size: 20))
+                    .frame(width: 30, height: 30)
+                    .contentShape(Rectangle())
+            }
+            .buttonStyle(.plain)
+            Text("I agree to the \(Text("[Terms of Use](https://www.crowdcount.tech/legal/terms-of-use)")) and \(Text("[Privacy Policy](https://www.crowdcount.tech/legal/privacy-policy)"))")
+                .font(.caption)
+                .foregroundColor(.secondary)
+                .multilineTextAlignment(.leading)
+                .onTapGesture {
+                    agreedToTerms.toggle()
+                }
+        }
+        .padding(.horizontal, 20)
+        .padding(.bottom, 8)
+
+        HStack {
+            Button(action: {
+                withAnimation(.easeInOut(duration: 0.3)) {
+                    showingAddCounter = false
+                    errorMessage = nil
+                    userId = ""
+                    password = ""
+                    locationName = ""
+                    counterEntries = [CounterEntry()]
+                    agreedToTerms = false
+                }
+            }) {
+                Text("Cancel")
+                    .padding()
+                    .background(Color.secondary.opacity(0.75))
+                    .foregroundColor(.primary)
+                    .cornerRadius(20)
+            }
+            Button(action: {
+                if let first = counterEntries.first {
+                    userId = first.deviceId
+                    password = first.password
+                }
+                additionalCounters = counterEntries.dropFirst().filter {
+                    !$0.deviceId.isEmpty && !$0.password.isEmpty
+                }
+                setUser()
+            }) {
+                if isLoggingIn {
+                    ProgressView()
+                        .padding()
+                        .frame(width: 140)
+                        .background(Color.blue.opacity(0.4))
+                        .cornerRadius(20)
+                } else {
+                    Text(counterEntries.count > 1 ? "Add Devices" : "Add Device")
+                        .padding()
+                        .background(Color.blue.opacity(0.75))
+                        .foregroundColor(.primary)
+                        .cornerRadius(20)
+                }
+            }
+            .disabled(isLoggingIn || !agreedToTerms)
+            .opacity(!agreedToTerms ? 0.5 : 1.0)
+        }
+        .transition(.asymmetric(
+            insertion: .opacity.combined(with: .move(edge: .bottom)),
+            removal: .opacity
+        ))
+    }
+
     func toggleMode() {
         withAnimation {
             appSettings.isDarkMode.toggle()
@@ -379,6 +522,7 @@ struct LoginView: View {
             locationName: .constant(""),
             errorMessage: .constant(nil),
             isLoggingIn: .constant(false),
+            additionalCounters: .constant([]),
             setUser: {},
             serverStatus: "Online",
             serverStatusColor: .green,
@@ -396,6 +540,7 @@ struct LoginView: View {
             locationName: .constant("My Location"),
             errorMessage: .constant("Invalid credentials"),
             isLoggingIn: .constant(false),
+            additionalCounters: .constant([]),
             setUser: {},
             serverStatus: "Online",
             serverStatusColor: .green,

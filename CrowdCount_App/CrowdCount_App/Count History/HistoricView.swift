@@ -85,8 +85,8 @@ struct AverageEntryYearDataResponse: Decodable {
 
 // Data type toggle for graphs
 enum GraphDataType: String, CaseIterable {
-    case population = "Population"
     case entries = "Entries"
+    case population = "Population"
 }
 
 struct WeekInfo: Identifiable {

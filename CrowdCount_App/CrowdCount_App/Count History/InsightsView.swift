@@ -1,9 +1,9 @@
 import SwiftUI
 
 enum InsightsPeriod: String, CaseIterable {
-    case today = "Today"
-    case thisWeek = "This Week"
-    case thisYear = "This Year"
+    case day = "Day"
+    case week = "Week"
+    case year = "Year"
 }
 
 struct InsightsView: View {
@@ -25,6 +25,29 @@ struct InsightsView: View {
     var entryYearData: [String: Double] = [:]
     var averageEntryYearData: [String: Double]?
 
+    // Dwell time
+    var dwellTimeMinutes: Double?
+    var dwellTimeWeekData: [String: Double]?
+    var dwellTimeYearData: [String: Double]?
+
+    // Date picker data
+    var availableDates: [String] = []
+    var availableWeeks: [WeekInfo] = []
+    var availableYears: [String] = []
+    var selectedDay: String = "Today"
+    var selectedWeek: WeekInfo? = nil
+    var selectedYear: String = "This Year"
+
+    // Date picker callbacks
+    var onDaySelected: ((String) -> Void)?
+    var onWeekSelected: ((WeekInfo) -> Void)?
+    var onYearSelected: ((String) -> Void)?
+
+    // Helper closures for date formatting
+    var getCurrentDate: (() -> String)?
+    var getCurrentYear: (() -> String)?
+    var formattedDateLong: ((String) -> String)?
+
     // Loading states
     let isDayLoading: Bool
     let isWeekLoading: Bool
@@ -41,34 +64,41 @@ struct InsightsView: View {
             .pickerStyle(.segmented)
             .padding(.horizontal)
             .padding(.top, 8)
-            .padding(.bottom, 12)
+            .padding(.bottom, 4)
+
+            // Date picker (disabled for now)
+            // insightsDatePicker
+            Spacer().frame(height: 8)
 
             ScrollView {
                 VStack(spacing: 16) {
                     // Content based on selected period
                     switch selectedPeriod {
-                case .today:
+                case .day:
                     DayInsightsContent(
                         dayData: dayData,
                         averageDayData: averageDayData,
                         entryDayData: entryDayData,
                         averageEntryDayData: averageEntryDayData,
+                        dwellTimeMinutes: dwellTimeMinutes,
                         isLoading: isDayLoading
                     )
-                case .thisWeek:
+                case .week:
                     WeekInsightsContent(
                         weekData: weekData,
                         averageWeekData: averageWeekData,
                         entryWeekData: entryWeekData,
                         averageEntryWeekData: averageEntryWeekData,
+                        dwellTimeWeekData: dwellTimeWeekData,
                         isLoading: isWeekLoading
                     )
-                case .thisYear:
+                case .year:
                     YearInsightsContent(
                         yearData: yearData,
                         averageYearData: averageYearData,
                         entryYearData: entryYearData,
                         averageEntryYearData: averageEntryYearData,
+                        dwellTimeYearData: dwellTimeYearData,
                         isLoading: isYearLoading
                     )
                 }
@@ -80,7 +110,7 @@ struct InsightsView: View {
                             .foregroundColor(.secondary)
                             .padding(.top, 1)
                         VStack(alignment: .leading, spacing: 4) {
-                            Text("Trend arrows and \"vs Typical\" comparisons are based on historical averages. Entry comparisons are adjusted to match your current progress — only completed \(selectedPeriod == .thisWeek ? "days" : selectedPeriod == .thisYear ? "months" : "hours") are fully counted, and the current \(selectedPeriod == .thisWeek ? "day is pro-rated by hour" : selectedPeriod == .thisYear ? "month is pro-rated by day" : "data is compared as-is").")
+                            Text("Trend arrows and \"vs Typical\" comparisons are based on historical averages. Entry comparisons are adjusted to match your current progress — only completed \(selectedPeriod == .week ? "days" : selectedPeriod == .year ? "months" : "hours") are fully counted, and the current \(selectedPeriod == .week ? "day is pro-rated by hour" : selectedPeriod == .year ? "month is pro-rated by day" : "data is compared as-is").")
                         }
                         .font(.caption2)
                         .foregroundColor(.secondary)
@@ -93,6 +123,76 @@ struct InsightsView: View {
             }
         }
     }
+
+    // MARK: - Date Picker
+
+    @ViewBuilder
+    private var insightsDatePicker: some View {
+        switch selectedPeriod {
+        case .day:
+            if !availableDates.isEmpty {
+                Menu {
+                    ForEach(availableDates.sorted(by: >), id: \.self) { date in
+                        let displayDate = (date == getCurrentDate?()) ? "Today" : (formattedDateLong?(date) ?? date)
+                        Button(displayDate) {
+                            onDaySelected?(date)
+                        }
+                    }
+                } label: {
+                    HStack {
+                        Text(selectedDay)
+                            .font(.headline)
+                            .foregroundColor(.primary)
+                        Image(systemName: "chevron.down")
+                            .font(.caption)
+                            .foregroundColor(.secondary)
+                    }
+                }
+                .padding(.horizontal)
+            }
+        case .week:
+            if !availableWeeks.isEmpty {
+                Menu {
+                    ForEach(availableWeeks) { week in
+                        Button(week.label) {
+                            onWeekSelected?(week)
+                        }
+                    }
+                } label: {
+                    HStack {
+                        Text(selectedWeek?.label ?? "Select Week")
+                            .font(.headline)
+                            .foregroundColor(.primary)
+                        Image(systemName: "chevron.down")
+                            .font(.caption)
+                            .foregroundColor(.secondary)
+                    }
+                }
+                .padding(.horizontal)
+            }
+        case .year:
+            if !availableYears.isEmpty {
+                Menu {
+                    ForEach(availableYears, id: \.self) { year in
+                        let displayYear = (year == getCurrentYear?()) ? "This Year" : year
+                        Button(displayYear) {
+                            onYearSelected?(year)
+                        }
+                    }
+                } label: {
+                    HStack {
+                        Text(selectedYear)
+                            .font(.headline)
+                            .foregroundColor(.primary)
+                        Image(systemName: "chevron.down")
+                            .font(.caption)
+                            .foregroundColor(.secondary)
+                    }
+                }
+                .padding(.horizontal)
+            }
+        }
+    }
 }
 
 // MARK: - Day Insights Content
@@ -102,6 +202,7 @@ struct DayInsightsContent: View {
     let averageDayData: [String: Double]?
     var entryDayData: [String: Double] = [:]
     var averageEntryDayData: [String: Double]?
+    var dwellTimeMinutes: Double?
     let isLoading: Bool
 
     private var avgOccupancy: Int? {
@@ -213,6 +314,19 @@ struct DayInsightsContent: View {
                     }
                 }
 
+                // Dwell Time Card
+                if let dwell = dwellTimeMinutes, dwell > 0 {
+                    InsightCard(title: "Avg Time of Stay", icon: "timer") {
+                        LargeStatDisplay(
+                            value: StatisticsCalculator.formatDwellTime(dwell),
+                            label: "Avg Visit Duration"
+                        )
+                        Text("Estimated from occupancy and entry data")
+                            .font(.caption)
+                            .foregroundColor(.secondary)
+                    }
+                }
+
                 // Peak Times Card
                 if let busiest = StatisticsCalculator.busiestPeriod(from: dayData) {
                     InsightCard(title: "Peak Times", icon: "clock.fill") {
@@ -317,6 +431,7 @@ struct WeekInsightsContent: View {
     let averageWeekData: [String: Double]?
     var entryWeekData: [String: Double] = [:]
     var averageEntryWeekData: [String: Double]?
+    var dwellTimeWeekData: [String: Double]?
     let isLoading: Bool
 
     private var avgOccupancy: Int? {
@@ -440,6 +555,39 @@ struct WeekInsightsContent: View {
                     }
                 }
 
+                // Dwell Time Card
+                if let dwellData = dwellTimeWeekData {
+                    let daysWithData = dwellData.filter { $0.value > 0 }
+                    if !daysWithData.isEmpty {
+                        let avgDwell = daysWithData.values.reduce(0, +) / Double(daysWithData.count)
+                        InsightCard(title: "Avg Time of Stay", icon: "timer") {
+                            LargeStatDisplay(
+                                value: StatisticsCalculator.formatDwellTime(avgDwell),
+                                label: "Weekly Avg Visit Duration"
+                            )
+
+                            if let longest = daysWithData.max(by: { $0.value < $1.value }) {
+                                Divider()
+                                StatRow(
+                                    label: "Longest Stay",
+                                    value: "\(longest.key) (\(StatisticsCalculator.formatDwellTime(longest.value)))"
+                                )
+                            }
+
+                            if let shortest = daysWithData.min(by: { $0.value < $1.value }) {
+                                StatRow(
+                                    label: "Shortest Stay",
+                                    value: "\(shortest.key) (\(StatisticsCalculator.formatDwellTime(shortest.value)))"
+                                )
+                            }
+
+                            Text("Weekly average estimated from occupancy and entry data")
+                                .font(.caption)
+                                .foregroundColor(.secondary)
+                        }
+                    }
+                }
+
                 // Busiest / Slowest Days Card
                 if let busiest = StatisticsCalculator.busiestDay(from: weekData),
                    let slowest = StatisticsCalculator.slowestDay(from: weekData) {
@@ -550,6 +698,7 @@ struct YearInsightsContent: View {
     let averageYearData: [String: Double]?
     var entryYearData: [String: Double] = [:]
     var averageEntryYearData: [String: Double]?
+    var dwellTimeYearData: [String: Double]?
     let isLoading: Bool
 
     private var avgOccupancy: Int? {
@@ -673,6 +822,39 @@ struct YearInsightsContent: View {
                     }
                 }
 
+                // Dwell Time Card
+                if let dwellData = dwellTimeYearData {
+                    let monthsWithData = dwellData.filter { $0.value > 0 }
+                    if !monthsWithData.isEmpty {
+                        let avgDwell = monthsWithData.values.reduce(0, +) / Double(monthsWithData.count)
+                        InsightCard(title: "Avg Time of Stay", icon: "timer") {
+                            LargeStatDisplay(
+                                value: StatisticsCalculator.formatDwellTime(avgDwell),
+                                label: "Yearly Avg Visit Duration"
+                            )
+
+                            if let longest = monthsWithData.max(by: { $0.value < $1.value }) {
+                                Divider()
+                                StatRow(
+                                    label: "Longest Stay",
+                                    value: "\(StatisticsCalculator.abbreviatedMonth(longest.key)) (\(StatisticsCalculator.formatDwellTime(longest.value)))"
+                                )
+                            }
+
+                            if let shortest = monthsWithData.min(by: { $0.value < $1.value }) {
+                                StatRow(
+                                    label: "Shortest Stay",
+                                    value: "\(StatisticsCalculator.abbreviatedMonth(shortest.key)) (\(StatisticsCalculator.formatDwellTime(shortest.value)))"
+                                )
+                            }
+
+                            Text("Yearly average estimated from occupancy and entry data")
+                                .font(.caption)
+                                .foregroundColor(.secondary)
+                        }
+                    }
+                }
+
                 // Busiest / Slowest Months Card
                 if let busiest = StatisticsCalculator.busiestMonth(from: yearData),
                    let slowest = StatisticsCalculator.slowestMonth(from: yearData) {
@@ -769,7 +951,7 @@ private func trendDirection(from percentage: Double?) -> TrendDirection? {
 
 #Preview("Insights View") {
     InsightsView(
-        selectedPeriod: .constant(.today),
+        selectedPeriod: .constant(.day),
         dayData: [
             "6": 45, "7": 78, "8": 120, "9": 156, "10": 189,
             "11": 210, "12": 198, "13": 220, "14": 185, "15": 167,
@@ -796,6 +978,7 @@ private func trendDirection(from percentage: Double?) -> TrendDirection? {
             "January": 90, "February": 98, "March": 112,
             "April": 125, "May": 140, "June": 152
         ],
+        dwellTimeMinutes: 42.3,
         isDayLoading: false,
         isWeekLoading: false,
         isYearLoading: false
