@@ -44,8 +44,7 @@ struct PopularTimesChart: View {
     }
 
     private var peakValue: Double {
-        let avgMax = localAverages.values.max() ?? 1
-        return max(avgMax, Double(currentCount))
+        localAverages.values.max() ?? 1
     }
 
     private var liveComparisonLabel: (text: String, color: Color)? {
@@ -94,74 +93,15 @@ struct PopularTimesChart: View {
                     .foregroundColor(.secondary)
             }
 
-            if let comparison = liveComparisonLabel {
-                HStack(spacing: 4) {
-                    Circle()
-                        .fill(comparison.color)
-                        .frame(width: 6, height: 6)
-                    Text(comparison.text)
-                        .font(.caption)
-                        .foregroundColor(comparison.color)
-                }
-            }
-
             Chart {
                 ForEach(allHours, id: \.self) { hour in
                     let avgValue = localAverages[hour] ?? 0
-                    let isCurrentHour = hour == currentHour && !isClosed && !data.dayOfWeek.isEmpty
-
-                    if isCurrentHour && avgValue <= 0 {
-                        // No usual data for this hour: just show accent bar
-                        RectangleMark(
-                            x: .value("Hour", hour),
-                            yStart: .value("Start", 0),
-                            yEnd: .value("End", Double(currentCount))
-                        )
-                        .foregroundStyle(accentColor)
-                        .cornerRadius(3)
-                    } else if isCurrentHour && Double(currentCount) > avgValue {
-                        // Current > usual: accent bar behind, usual bar overlays on top
-                        RectangleMark(
-                            x: .value("Hour", hour),
-                            yStart: .value("Start", 0),
-                            yEnd: .value("End", Double(currentCount))
-                        )
-                        .foregroundStyle(accentColor.opacity(0.8))
-                        .cornerRadius(3)
-
-                        BarMark(
-                            x: .value("Hour", hour),
-                            y: .value("Count", avgValue)
-                        )
-                        .foregroundStyle(Color.secondary.opacity(0.65))
-                        .cornerRadius(3)
-                    } else if isCurrentHour {
-                        // Current <= usual: usual bar behind (only if taller), accent bar on top
-                        if avgValue > Double(currentCount) {
-                            RectangleMark(
-                                x: .value("Hour", hour),
-                                yStart: .value("Start", 0),
-                                yEnd: .value("End", avgValue)
-                            )
-                            .foregroundStyle(Color.secondary.opacity(0.3))
-                            .cornerRadius(3)
-                        }
-
-                        RectangleMark(
-                            x: .value("Hour", hour),
-                            yStart: .value("Start", 0),
-                            yEnd: .value("End", Double(currentCount))
-                        )
-                        .foregroundStyle(accentColor)
-                        .cornerRadius(3)
-                    } else {
-                        BarMark(
-                            x: .value("Hour", hour),
-                            y: .value("Count", max(avgValue, 0))
-                        )
-                        .foregroundStyle(Color.secondary.opacity(0.3))
-                        .cornerRadius(3)
-                    }
+                    BarMark(
+                        x: .value("Hour", hour),
+                        y: .value("Count", max(avgValue, 0))
+                    )
+                    .foregroundStyle(Color.secondary.opacity(0.3))
+                    .cornerRadius(3)
                 }
             }
             .chartXScale(domain: allHours)
@@ -184,25 +124,13 @@ struct PopularTimesChart: View {
             .frame(height: 120)
 
             // Legend
-            HStack(spacing: 12) {
-                HStack(spacing: 4) {
-                    RoundedRectangle(cornerRadius: 2)
-                        .fill(Color.secondary.opacity(0.3))
-                        .frame(width: 10, height: 10)
-                    Text("Usual")
-                        .font(.caption2)
-                        .foregroundColor(.secondary)
-                }
-                if !isClosed {
-                    HStack(spacing: 4) {
-                        RoundedRectangle(cornerRadius: 2)
-                            .fill(accentColor)
-                            .frame(width: 10, height: 10)
-                        Text("Right now")
-                            .font(.caption2)
-                            .foregroundColor(.secondary)
-                    }
-                }
+            HStack(spacing: 4) {
+                RoundedRectangle(cornerRadius: 2)
+                    .fill(Color.secondary.opacity(0.3))
+                    .frame(width: 10, height: 10)
+                Text("Usual")
+                    .font(.caption2)
+                    .foregroundColor(.secondary)
             }
         }
     }

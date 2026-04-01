@@ -6,6 +6,7 @@ import UIKit
 struct LocationHistoricView: View {
     let location: AppLocation
     let devices: [Device]
+    var initialTab: HistoricViewTab = .historicCounts
 
     @State private var selectedTab: HistoricViewTab = .historicCounts
     @State private var selectedInsightsPeriod: InsightsPeriod = .day
@@ -76,6 +77,15 @@ struct LocationHistoricView: View {
     @State private var isWeekLoading: Bool = false
     @State private var isYearLoading: Bool = false
 
+    // POS data
+    @State private var posInsights: POSInsightsResponse?
+    @State private var hasPOS: Bool = false
+    @State private var showPOSConnectFromInsights: Bool = false
+    @AppStorage("crowdcount_showPOSOverlay") private var showPOSOverlay: Bool = true
+    @State private var posDayTransactions: [String: POSTransactionData.POSHourlyEntry]?
+    @State private var posWeekTransactions: [String: Int]?
+    @State private var posYearTransactions: [String: Int]?
+
     // Auto-refresh timer for live data (30 seconds)
     @State private var refreshTimer: Timer? = nil
     private let refreshInterval: TimeInterval = 30.0
@@ -98,17 +108,6 @@ struct LocationHistoricView: View {
 
     var body: some View {
         VStack(spacing: 0) {
-            // Tab Picker
-            Picker("View", selection: $selectedTab) {
-                ForEach(HistoricViewTab.allCases, id: \.self) { tab in
-                    Text(tab.rawValue).tag(tab)
-                }
-            }
-            .pickerStyle(.segmented)
-            .padding(.horizontal)
-            .padding(.top, 8)
-            .padding(.bottom, 4)
-
             if selectedTab == .historicCounts {
                 VStack(spacing: 0) {
                     // Data type picker (Population vs Entries)
@@ -165,6 +164,10 @@ struct LocationHistoricView: View {
                         averageEntryYearData: averageEntryYearData,
                         hasDataForSelectedYearEntries: hasDataForSelectedYearEntries,
                         isEntryYearLoading: isEntryYearLoading,
+                        posDayData: posDayTransactions,
+                        posWeekData: posWeekTransactions,
+                        posYearData: posYearTransactions,
+                        hasPOS: hasPOS,
                         onDaySelected: { date in
                             let displayDate = (date == getCurrentDate()) ? "Today" : formattedDateLong(from: date)
                             selectedDay = displayDate
@@ -176,6 +179,10 @@ struct LocationHistoricView: View {
                                     year: selectedYear == "This Year" ? getCurrentYearInt() : Int(selectedYear) ?? getCurrentYearInt()
                                 )
                                 if date == getCurrentDate() { await fetchConnectionStatusAsync() }
+                                // Fetch POS day transactions for the selected date
+                                if hasPOS, let signing = signingDevice {
+                                    await fetchPOSDayTransactions(date: date, signing: signing)
+                                }
                             }
                         },
                         onWeekSelected: { week in
@@ -186,6 +193,10 @@ struct LocationHistoricView: View {
                                     weekStartDate: week.startDate,
                                     year: selectedYear == "This Year" ? getCurrentYearInt() : Int(selectedYear) ?? getCurrentYearInt()
                                 )
+                                // Fetch POS week transactions for the selected week
+                                if hasPOS, let signing = signingDevice {
+                                    await fetchPOSWeekTransactions(weekStart: week.startDate, signing: signing)
+                                }
                             }
                         },
                         onYearSelected: { year in
@@ -198,6 +209,10 @@ struct LocationHistoricView: View {
                                     weekStartDate: selectedWeek?.startDate ?? getCurrentWeekStartDate(),
                                     year: yearInt
                                 )
+                                // Fetch POS year transactions for the selected year
+                                if hasPOS, let signing = signingDevice {
+                                    await fetchPOSYearTransactions(year: yearInt, signing: signing)
+                                }
                             }
                         },
                         onDownloadDay: { Task { await downloadDayDataAsCSV() } },
@@ -254,13 +269,28 @@ struct LocationHistoricView: View {
                     formattedDateLong: formattedDateLong,
                     isDayLoading: !insightsInitialLoadComplete || isInsightsDayLoading,
                     isWeekLoading: !insightsInitialLoadComplete || isInsightsWeekLoading,
-                    isYearLoading: !insightsInitialLoadComplete || isInsightsYearLoading
+                    isYearLoading: !insightsInitialLoadComplete || isInsightsYearLoading,
+                    posInsights: posInsights,
+                    hasPOS: hasPOS,
+                    onConnectPOS: { showPOSConnectFromInsights = true }
                 )
             }
         }
         .preferredColorScheme(appSettings.isDarkMode ? .dark : .light)
-        .navigationBarTitle("Count Analytics", displayMode: .inline)
+        .navigationBarTitle(selectedTab == .historicCounts ? "History" : "Insights", displayMode: .inline)
+        .sheet(isPresented: $showPOSConnectFromInsights) {
+            POSConnectView(
+                locationId: location.id,
+                locationName: location.name,
+                credentials: credentials,
+                signingDevice: signingDevice ?? ("", ""),
+                onConnected: {
+                    Task { await loadPOSData() }
+                }
+            )
+        }
         .onAppear {
+            selectedTab = initialTab
             Task { await loadInitialData() }
             startAutoRefreshTimer()
         }
@@ -346,6 +376,18 @@ struct LocationHistoricView: View {
         isLoading = true
         selectedDayRaw = getCurrentDate()
 
+        // Check POS status early so the toggle appears immediately
+        if let signing = signingDevice {
+            // Use cached status first for instant UI, then refresh in background
+            if let cached = POSStatusManager.shared.getStatus(for: location.id) {
+                hasPOS = cached.connected
+            }
+            Task {
+                await POSStatusManager.shared.refreshStatus(for: location.id, credentials: credentials, signingDevice: signing)
+                hasPOS = POSStatusManager.shared.isConnected(for: location.id)
+            }
+        }
+
         let todayDate = getCurrentDate()
         let weekStart = getCurrentWeekStartDate()
         let year = getCurrentYearInt()
@@ -418,8 +460,161 @@ struct LocationHistoricView: View {
             insightsYearDwellTime = try? await yearDwellTask
         }
 
+        // Fetch POS data (non-blocking — POS is optional)
+        await loadPOSData()
+
         insightsInitialLoadComplete = true
         isLoading = false
+    }
+
+    // MARK: - POS Data
+
+    private func loadPOSData() async {
+        // Fetch fresh POS connection status from server
+        guard let signing = signingDevice else { return }
+        await POSStatusManager.shared.refreshStatus(
+            for: location.id,
+            credentials: credentials,
+            signingDevice: signing
+        )
+        hasPOS = POSStatusManager.shared.isConnected(for: location.id)
+
+        guard hasPOS else { return }
+
+        let todayStr = TZHelper.yyyyMMddLocal(from: Date())
+        let weekStart = getCurrentWeekStartDate()
+        let yearInt = getCurrentYearInt()
+
+        // Fetch insights + day + week + year transactions in parallel
+        async let insightsTask: Void = {
+            do {
+                let insights = try await self.apiService.fetchPOSInsights(
+                    locationId: self.location.id,
+                    credentials: self.credentials,
+                    signingDevice: signing
+                )
+                await MainActor.run { self.posInsights = insights }
+            } catch { }
+        }()
+
+        async let dayTxTask: Void = {
+            do {
+                let txData = try await self.apiService.fetchPOSTransactions(
+                    locationId: self.location.id,
+                    startDate: todayStr,
+                    endDate: todayStr,
+                    credentials: self.credentials,
+                    signingDevice: signing
+                )
+                print("[POS] Day transactions loaded: \(txData.hourlyBreakdown.count) hours, total: \(txData.totalTransactions)")
+                await MainActor.run { self.posDayTransactions = txData.hourlyBreakdown }
+            } catch {
+                print("[POS] Day transactions failed: \(error)")
+            }
+        }()
+
+        async let weekTxTask: Void = {
+            await self.fetchPOSWeekTransactions(weekStart: weekStart, signing: signing)
+        }()
+
+        async let yearTxTask: Void = {
+            await self.fetchPOSYearTransactions(year: yearInt, signing: signing)
+        }()
+
+        _ = await (insightsTask, dayTxTask, weekTxTask, yearTxTask)
+    }
+
+    private func fetchPOSDayTransactions(date: String, signing: (String, String)) async {
+        do {
+            let txData = try await apiService.fetchPOSTransactions(
+                locationId: location.id,
+                startDate: date,
+                endDate: date,
+                credentials: credentials,
+                signingDevice: signing
+            )
+            print("[POS] Day transactions loaded: \(txData.hourlyBreakdown.count) hours, total: \(txData.totalTransactions)")
+            await MainActor.run { posDayTransactions = txData.hourlyBreakdown }
+        } catch {
+            print("[POS] Day transactions failed: \(error)")
+            await MainActor.run { posDayTransactions = nil }
+        }
+    }
+
+    private func fetchPOSWeekTransactions(weekStart: String, signing: (String, String)) async {
+        let dayNames = ["Monday", "Tuesday", "Wednesday", "Thursday", "Friday", "Saturday", "Sunday"]
+        var weekSales: [String: Int] = [:]
+
+        // Fetch each day individually to get per-day transaction counts
+        guard let startDate = TZHelper.localDate(from: weekStart) else { return }
+
+        await withTaskGroup(of: (String, Int).self) { group in
+            for i in 0..<7 {
+                guard let dayDate = Calendar.current.date(byAdding: .day, value: i, to: startDate) else { continue }
+                let dateStr = TZHelper.yyyyMMddLocal(from: dayDate)
+                let dayName = dayNames[i]
+
+                group.addTask {
+                    do {
+                        let txData = try await self.apiService.fetchPOSTransactions(
+                            locationId: self.location.id,
+                            startDate: dateStr,
+                            endDate: dateStr,
+                            credentials: self.credentials,
+                            signingDevice: signing
+                        )
+                        return (dayName, txData.totalTransactions)
+                    } catch {
+                        return (dayName, 0)
+                    }
+                }
+            }
+
+            for await (dayName, count) in group {
+                weekSales[dayName] = count
+            }
+        }
+
+        print("[POS] Week transactions loaded: \(weekSales)")
+        await MainActor.run { posWeekTransactions = weekSales }
+    }
+
+    private func fetchPOSYearTransactions(year: Int, signing: (String, String)) async {
+        let monthNames = ["January", "February", "March", "April", "May", "June",
+                          "July", "August", "September", "October", "November", "December"]
+        var yearSales: [String: Int] = [:]
+
+        await withTaskGroup(of: (String, Int).self) { group in
+            for i in 0..<12 {
+                let monthNum = String(format: "%02d", i + 1)
+                let startDate = "\(year)-\(monthNum)-01"
+                let lastDay = Calendar.current.range(of: .day, in: .month,
+                    for: Calendar.current.date(from: DateComponents(year: year, month: i + 1))!)!.count
+                let endDate = "\(year)-\(monthNum)-\(String(format: "%02d", lastDay))"
+                let monthName = monthNames[i]
+
+                group.addTask {
+                    do {
+                        let txData = try await self.apiService.fetchPOSTransactions(
+                            locationId: self.location.id,
+                            startDate: startDate,
+                            endDate: endDate,
+                            credentials: self.credentials,
+                            signingDevice: signing
+                        )
+                        return (monthName, txData.totalTransactions)
+                    } catch {
+                        return (monthName, 0)
+                    }
+                }
+            }
+
+            for await (monthName, count) in group {
+                yearSales[monthName] = count
+            }
+        }
+
+        await MainActor.run { posYearTransactions = yearSales }
     }
 
     /// Apply a pre-fetched bundle response to all chart state variables.

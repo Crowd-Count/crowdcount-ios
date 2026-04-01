@@ -1,111 +1,40 @@
 import SwiftUI
-import Charts
 
 struct BarGraphWeek: View {
     var weekData: [String: Double]
     var averageWeekData: [String: Double]?
     var selectedDate: String
 
-    // All days of the week in order
+    // POS overlay
+    var posWeekData: [String: Int]? = nil
+    var showPOSOverlay: Bool = false
+
     private let allDays = ["Monday", "Tuesday", "Wednesday", "Thursday", "Friday", "Saturday", "Sunday"]
+    private let shortDays = ["Mon", "Tue", "Wed", "Thu", "Fri", "Sat", "Sun"]
 
     var body: some View {
         VStack {
-            Chart {
-                barMarks()
-                averageBarMarks()
-            }
-            .chartXAxis {
-                AxisMarks(values: allDays) { value in
-                    AxisValueLabel {
-                        Text(getAbbreviatedDayName(from: value.as(String.self) ?? ""))
-                            .font(.caption)
-                            .foregroundColor(.primary)
-                    }
-                }
-            }
-            .chartYAxis {
-                AxisMarks(preset: .aligned, position: .leading) { value in
-                    AxisValueLabel {
-                        Text(value.as(Int.self)?.description ?? "")
-                            .font(.caption)
-                            .foregroundColor(.primary)
-                    }
-                    AxisGridLine().foregroundStyle(Color.gray.opacity(0.5))
-                }
-            }
-            .chartYScale(domain: 0...(max(1, weekData.values.map { rounded($0) }.max() ?? 1, averageWeekData?.values.map { rounded($0) }.max() ?? 1)))
+            CombinedChartUIView(
+                barData: weekData,
+                averageData: averageWeekData,
+                labels: allDays,
+                displayLabels: shortDays,
+                posData: posWeekData,
+                showPOS: showPOSOverlay
+            )
             .frame(height: 200)
             .padding(.horizontal)
 
-            LegendViewWeek(selectedDate: selectedDate, isTodayView: false, isDeviceOnline: false, showAverage: averageWeekData != nil)
-                .padding(.top, 20)
+            LegendViewWeek(
+                selectedDate: selectedDate,
+                isTodayView: false,
+                isDeviceOnline: false,
+                showAverage: averageWeekData != nil,
+                showPOS: showPOSOverlay
+            )
+            .padding(.top, 20)
         }
         .padding([.top, .bottom])
-    }
-
-    private func rounded(_ value: Double) -> Double {
-        let r = value.rounded()
-        return r < 1 ? 0 : r
-    }
-
-    @ChartContentBuilder
-    private func barMarks() -> some ChartContent {
-        ForEach(Array(allDays.enumerated()), id: \.element) { index, day in
-            let count = rounded(weekData[day] ?? 0)
-            if count > 0 {
-                BarMark(
-                    x: .value("Day", day),
-                    y: .value("Count", count)
-                )
-                .foregroundStyle(.blue)
-                .opacity(index % 2 == 0 ? 1.0 : 0.85)
-                .cornerRadius(3)
-                .position(by: .value("Series", "Data"))
-            } else {
-                BarMark(
-                    x: .value("Day", day),
-                    y: .value("Count", 0)
-                )
-                .foregroundStyle(.clear)
-                .position(by: .value("Series", "Data"))
-            }
-        }
-    }
-
-    @ChartContentBuilder
-    private func averageBarMarks() -> some ChartContent {
-        if let averageWeekData = averageWeekData {
-            ForEach(Array(allDays.enumerated()), id: \.element) { index, day in
-                if let averageCount = averageWeekData[day], rounded(averageCount) > 0 {
-                    BarMark(
-                        x: .value("Day", day),
-                        y: .value("Count", rounded(averageCount))
-                    )
-                    .foregroundStyle(.orange)
-                    .opacity(index % 2 == 0 ? 0.85 : 0.7)
-                    .cornerRadius(3)
-                    .position(by: .value("Series", "Average"))
-                }
-            }
-        }
-    }
-
-    private func getWeekdayIndex(day: String) -> Int {
-        switch day {
-        case "Monday": return 0
-        case "Tuesday": return 1
-        case "Wednesday": return 2
-        case "Thursday": return 3
-        case "Friday": return 4
-        case "Saturday": return 5
-        case "Sunday": return 6
-        default: return 7
-        }
-    }
-
-    private func getAbbreviatedDayName(from day: String) -> String {
-        return String(day.prefix(3))
     }
 }
 
@@ -114,49 +43,53 @@ struct LegendViewWeek: View {
     var isTodayView: Bool
     var isDeviceOnline: Bool
     var showAverage: Bool
+    var showPOS: Bool = false
     @State private var showAlert = false
 
     var body: some View {
-        HStack {
-            Circle()
-                .fill(Color.blue)
-                .frame(width: 10, height: 10)
-            Text(selectedDate)
-                .font(.caption)
-                .foregroundColor(.primary)
-        
-            Circle()
-                .fill(Color.orange)
-                .frame(width: 10, height: 10)
-            Button(action: {
-                self.showAlert = true
-            }) {
-                HStack{
-                    Text("Weekly Average")
-                        .foregroundColor(.primary)
-                    Image(systemName:"info.circle.fill")
-                        .foregroundColor(.primary)
-                }
-                .font(.caption)
+        FlowLayout(spacing: 6) {
+            legendItem(color: .blue, text: selectedDate)
+
+            Button(action: { self.showAlert = true }) {
+                legendItem(color: .orange, text: "Weekly Average", showInfo: true)
             }
             .alert(isPresented: $showAlert) {
                 Alert(title: Text("Info for Weekly Average"),
-                      message: Text("""
-                                  The average is calculated based on data from the previous 4 weeks, provided there is enough data. \n\nIf there isn't sufficient data, the average will not be displayed on the graph.
-                                  """),
+                      message: Text("The average is calculated based on data from the previous 4 weeks, provided there is enough data.\n\nIf there isn't sufficient data, the average will not be displayed on the graph."),
                       dismissButton: .default(Text("OK")))
             }
 
             if isTodayView && isDeviceOnline {
-                Circle()
-                    .fill(Color.green)
-                    .frame(width: 10, height: 10)
-                Text("Today")
-                    .font(.caption)
-                    .foregroundColor(.primary)
+                legendItem(color: .green, text: "Today")
+            }
+
+            if showPOS {
+                legendItem(color: .green, text: "Transactions", isDashed: true)
             }
         }
         .padding(.horizontal)
+    }
+
+    private func legendItem(color: Color, text: String, showInfo: Bool = false, isDashed: Bool = false) -> some View {
+        HStack(spacing: 4) {
+            if isDashed {
+                RoundedRectangle(cornerRadius: 1)
+                    .fill(color)
+                    .frame(width: 14, height: 3)
+            } else {
+                Circle()
+                    .fill(color)
+                    .frame(width: 10, height: 10)
+            }
+            Text(text)
+                .font(.caption)
+                .foregroundColor(.primary)
+            if showInfo {
+                Image(systemName: "info.circle.fill")
+                    .font(.caption2)
+                    .foregroundColor(.primary)
+            }
+        }
     }
 }
 

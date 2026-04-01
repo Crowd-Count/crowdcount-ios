@@ -9,6 +9,13 @@
 /* Begin PBXBuildFile section */
 		7C077D5E2E611AA70042C0AD /* LocationListView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 7C077D5D2E611AA40042C0AD /* LocationListView.swift */; };
 		7C2469DD2E09E05200409394 /* BarGraphYear.swift in Sources */ = {isa = PBXBuildFile; fileRef = 7C2469DC2E09E04E00409394 /* BarGraphYear.swift */; };
+		7C299E072F6EA65F00F40021 /* POSInsightCards.swift in Sources */ = {isa = PBXBuildFile; fileRef = 7C299E062F6EA65F00F40021 /* POSInsightCards.swift */; };
+		7C299E092F6EA67C00F40021 /* POSConnectView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 7C299E082F6EA67C00F40021 /* POSConnectView.swift */; };
+		7C299E0C2F6EA68A00F40021 /* POSModels.swift in Sources */ = {isa = PBXBuildFile; fileRef = 7C299E0A2F6EA68A00F40021 /* POSModels.swift */; };
+		7C299E0D2F6EA68A00F40021 /* POSStatusManager.swift in Sources */ = {isa = PBXBuildFile; fileRef = 7C299E0B2F6EA68A00F40021 /* POSStatusManager.swift */; };
+		7C299E0F2F6EB1FE00F40021 /* FlowLayout.swift in Sources */ = {isa = PBXBuildFile; fileRef = 7C299E0E2F6EB1FE00F40021 /* FlowLayout.swift */; };
+		7C299E122F7C565400F40021 /* CombinedChartView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 7C299E112F7C565400F40021 /* CombinedChartView.swift */; };
+		7C299E152F7C5C3000F40021 /* DGCharts in Frameworks */ = {isa = PBXBuildFile; productRef = 7C299E142F7C5C3000F40021 /* DGCharts */; };
 		7C2EF95F2F3C44ED00FB437F /* LocationHistoricView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 7C2EF95E2F3C44ED00FB437F /* LocationHistoricView.swift */; };
 		7C2EF9602F3C450000FB437F /* HistoryPrefetchCache.swift in Sources */ = {isa = PBXBuildFile; fileRef = 7C2EF9612F3C450000FB437F /* HistoryPrefetchCache.swift */; };
 		7C349C012F0F19A9001A87C1 /* CountersListView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 7C349C002F0F19A9001A87C1 /* CountersListView.swift */; };
@@ -83,9 +90,28 @@
 		};
 /* End PBXContainerItemProxy section */
 
+/* Begin PBXCopyFilesBuildPhase section */
+		7C299E192F7C5C3000F40021 /* Embed Frameworks */ = {
+			isa = PBXCopyFilesBuildPhase;
+			buildActionMask = 2147483647;
+			dstPath = "";
+			dstSubfolderSpec = 10;
+			files = (
+			);
+			name = "Embed Frameworks";
+			runOnlyForDeploymentPostprocessing = 0;
+		};
+/* End PBXCopyFilesBuildPhase section */
+
 /* Begin PBXFileReference section */
 		7C077D5D2E611AA40042C0AD /* LocationListView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = LocationListView.swift; sourceTree = "<group>"; };
 		7C2469DC2E09E04E00409394 /* BarGraphYear.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = BarGraphYear.swift; sourceTree = "<group>"; };
+		7C299E062F6EA65F00F40021 /* POSInsightCards.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = POSInsightCards.swift; sourceTree = "<group>"; };
+		7C299E082F6EA67C00F40021 /* POSConnectView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = POSConnectView.swift; sourceTree = "<group>"; };
+		7C299E0A2F6EA68A00F40021 /* POSModels.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = POSModels.swift; sourceTree = "<group>"; };
+		7C299E0B2F6EA68A00F40021 /* POSStatusManager.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = POSStatusManager.swift; sourceTree = "<group>"; };
+		7C299E0E2F6EB1FE00F40021 /* FlowLayout.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = FlowLayout.swift; sourceTree = "<group>"; };
+		7C299E112F7C565400F40021 /* CombinedChartView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = CombinedChartView.swift; sourceTree = "<group>"; };
 		7C2EF95E2F3C44ED00FB437F /* LocationHistoricView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = LocationHistoricView.swift; sourceTree = "<group>"; };
 		7C2EF9612F3C450000FB437F /* HistoryPrefetchCache.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = HistoryPrefetchCache.swift; sourceTree = "<group>"; };
 		7C349C002F0F19A9001A87C1 /* CountersListView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = CountersListView.swift; sourceTree = "<group>"; };
@@ -150,6 +176,7 @@
 			buildActionMask = 2147483647;
 			files = (
 				7C8F95372EF6278A008FE41B /* Stripe in Frameworks */,
+				7C299E152F7C5C3000F40021 /* DGCharts in Frameworks */,
 				7C8F95392EF6278A008FE41B /* StripeApplePay in Frameworks */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
@@ -171,9 +198,18 @@
 /* End PBXFrameworksBuildPhase section */
 
 /* Begin PBXGroup section */
+		7C299E132F7C5C3000F40021 /* Frameworks */ = {
+			isa = PBXGroup;
+			children = (
+			);
+			name = Frameworks;
+			sourceTree = "<group>";
+		};
 		7C52D5F32C5D1B5600336BF3 /* App Foundation */ = {
 			isa = PBXGroup;
 			children = (
+				7C299E0A2F6EA68A00F40021 /* POSModels.swift */,
+				7C299E0B2F6EA68A00F40021 /* POSStatusManager.swift */,
 				7C349C042F0F2AE4001A87C1 /* NicknameManager.swift */,
 				7CC3810C2F0126A5001C3A41 /* APIService.swift */,
 				7C91DCB52F34000000191C98 /* CryptoHelper.swift */,
@@ -191,6 +227,7 @@
 				7C5A120A2C18D0BB0050C4D8 /* CrowdCount_App */,
 				7C5A121B2C18D0BC0050C4D8 /* CrowdCount_AppTests */,
 				7C5A12252C18D0BC0050C4D8 /* CrowdCount_AppUITests */,
+				7C299E132F7C5C3000F40021 /* Frameworks */,
 				7C5A12092C18D0BB0050C4D8 /* Products */,
 			);
 			sourceTree = "<group>";
@@ -278,6 +315,7 @@
 		7C7F1B1A2C4D2F5B005A5D18 /* Device */ = {
 			isa = PBXGroup;
 			children = (
+				7C299E082F6EA67C00F40021 /* POSConnectView.swift */,
 				7C349C022F0F238C001A87C1 /* AllCountersListView.swift */,
 				7C349C002F0F19A9001A87C1 /* CountersListView.swift */,
 				7CC381222F0C1AF2001C3A41 /* LocationCountersView.swift */,
@@ -296,6 +334,9 @@
 		7C7F1B1B2C4D2F82005A5D18 /* Count History */ = {
 			isa = PBXGroup;
 			children = (
+				7C299E112F7C565400F40021 /* CombinedChartView.swift */,
+				7C299E0E2F6EB1FE00F40021 /* FlowLayout.swift */,
+				7C299E062F6EA65F00F40021 /* POSInsightCards.swift */,
 				7C2EF95E2F3C44ED00FB437F /* LocationHistoricView.swift */,
 				7C91DCB32F33E65700191C98 /* HistoricCountsContentView.swift */,
 				7C99B2B22F27FB0100BF8CAA /* InsightCardView.swift */,
@@ -341,6 +382,7 @@
 				7C5A12042C18D0BB0050C4D8 /* Sources */,
 				7C5A12052C18D0BB0050C4D8 /* Frameworks */,
 				7C5A12062C18D0BB0050C4D8 /* Resources */,
+				7C299E192F7C5C3000F40021 /* Embed Frameworks */,
 			);
 			buildRules = (
 			);
@@ -421,6 +463,7 @@
 			mainGroup = 7C5A11FF2C18D0BB0050C4D8;
 			packageReferences = (
 				7C8F95352EF6272D008FE41B /* XCRemoteSwiftPackageReference "stripe-ios" */,
+				7C299E102F742FB800F40021 /* XCRemoteSwiftPackageReference "Charts" */,
 			);
 			productRefGroup = 7C5A12092C18D0BB0050C4D8 /* Products */;
 			projectDirPath = "";
@@ -466,13 +509,17 @@
 			isa = PBXSourcesBuildPhase;
 			buildActionMask = 2147483647;
 			files = (
+				7C299E0C2F6EA68A00F40021 /* POSModels.swift in Sources */,
+				7C299E0D2F6EA68A00F40021 /* POSStatusManager.swift in Sources */,
 				7CC3810D2F0126A5001C3A41 /* APIService.swift in Sources */,
 				7C91DCB62F34000100191C98 /* CryptoHelper.swift in Sources */,
 				7C8FF56B2C3EAAC0008D039F /* BarGraphWeek.swift in Sources */,
 				7CCB26042F5BBADA004CA344 /* PopularTimesChart.swift in Sources */,
 				7C8FF5692C3D47B8008D039F /* BarGraphDay.swift in Sources */,
+				7C299E072F6EA65F00F40021 /* POSInsightCards.swift in Sources */,
 				7C349C012F0F19A9001A87C1 /* CountersListView.swift in Sources */,
 				7CD02E9B2C2DFD69000EAFC5 /* AddUserPage.swift in Sources */,
+				7C299E122F7C565400F40021 /* CombinedChartView.swift in Sources */,
 				7CD02E952C2CF693000EAFC5 /* LoginView.swift in Sources */,
 				7CD54D5A2C29EF4C00E144A1 /* SettingsView.swift in Sources */,
 				7C5A120E2C18D0BB0050C4D8 /* ContentView.swift in Sources */,
@@ -484,6 +531,7 @@
 				7CBAF1782C19F8CE000E80E9 /* BluetoothSetupView.swift in Sources */,
 				7C349C032F0F238C001A87C1 /* AllCountersListView.swift in Sources */,
 				7C8F95332EF602F5008FE41B /* AdPayView.swift in Sources */,
+				7C299E0F2F6EB1FE00F40021 /* FlowLayout.swift in Sources */,
 				7C077D5E2E611AA70042C0AD /* LocationListView.swift in Sources */,
 				7C91DCB42F33E65700191C98 /* HistoricCountsContentView.swift in Sources */,
 				7C99B2B12F27F5DE00BF8CAA /* CounterPlacementGuideView.swift in Sources */,
@@ -492,6 +540,7 @@
 				7CC381212F0C11C8001C3A41 /* LocationPickerView.swift in Sources */,
 				7CBDF77E2C4003D50046C7FB /* ShareSheetHelper.swift in Sources */,
 				7C8F953B2EF6FE4F008FE41B /* AdDetailView.swift in Sources */,
+				7C299E092F6EA67C00F40021 /* POSConnectView.swift in Sources */,
 				7C7F1B152C4C143F005A5D18 /* Color.swift in Sources */,
 				7CBAF1762C18E40D000E80E9 /* BluetoothManager.swift in Sources */,
 				7CA928112C373E8300233AF4 /* VisualEffectView.swift in Sources */,
@@ -682,7 +731,7 @@
 				ASSETCATALOG_COMPILER_INCLUDE_ALL_APPICON_ASSETS = YES;
 				CODE_SIGN_ENTITLEMENTS = CrowdCount_App/CrowdCount_App.entitlements;
 				CODE_SIGN_STYLE = Automatic;
-				CURRENT_PROJECT_VERSION = 44;
+				CURRENT_PROJECT_VERSION = 43;
 				DEVELOPMENT_ASSET_PATHS = "\"CrowdCount_App/Preview Content\"";
 				ENABLE_PREVIEWS = YES;
 				GENERATE_INFOPLIST_FILE = YES;
@@ -704,7 +753,7 @@
 					"$(inherited)",
 					"@executable_path/Frameworks",
 				);
-				MARKETING_VERSION = 5.3.0;
+				MARKETING_VERSION = 5.4.0;
 				PRODUCT_BUNDLE_IDENTIFIER = "CrowdCount.CrowdCount-App";
 				PRODUCT_NAME = "$(TARGET_NAME)";
 				SUPPORTED_PLATFORMS = "iphoneos iphonesimulator";
@@ -725,7 +774,7 @@
 				ASSETCATALOG_COMPILER_INCLUDE_ALL_APPICON_ASSETS = YES;
 				CODE_SIGN_ENTITLEMENTS = CrowdCount_App/CrowdCount_App.entitlements;
 				CODE_SIGN_STYLE = Automatic;
-				CURRENT_PROJECT_VERSION = 44;
+				CURRENT_PROJECT_VERSION = 43;
 				DEVELOPMENT_ASSET_PATHS = "\"CrowdCount_App/Preview Content\"";
 				ENABLE_PREVIEWS = YES;
 				GENERATE_INFOPLIST_FILE = YES;
@@ -747,7 +796,7 @@
 					"$(inherited)",
 					"@executable_path/Frameworks",
 				);
-				MARKETING_VERSION = 5.3.0;
+				MARKETING_VERSION = 5.4.0;
 				PRODUCT_BUNDLE_IDENTIFIER = "CrowdCount.CrowdCount-App";
 				PRODUCT_NAME = "$(TARGET_NAME)";
 				SUPPORTED_PLATFORMS = "iphoneos iphonesimulator";
@@ -872,6 +921,14 @@
 /* End XCConfigurationList section */
 
 /* Begin XCRemoteSwiftPackageReference section */
+		7C299E102F742FB800F40021 /* XCRemoteSwiftPackageReference "Charts" */ = {
+			isa = XCRemoteSwiftPackageReference;
+			repositoryURL = "https://github.com/ChartsOrg/Charts";
+			requirement = {
+				kind = upToNextMajorVersion;
+				minimumVersion = 5.1.0;
+			};
+		};
 		7C8F95352EF6272D008FE41B /* XCRemoteSwiftPackageReference "stripe-ios" */ = {
 			isa = XCRemoteSwiftPackageReference;
 			repositoryURL = "https://github.com/stripe/stripe-ios";
@@ -883,6 +940,11 @@
 /* End XCRemoteSwiftPackageReference section */
 
 /* Begin XCSwiftPackageProductDependency section */
+		7C299E142F7C5C3000F40021 /* DGCharts */ = {
+			isa = XCSwiftPackageProductDependency;
+			package = 7C299E102F742FB800F40021 /* XCRemoteSwiftPackageReference "Charts" */;
+			productName = DGCharts;
+		};
 		7C8F95362EF6278A008FE41B /* Stripe */ = {
 			isa = XCSwiftPackageProductDependency;
 			package = 7C8F95352EF6272D008FE41B /* XCRemoteSwiftPackageReference "stripe-ios" */;

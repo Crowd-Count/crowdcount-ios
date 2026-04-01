@@ -1,5 +1,4 @@
 import SwiftUI
-import Charts
 
 struct BarGraphDay: View {
     var dayData: [String: Double]
@@ -7,11 +6,14 @@ struct BarGraphDay: View {
     var isTodayView: Bool
     var selectedDate: String
     var isDeviceOnline: Bool
-    var mostRecentDataTime: String? // Most recent hour with data
+    var mostRecentDataTime: String?
+
+    // POS overlay
+    var posHourlyData: [String: POSTransactionData.POSHourlyEntry]? = nil
+    var showPOSOverlay: Bool = false
 
     private let allHours = (0..<24).map { String($0) }
 
-    // Computed property to check if we have truly live data (current hour matches most recent data hour)
     private var isLiveData: Bool {
         guard isTodayView && isDeviceOnline else { return false }
         guard let mostRecentDataTime = mostRecentDataTime,
@@ -20,96 +22,52 @@ struct BarGraphDay: View {
         return mostRecentHour == currentHour
     }
 
+    private var highlightIndex: Int? {
+        guard isLiveData, let h = mostRecentDataTime, let hour = Int(h) else { return nil }
+        return hour
+    }
+
+    /// Convert POS hourly data to [String: Int] for the chart wrapper
+    private var posTransactionCounts: [String: Int]? {
+        guard let pos = posHourlyData else { return nil }
+        var result: [String: Int] = [:]
+        for (hour, entry) in pos {
+            result[hour] = entry.transactions
+        }
+        return result
+    }
+
     var body: some View {
         VStack {
-            Chart {
-                barMarks()
-                averageBarMarks()
-            }
-            .chartXScale(domain: allHours)
-            .chartXAxis {
-                AxisMarks(values: stride(from: 0, through: 23, by: 2).map { String($0) }) { value in
-                    if let strValue = value.as(String.self) {
-                        AxisValueLabel {
-                            Text(strValue)
-                                .font(.caption)
-                                .foregroundColor(.primary)
-                        }
-                    }
-                }
-            }
-            .chartYAxis {
-                AxisMarks(preset: .aligned, position: .leading) { value in
-                    AxisValueLabel {
-                        Text(value.as(Int.self)?.description ?? "")
-                            .font(.caption)
-                            .foregroundColor(.primary)
-                            .modifier(YAxisOffsetModifier()) // Apply the custom view modifier
-                    }
-                    AxisGridLine().foregroundStyle(Color.gray.opacity(0.5))
-                }
-            }
-            .chartYScale(domain: 0...(max(1, dayData.values.map { rounded($0) }.max() ?? 1, averageDayData?.values.map { rounded($0) }.max() ?? 1)))
+            CombinedChartUIView(
+                barData: dayData,
+                averageData: averageDayData,
+                labels: allHours,
+                posData: posTransactionCounts,
+                showPOS: showPOSOverlay,
+                highlightIndex: highlightIndex
+            )
             .frame(height: 200)
             .padding(.horizontal)
 
-            LegendViewDay(selectedDate: selectedDate, isTodayView: isTodayView, isDeviceOnline: isDeviceOnline, showAverage: averageDayData != nil, isLiveData: isLiveData)
-                .padding(.top, 20) // Adjust padding for more space between graph and legend
+            LegendViewDay(
+                selectedDate: selectedDate,
+                isTodayView: isTodayView,
+                isDeviceOnline: isDeviceOnline,
+                showAverage: averageDayData != nil,
+                isLiveData: isLiveData,
+                showPOS: showPOSOverlay
+            )
+            .padding(.top, 20)
         }
-        .padding([.top, .bottom]) // Add padding to top and bottom of the view
-    }
-
-    private func rounded(_ value: Double) -> Double {
-        let r = value.rounded()
-        return r < 1 ? 0 : r
-    }
-
-    @ChartContentBuilder
-    private func barMarks() -> some ChartContent {
-        ForEach(Array(allHours.enumerated()), id: \.element) { index, hour in
-            if let count = dayData[hour], rounded(count) > 0 {
-                BarMark(
-                    x: .value("Hour", hour),
-                    y: .value("Count", rounded(count))
-                )
-                .foregroundStyle(shouldHighlightBar(for: hour) ? .green : .blue)
-                .opacity(shouldHighlightBar(for: hour) ? 1.0 : (index % 2 == 0 ? 1.0 : 0.85))
-                .cornerRadius(2)
-                .position(by: .value("Series", "Data"))
-            }
-        }
-    }
-
-    @ChartContentBuilder
-    private func averageBarMarks() -> some ChartContent {
-        if let averageDayData = averageDayData {
-            ForEach(Array(allHours.enumerated()), id: \.element) { index, hour in
-                if let averageCount = averageDayData[hour], rounded(averageCount) > 0 {
-                    BarMark(
-                        x: .value("Hour", hour),
-                        y: .value("Count", rounded(averageCount))
-                    )
-                    .foregroundStyle(.orange)
-                    .opacity(index % 2 == 0 ? 0.85 : 0.7)
-                    .cornerRadius(2)
-                    .position(by: .value("Series", "Average"))
-                }
-            }
-        }
-    }
-
-    // Only highlight the bar if it's truly live data (current hour with data)
-    func shouldHighlightBar(for hour: String) -> Bool {
-        guard isLiveData else { return false }
-        guard let mostRecentDataTime = mostRecentDataTime else { return false }
-        return hour == mostRecentDataTime
+        .padding([.top, .bottom])
     }
 }
 
 struct YAxisOffsetModifier: ViewModifier {
     func body(content: Content) -> some View {
         content
-            .offset(x: -5) // Adjust the x offset as needed
+            .offset(x: -5)
     }
 }
 
@@ -118,69 +76,69 @@ struct LegendViewDay: View {
     var isTodayView: Bool
     var isDeviceOnline: Bool
     var showAverage: Bool
-    var isLiveData: Bool // True only when current hour has data and device is online
+    var isLiveData: Bool
+    var showPOS: Bool = false
     @State private var showAlert = false
     @State private var showLiveAlert = false
 
     var body: some View {
-        HStack {
-            Circle()
-                .fill(Color.blue)
-                .frame(width: 10, height: 10)
-            Text(selectedDate)
-                .font(.caption)
-                .foregroundColor(.primary)
+        FlowLayout(spacing: 6) {
+            legendItem(color: .blue, text: stripYear(selectedDate))
 
-            Circle()
-                .fill(Color.orange)
-                .frame(width: 10, height: 10)
-            Button(action: {
-                self.showAlert = true
-            }) {
-                HStack{
-                    Text("Daily Average")
-                        .foregroundColor(.primary)
-                        .font(.caption)
-                    Image(systemName:"info.circle.fill")
-                        .foregroundColor(.primary)
-                }
-                .font(.caption)
+            Button(action: { self.showAlert = true }) {
+                legendItem(color: .orange, text: "Daily Average", showInfo: true)
             }
             .alert(isPresented: $showAlert) {
                 Alert(title: Text("Info for Daily Average"),
-                      message: Text("""
-                                  The average is calculated based on data from the same weekday over the previous 8 weeks, provided there is enough data. \nA minimum of 2 weeks of data is required.\n\nIf there isn't sufficient data, the average will not be displayed on the graph.
-                                  """),
+                      message: Text("The average is calculated based on data from the same weekday over the previous 8 weeks, provided there is enough data. A minimum of 2 weeks of data is required.\n\nIf there isn't sufficient data, the average will not be displayed on the graph."),
                       dismissButton: .default(Text("OK")))
             }
 
-            // Show green indicator only when we have live data for the current hour
             if isLiveData {
-                Circle()
-                    .fill(Color.green)
-                    .frame(width: 10, height: 10)
-                Button(action: {
-                    self.showLiveAlert = true
-                }) {
-                    HStack{
-                        Text("Live Data")
-                            .foregroundColor(.primary)
-                            .font(.caption)
-                        Image(systemName:"info.circle.fill")
-                            .foregroundColor(.primary)
-                    }
-                    .font(.caption)
+                Button(action: { self.showLiveAlert = true }) {
+                    legendItem(color: .green, text: "Live Data", showInfo: true)
                 }
                 .alert(isPresented: $showLiveAlert) {
                     Alert(title: Text("Info for Live Data"),
-                          message: Text("""
-                                      The Live Data shows real-time data for the current hour. This updates automatically every 30 seconds to reflect the latest count.
-                                      """),
+                          message: Text("The Live Data shows real-time data for the current hour. This updates automatically every 30 seconds to reflect the latest count."),
                           dismissButton: .default(Text("OK")))
                 }
             }
+
+            if showPOS {
+                legendItem(color: .green, text: "Transactions", isDashed: true)
+            }
         }
         .padding(.horizontal)
+    }
+
+    private func stripYear(_ text: String) -> String {
+        if let range = text.range(of: #",\s*\d{4}$"#, options: .regularExpression) {
+            return String(text[text.startIndex..<range.lowerBound])
+        }
+        return text
+    }
+
+    private func legendItem(color: Color, text: String, showInfo: Bool = false, isDashed: Bool = false) -> some View {
+        HStack(spacing: 4) {
+            if isDashed {
+                RoundedRectangle(cornerRadius: 1)
+                    .fill(color)
+                    .frame(width: 14, height: 3)
+            } else {
+                Circle()
+                    .fill(color)
+                    .frame(width: 10, height: 10)
+            }
+            Text(text)
+                .font(.caption)
+                .foregroundColor(.primary)
+            if showInfo {
+                Image(systemName: "info.circle.fill")
+                    .font(.caption2)
+                    .foregroundColor(.primary)
+            }
+        }
     }
 }
 

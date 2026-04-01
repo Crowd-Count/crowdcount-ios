@@ -209,33 +209,28 @@ struct LocationTotalCountView: View {
                 }
 
                 // --- Action buttons ---
-                VStack(spacing: 15) {
-                    // 1. Count Analytics
-                    NavigationLink(destination: LocationHistoricView(location: location, devices: devices)) {
-                        actionButtonLabel(icon: "chart.bar.xaxis", text: "Count Analytics")
-                        .padding()
-                        .background(Color.blue.opacity(0.75))
-                        .foregroundColor(.primary)
-                        .cornerRadius(20)
+                HStack(spacing: 10) {
+                    NavigationLink(destination: LocationHistoricView(location: location, devices: devices, initialTab: .historicCounts)) {
+                        actionTile(icon: "chart.bar.xaxis", text: "History", color: .blue)
                     }
 
-                    // 2. Overcrowding
-                    Button(action: {
+                    NavigationLink(destination: LocationHistoricView(location: location, devices: devices, initialTab: .insights)) {
+                        actionTile(icon: "lightbulb.fill", text: "Insights", color: .yellow)
+                    }
+
+                    Button {
                         if let limit = location.overcrowdingLimit, limit > 0 {
                             newOvercrowdingLimit = String(limit)
                         } else {
                             newOvercrowdingLimit = ""
                         }
                         showOvercrowdingSheet = true
-                    }) {
-                        actionButtonLabel(
+                    } label: {
+                        actionTile(
                             icon: isOvercrowdingEnabled && isOvercrowdingNotificationEnabled ? "bell.fill" : "bell.slash",
-                            text: "Overcrowding"
+                            text: "Alerts",
+                            color: isOvercrowdingEnabled ? .red : .secondary
                         )
-                        .padding()
-                        .foregroundColor(.primary)
-                        .background(Color.secondary.opacity(0.5))
-                        .cornerRadius(20)
                     }
                     .sheet(isPresented: $showOvercrowdingSheet) {
                         OvercrowdingSettingsSheet(
@@ -262,45 +257,26 @@ struct LocationTotalCountView: View {
                         .presentationDetents([.medium])
                     }
 
-                    // 3. Get on Map / Create a Promo
                     if location.isOnMap {
                         if !offlineCounters.isEmpty {
-                            Button(action: {}) {
-                                actionButtonLabel(icon: "megaphone.fill", text: "Create a Promo")
-                                .padding()
-                                .background(Color.gray.opacity(0.4))
-                                .foregroundColor(.secondary)
-                                .cornerRadius(20)
-                            }
-                            .disabled(true)
-
-                            Text("All counters must be online to create a promo")
-                                .font(.caption)
-                                .foregroundColor(.secondary)
+                            actionTile(icon: "megaphone.fill", text: "Promo", color: .gray)
+                                .opacity(0.4)
                         } else {
                             NavigationLink(destination: AdPayView(
                                 locationId: locationId,
                                 locationName: locationName,
                                 credentials: devices.map { ["device_id": $0.deviceId, "password": $0.password] }
                             )) {
-                                actionButtonLabel(icon: "megaphone.fill", text: "Create a Promo")
-                                .padding()
-                                .background(Color.orange.opacity(0.75))
-                                .foregroundColor(.primary)
-                                .cornerRadius(20)
+                                actionTile(icon: "megaphone.fill", text: "Promo", color: .orange)
                             }
                         }
                     } else {
                         NavigationLink(destination: GetOnMapInfoView()) {
-                            actionButtonLabel(icon: "map.fill", text: "Get on the Map")
-                            .padding()
-                            .background(Color.green.opacity(0.75))
-                            .foregroundColor(.primary)
-                            .cornerRadius(20)
+                            actionTile(icon: "map.fill", text: "Map", color: .green)
                         }
                     }
                 }
-                .padding(.horizontal, 16)
+                .padding(.horizontal, 20)
 
                 Spacer()
             }
@@ -336,12 +312,19 @@ struct LocationTotalCountView: View {
         }
     }
 
-    private func actionButtonLabel(icon: String, text: String) -> some View {
-        HStack {
+    private func actionTile(icon: String, text: String, color: Color) -> some View {
+        VStack(spacing: 10) {
             Image(systemName: icon)
+                .font(.title)
+                .foregroundColor(color)
             Text(text)
+                .font(.subheadline)
+                .fontWeight(.semibold)
+                .foregroundColor(.primary)
         }
-        .frame(width: 160)
+        .frame(maxWidth: .infinity, minHeight: 75)
+        .background(color.opacity(0.2))
+        .cornerRadius(16)
     }
 
     private func saveOvercrowdingLimit(limit: Int) {

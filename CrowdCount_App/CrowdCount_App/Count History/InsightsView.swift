@@ -53,6 +53,11 @@ struct InsightsView: View {
     let isWeekLoading: Bool
     let isYearLoading: Bool
 
+    // POS data
+    var posInsights: POSInsightsResponse? = nil
+    var hasPOS: Bool = false
+    var onConnectPOS: (() -> Void)? = nil
+
     var body: some View {
         VStack(spacing: 0) {
             // Period Selector - outside ScrollView so always visible
@@ -102,6 +107,14 @@ struct InsightsView: View {
                         isLoading: isYearLoading
                     )
                 }
+
+                    // POS Insights
+                    POSInsightsSection(
+                        posInsights: posInsights,
+                        period: selectedPeriod,
+                        hasPOS: hasPOS,
+                        onConnectPOS: onConnectPOS
+                    )
 
                     // Info text explaining comparisons
                     HStack(alignment: .top, spacing: 6) {

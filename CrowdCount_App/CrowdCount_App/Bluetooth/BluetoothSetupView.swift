@@ -457,7 +457,7 @@ struct BluetoothSetupView: View {
             if provisioningStep == .finishing {
                 return ("Counter is online!", "")
             } else if provisioningStep == .checkingStatus {
-                return ("Checking Counter Status...", "Verifying connection to server")
+                return ("Checking Counter Status...", "This usually takes about a minute")
             } else {
                 return (statusDisplayText, "Please stay in range of the counter")
             }
@@ -666,7 +666,8 @@ struct BluetoothSetupView: View {
     }
 
     func checkDeviceStatus(attemptsRemaining: Int, interval: TimeInterval) {
-        guard let url = URL(string: "\(AppSettings.apiBaseURL)/connection_status") else {
+        // Use /check_user — only needs device_id, no password required
+        guard let url = URL(string: "\(AppSettings.apiBaseURL)/check_user") else {
             self.message = "Server error, please try again later"
             self.messageColor = .red
             self.showMessage = true
@@ -675,22 +676,9 @@ struct BluetoothSetupView: View {
             return
         }
 
-        // Use the password passed in from the parent view (which already has the device credentials).
-        // Fall back to a cc_devices lookup in case knownDevicePassword wasn't provided.
-        let devicePassword: String? = knownDevicePassword ?? {
-            if let data = UserDefaults.standard.data(forKey: "cc_devices"),
-               let devices = try? JSONDecoder().decode([Device].self, from: data) {
-                return devices.first(where: { $0.deviceId == scannedDeviceId })?.password
-            }
-            return nil
-        }()
-
         var request = URLRequest(url: url)
         request.httpMethod = "POST"
-        var body: [String: Any] = ["device_id": scannedDeviceId]
-        if let password = devicePassword {
-            body["password"] = password
-        }
+        let body: [String: Any] = ["device_id": scannedDeviceId]
         request.httpBody = try? JSONSerialization.data(withJSONObject: body)
         request.setValue("application/json", forHTTPHeaderField: "Content-Type")
 
@@ -715,7 +703,6 @@ struct BluetoothSetupView: View {
                         if status == "online" {
                             self.isLoading = false
                             self.provisioningStep = .finishing
-                            // Show 100% for a moment, then transition to complete
                             DispatchQueue.main.asyncAfter(deadline: .now() + 1.2) {
                                 self.provisioningStep = .complete
                             }
@@ -773,7 +760,7 @@ struct ProvisioningProgressPreview: View {
         (0.35, "wifi", "Connecting to WiFi...", "Please stay in range of the counter"),
         (0.60, "wifi", "WiFi connected! Configuring counter...", "Please stay in range of the counter"),
         (0.80, "checkmark.icloud", "Almost done! Verifying connection...", "Please stay in range of the counter"),
-        (0.90, "server.rack", "Checking Counter Status...", "Verifying connection to server"),
+        (0.90, "server.rack", "Checking Counter Status...", "This usually takes about a minute"),
         (1.0, "checkmark.circle", "Counter is online!", ""),
     ]
 

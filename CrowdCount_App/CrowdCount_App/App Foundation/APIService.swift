@@ -70,6 +70,9 @@ actor CacheManager {
         static let alertCheck: TimeInterval = 30.0
         static let locations: TimeInterval = 30.0
         static let promotionPricing: TimeInterval = 60.0
+        static let posStatus: TimeInterval = 30.0
+        static let posInsights: TimeInterval = 60.0
+        static let posTransactions: TimeInterval = 30.0
     }
 
     func get<T>(_ key: String) -> T? {
@@ -204,6 +207,10 @@ class APIService: ObservableObject {
             }
 
             guard (200...299).contains(httpResponse.statusCode) else {
+                // Log server error details for debugging
+                if let errorBody = String(data: data, encoding: .utf8) {
+                    print("[APIService] HTTP \(httpResponse.statusCode) for \(endpoint): \(errorBody)")
+                }
                 throw APIError.httpError(httpResponse.statusCode)
             }
 
@@ -1313,6 +1320,195 @@ class APIService: ObservableObject {
             body: body,
             idempotent: true
         )
+    }
+
+    // MARK: - POS Endpoints
+
+    func fetchPOSStatus(locationId: String, credentials: [[String: String]], signingDevice: (String, String)) async throws -> POSConnectionInfo {
+        let data = try await request(
+            endpoint: "pos/status",
+            method: "POST",
+            body: ["location_id": locationId, "credentials": credentials],
+            cacheKey: "pos_status:\(locationId)",
+            cacheTTL: CacheManager.TTL.posStatus,
+            credentials: signingDevice
+        )
+
+        guard let json = try? JSONSerialization.jsonObject(with: data) as? [String: Any] else {
+            throw APIError.decodingError
+        }
+
+        return POSConnectionInfo.from(json)
+    }
+
+    func startPOSOAuth(provider: String, locationId: String, credentials: [[String: String]], signingDevice: (String, String)) async throws -> String {
+        let data = try await request(
+            endpoint: "pos/start_oauth",
+            method: "POST",
+            body: [
+                "provider": provider,
+                "location_id": locationId,
+                "credentials": credentials,
+                "mobile": true
+            ],
+            credentials: signingDevice
+        )
+
+        guard let json = try? JSONSerialization.jsonObject(with: data) as? [String: Any],
+              let oauthURL = json["oauth_url"] as? String else {
+            throw APIError.decodingError
+        }
+
+        return oauthURL
+    }
+
+    func checkExistingPOSAccount(deviceId: String, password: String) async throws -> (hasAccount: Bool, posAccountId: String?, merchantId: String?, provider: String?) {
+        let data = try await request(
+            endpoint: "pos/check_existing_account",
+            method: "POST",
+            body: ["device_id": deviceId, "password": password],
+            credentials: (deviceId, password)
+        )
+
+        guard let json = try? JSONSerialization.jsonObject(with: data) as? [String: Any] else {
+            throw APIError.decodingError
+        }
+
+        return (
+            hasAccount: json["has_account"] as? Bool ?? false,
+            posAccountId: json["pos_account_id"] as? String,
+            merchantId: json["merchant_id"] as? String,
+            provider: json["provider"] as? String
+        )
+    }
+
+    func listPOSLocations(posAccountId: String, signingDevice: (String, String)) async throws -> [POSStoreLocation] {
+        let data = try await request(
+            endpoint: "pos/list_locations",
+            method: "POST",
+            body: [
+                "pos_account_id": posAccountId,
+                "device_id": signingDevice.0,
+                "password": signingDevice.1
+            ],
+            credentials: signingDevice
+        )
+
+        guard let json = try? JSONSerialization.jsonObject(with: data) as? [String: Any],
+              let locations = json["locations"] as? [[String: Any]] else {
+            throw APIError.decodingError
+        }
+
+        return locations.map { POSStoreLocation.from($0) }
+    }
+
+    func connectPOS(locationId: String, posAccountId: String, posLocationId: String, posLocationName: String, credentials: [[String: String]], signingDevice: (String, String)) async throws -> Bool {
+        let data = try await request(
+            endpoint: "pos/connect",
+            method: "POST",
+            body: [
+                "location_id": locationId,
+                "pos_account_id": posAccountId,
+                "pos_location_id": posLocationId,
+                "pos_location_name": posLocationName,
+                "credentials": credentials
+            ],
+            credentials: signingDevice,
+            idempotent: true
+        )
+
+        guard let json = try? JSONSerialization.jsonObject(with: data) as? [String: Any] else {
+            throw APIError.decodingError
+        }
+
+        // Invalidate cached POS status
+        await cache.invalidate("pos_status:\(locationId)")
+
+        return json["success"] as? Bool ?? false
+    }
+
+    func disconnectPOS(locationId: String, credentials: [[String: String]], signingDevice: (String, String)) async throws -> Bool {
+        let data = try await request(
+            endpoint: "pos/disconnect",
+            method: "POST",
+            body: ["location_id": locationId, "credentials": credentials],
+            credentials: signingDevice,
+            idempotent: true
+        )
+
+        guard let json = try? JSONSerialization.jsonObject(with: data) as? [String: Any] else {
+            throw APIError.decodingError
+        }
+
+        // Invalidate cached POS status and data
+        await cache.invalidate("pos_status:\(locationId)")
+        await cache.invalidatePrefix("pos_insights:\(locationId)")
+        await cache.invalidatePrefix("pos_tx:\(locationId)")
+
+        return json["success"] as? Bool ?? false
+    }
+
+    func fetchPOSInsights(locationId: String, credentials: [[String: String]], signingDevice: (String, String)) async throws -> POSInsightsResponse {
+        let data = try await request(
+            endpoint: "pos/insights",
+            method: "POST",
+            body: ["location_id": locationId, "credentials": credentials],
+            cacheKey: "pos_insights:\(locationId)",
+            cacheTTL: CacheManager.TTL.posInsights,
+            credentials: signingDevice
+        )
+
+        guard let json = try? JSONSerialization.jsonObject(with: data) as? [String: Any] else {
+            throw APIError.decodingError
+        }
+
+        return POSInsightsResponse.from(json)
+    }
+
+    func fetchPOSTransactions(locationId: String, startDate: String, endDate: String, credentials: [[String: String]], signingDevice: (String, String)) async throws -> POSTransactionData {
+        let data = try await request(
+            endpoint: "pos/transactions",
+            method: "POST",
+            body: [
+                "location_id": locationId,
+                "start_date": startDate,
+                "end_date": endDate,
+                "credentials": credentials
+            ],
+            cacheKey: "pos_tx:\(locationId):\(startDate):\(endDate)",
+            cacheTTL: CacheManager.TTL.posTransactions,
+            credentials: signingDevice
+        )
+
+        guard let json = try? JSONSerialization.jsonObject(with: data) as? [String: Any] else {
+            throw APIError.decodingError
+        }
+
+        return POSTransactionData.from(json)
+    }
+
+    func sandboxConnectPOS(accessToken: String, locationId: String, credentials: [[String: String]], signingDevice: (String, String)) async throws -> (posAccountId: String, merchantId: String) {
+        let data = try await request(
+            endpoint: "pos/sandbox_connect",
+            method: "POST",
+            body: [
+                "access_token": accessToken,
+                "location_id": locationId,
+                "credentials": credentials
+            ],
+            credentials: signingDevice
+        )
+
+        guard let json = try? JSONSerialization.jsonObject(with: data) as? [String: Any],
+              let posAccountId = json["pos_account_id"] as? String,
+              let merchantId = json["merchant_id"] as? String else {
+            throw APIError.decodingError
+        }
+
+        // Invalidate cached POS status
+        await cache.invalidate("pos_status:\(locationId)")
+
+        return (posAccountId: posAccountId, merchantId: merchantId)
     }
 }
 

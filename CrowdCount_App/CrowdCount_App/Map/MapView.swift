@@ -578,6 +578,9 @@ class MapViewModel: ObservableObject {
                 // Parse closed state
                 let isClosed = location["is_closed"] as? Bool ?? false
 
+                // Parse device online status (defaults to true if not present for backwards compat)
+                let allDevicesOnline = location["all_devices_online"] as? Bool ?? true
+
                 // Only add if we haven't seen this ID before
                 if !seenIds.contains(locationId) {
                     seenIds.insert(locationId)
@@ -591,7 +594,8 @@ class MapViewModel: ObservableObject {
                         currentCount: currentCount,
                         isClosed: isClosed,
                         comparison: comparison,
-                        overcrowding: overcrowding
+                        overcrowding: overcrowding,
+                        allDevicesOnline: allDevicesOnline
                     )
                     uniqueLocations.append(newLocation)
                 }
@@ -699,6 +703,7 @@ struct Location: Identifiable {
     let isClosed: Bool
     let comparison: String  // "up", "down", or "neutral"
     let overcrowding: Int?
+    let allDevicesOnline: Bool
 
     var comparisonSymbol: String {
         switch comparison {
@@ -733,7 +738,8 @@ struct Location: Identifiable {
             currentCount: 5,
             isClosed: false,
             comparison: "up",
-            overcrowding: 10
+            overcrowding: 10,
+            allDevicesOnline: true
         ),
         Location(
             id: "sample-2",
@@ -745,7 +751,8 @@ struct Location: Identifiable {
             currentCount: 23,
             isClosed: false,
             comparison: "down",
-            overcrowding: nil
+            overcrowding: nil,
+            allDevicesOnline: true
         ),
         Location(
             id: "sample-3",
@@ -757,7 +764,8 @@ struct Location: Identifiable {
             currentCount: 29,
             isClosed: false,
             comparison: "neutral",
-            overcrowding: nil
+            overcrowding: nil,
+            allDevicesOnline: true
         ),
         Location(
             id: "sample-4",
@@ -769,7 +777,8 @@ struct Location: Identifiable {
             currentCount: 86,
             isClosed: false,
             comparison: "up",
-            overcrowding: 100
+            overcrowding: 100,
+            allDevicesOnline: true
         )
     ]
 }
@@ -1220,6 +1229,24 @@ private struct LocationDetailCard: View {
                                 .overlay(colorScheme == .dark && location.color.lowercased() != "yellow" ? Capsule().fill(.black.opacity(0.1)) : nil)
                         )
                 }
+            }
+
+            // Offline warning
+            if !location.allDevicesOnline {
+                HStack(spacing: 8) {
+                    Image(systemName: "exclamationmark.triangle.fill")
+                        .font(.caption)
+                    Text("One or more counters offline — data may be inaccurate")
+                        .font(.caption)
+                }
+                .foregroundColor(.orange)
+                .padding(.horizontal, 12)
+                .padding(.vertical, 8)
+                .frame(maxWidth: .infinity, alignment: .leading)
+                .background(
+                    RoundedRectangle(cornerRadius: 10, style: .continuous)
+                        .fill(Color.orange.opacity(0.12))
+                )
             }
 
             // Popular Times chart

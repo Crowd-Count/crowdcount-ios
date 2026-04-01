@@ -19,11 +19,11 @@ struct LocationSettingsView: View {
     @State private var showRemoveDeviceConfirmation: Bool = false
 
     // Daily Reset state
-    @State private var hasResetSchedule: Bool = false
-    @State private var selectedResetTime: Date = Calendar.current.date(from: DateComponents(hour: 6, minute: 0)) ?? Date()
-    @State private var selectedTimezone: String = TimeZone.current.identifier
-    @State private var isLoadingSchedule: Bool = true
-    @State private var isSavingSchedule: Bool = false
+//    @State private var hasResetSchedule: Bool = false
+//    @State private var selectedResetTime: Date = Calendar.current.date(from: DateComponents(hour: 6, minute: 0)) ?? Date()
+//    @State private var selectedTimezone: String = TimeZone.current.identifier
+//    @State private var isLoadingSchedule: Bool = true
+//    @State private var isSavingSchedule: Bool = false
     private let apiService = APIService.shared
 
     // Reset All Counters state
@@ -31,6 +31,13 @@ struct LocationSettingsView: View {
     @State private var isResettingAll: Bool = false
     @State private var resetAllResult: String? = nil
     @State private var showResetAllResult: Bool = false
+
+    // POS state
+    @State private var posStatus: POSConnectionInfo?
+    @State private var isLoadingPOS: Bool = true
+    @State private var showPOSConnectSheet: Bool = false
+    @State private var showPOSDisconnectConfirmation: Bool = false
+    @State private var posDisconnecting: Bool = false
 
     // Operating Hours state
     @State private var hasClosingTime: Bool = false
@@ -110,8 +117,9 @@ struct LocationSettingsView: View {
                 locationName = location.name
                 originalName = location.name
                 selectedColor = location.colorName ?? "orange"
-                loadResetSchedule()
+                // loadResetSchedule()
                 loadClosingTime()
+                loadPOSStatus()
             }
             .alert("Delete Location?", isPresented: $showDeleteConfirmation) {
                 Button("Cancel", role: .cancel) { }
@@ -136,6 +144,25 @@ struct LocationSettingsView: View {
                 Button("OK", role: .cancel) { }
             } message: {
                 Text(resetAllResult ?? "")
+            }
+            .alert("Disconnect POS?", isPresented: $showPOSDisconnectConfirmation) {
+                Button("Cancel", role: .cancel) { }
+                Button("Disconnect", role: .destructive) {
+                    Task { await disconnectPOS() }
+                }
+            } message: {
+                Text("This will disconnect the POS system from this location. Sales data will no longer be synced.")
+            }
+            .sheet(isPresented: $showPOSConnectSheet) {
+                POSConnectView(
+                    locationId: location.id,
+                    locationName: location.name,
+                    credentials: credentials,
+                    signingDevice: signingDevice ?? ("", ""),
+                    onConnected: {
+                        loadPOSStatus()
+                    }
+                )
             }
             .alert("Remove Counter?", isPresented: $showRemoveDeviceConfirmation) {
                 Button("Cancel", role: .cancel) {
@@ -197,7 +224,9 @@ struct LocationSettingsView: View {
 
             countersSection
 
-            dailyResetSection
+            posSection
+
+            // dailyResetSection
 
             closingTimeSection
 
@@ -258,6 +287,102 @@ struct LocationSettingsView: View {
                 }
             }
         }
+    }
+
+    // MARK: - POS Section
+
+    @ViewBuilder
+    private var posSection: some View {
+        Section(header: Text("Point of Sale"),
+                footer: Text(posStatus?.connected == true
+                    ? "Sales data is synced from your POS system"
+                    : "Connect a POS to see sales data alongside foot traffic")) {
+            if isLoadingPOS {
+                HStack {
+                    ProgressView()
+                        .padding(.trailing, 8)
+                    Text("Loading POS status...")
+                        .foregroundColor(.secondary)
+                }
+            } else if let pos = posStatus, pos.connected {
+                // Connected state
+                HStack {
+                    Image(systemName: "creditcard.fill")
+                        .foregroundColor(.green)
+                    VStack(alignment: .leading, spacing: 2) {
+                        Text("\(pos.provider?.rawValue.capitalized ?? "POS") — \"\(pos.posLocationName ?? "Unknown")\"")
+                            .font(.body)
+                        if let connectedAt = pos.connectedAt {
+                            Text("Connected \(connectedAt)")
+                                .font(.caption)
+                                .foregroundColor(.secondary)
+                        }
+                    }
+                }
+
+                // Disconnect
+                Button(role: .destructive) {
+                    showPOSDisconnectConfirmation = true
+                } label: {
+                    HStack {
+                        Image(systemName: "xmark.circle")
+                        Text(posDisconnecting ? "Disconnecting..." : "Disconnect")
+                    }
+                }
+                .disabled(posDisconnecting)
+            } else {
+                // Disconnected state
+                Button {
+                    showPOSConnectSheet = true
+                } label: {
+                    HStack {
+                        Image(systemName: "creditcard.and.123")
+                            .foregroundColor(.blue)
+                        Text("Connect POS")
+                            .foregroundColor(.blue)
+                    }
+                }
+            }
+        }
+    }
+
+    // MARK: - POS Actions
+
+    private func loadPOSStatus() {
+        isLoadingPOS = true
+        Task {
+            // Always fetch fresh from server to ensure up-to-date status
+            guard let signing = signingDevice else {
+                // Fall back to cache if no signing device
+                posStatus = POSStatusManager.shared.getStatus(for: location.id)
+                isLoadingPOS = false
+                return
+            }
+            await POSStatusManager.shared.refreshStatus(
+                for: location.id,
+                credentials: credentials,
+                signingDevice: signing
+            )
+            posStatus = POSStatusManager.shared.getStatus(for: location.id)
+            isLoadingPOS = false
+        }
+    }
+
+    private func disconnectPOS() async {
+        guard let signing = signingDevice else { return }
+        posDisconnecting = true
+        do {
+            _ = try await apiService.disconnectPOS(
+                locationId: location.id,
+                credentials: credentials,
+                signingDevice: signing
+            )
+            POSStatusManager.shared.clearStatus(for: location.id)
+            posStatus = nil
+        } catch {
+            // Silently handle
+        }
+        posDisconnecting = false
     }
 
     // MARK: - Folder Color Section
@@ -332,62 +457,6 @@ struct LocationSettingsView: View {
                 }
             }
             .disabled(isResettingAll || location.deviceIds.isEmpty)
-        }
-    }
-
-    // MARK: - Daily Reset Section
-
-    @ViewBuilder
-    private var dailyResetSection: some View {
-        Section(header: Text("Daily Reset"), footer: Text("All counter counts will reset to 0 at this time every day. We recommend setting this during a time your location is closed or usually empty so that your total count doesn't shift over time.")) {
-            if isLoadingSchedule {
-                HStack {
-                    ProgressView()
-                        .scaleEffect(0.8)
-                    Text("Loading schedule...")
-                        .foregroundColor(.secondary)
-                }
-            } else {
-                Toggle(isOn: $hasResetSchedule) {
-                    Text("Enable Daily Reset")
-                }
-                .disabled(isSavingSchedule || location.deviceIds.isEmpty)
-                .onChange(of: hasResetSchedule) { _, newValue in
-                    Task {
-                        await handleScheduleToggle(enabled: newValue)
-                    }
-                }
-
-                if hasResetSchedule {
-                    DatePicker(
-                        "Reset Time",
-                        selection: $selectedResetTime,
-                        displayedComponents: .hourAndMinute
-                    )
-                    .disabled(isSavingSchedule)
-                    .onChange(of: selectedResetTime) { _, newValue in
-                        Task {
-                            await saveResetSchedule(time: newValue)
-                        }
-                    }
-
-                    Picker("Timezone", selection: $selectedTimezone) {
-                        if !commonTimezones.contains(where: { $0.id == TimeZone.current.identifier }) {
-                            Text("Device (\(TimeZone.current.identifier))")
-                                .tag(TimeZone.current.identifier)
-                        }
-                        ForEach(commonTimezones, id: \.id) { tz in
-                            Text(tz.label).tag(tz.id)
-                        }
-                    }
-                    .disabled(isSavingSchedule)
-                    .onChange(of: selectedTimezone) { _, _ in
-                        Task {
-                            await saveResetSchedule(time: selectedResetTime)
-                        }
-                    }
-                }
-            }
         }
     }
 
@@ -566,106 +635,89 @@ struct LocationSettingsView: View {
         return "\(formatter.string(from: open)) - \(formatter.string(from: close))"
     }
 
-    // MARK: - Reset Schedule
+    // MARK: - Reset Schedule (commented out)
 
-    private func loadResetSchedule() {
-        guard !location.deviceIds.isEmpty, let signing = signingDevice else {
-            isLoadingSchedule = false
-            return
-        }
-
-        // Use the location_id to fetch reset schedule from server
-        Task {
-            do {
-                if let schedule = try await apiService.fetchResetSchedule(locationId: location.id, credentials: credentials, signingDevice: signing) {
-                    await MainActor.run {
-                        hasResetSchedule = true
-                        if let time = Calendar.current.date(from: DateComponents(hour: schedule.resetHour, minute: schedule.resetMinute)) {
-                            selectedResetTime = time
-                        }
-                        selectedTimezone = schedule.timezone
-                        isLoadingSchedule = false
-                    }
-                } else {
-                    await MainActor.run {
-                        hasResetSchedule = false
-                        selectedTimezone = TimeZone.current.identifier
-                        isLoadingSchedule = false
-                    }
-                }
-            } catch {
-                print("Error loading reset schedule: \(error)")
-                await MainActor.run {
-                    hasResetSchedule = false
-                    selectedTimezone = TimeZone.current.identifier
-                    isLoadingSchedule = false
-                }
-            }
-        }
-    }
-
-    private func handleScheduleToggle(enabled: Bool) async {
-        if enabled {
-            await saveResetSchedule(time: selectedResetTime)
-        } else {
-            await deleteSchedule()
-        }
-    }
-
-    private func saveResetSchedule(time: Date) async {
-        guard hasResetSchedule, let signing = signingDevice else { return }
-
-        await MainActor.run {
-            isSavingSchedule = true
-        }
-
-        let components = Calendar.current.dateComponents([.hour, .minute], from: time)
-        let hour = components.hour ?? 6
-        let minute = components.minute ?? 0
-
-        do {
-            _ = try await apiService.setResetSchedule(
-                locationId: location.id,
-                hour: hour,
-                minute: minute,
-                timezone: selectedTimezone,
-                credentials: credentials,
-                signingDevice: signing
-            )
-            await MainActor.run {
-                isSavingSchedule = false
-            }
-        } catch {
-            print("Error saving reset schedule: \(error)")
-            await MainActor.run {
-                isSavingSchedule = false
-            }
-        }
-    }
-
-    private func deleteSchedule() async {
-        guard let signing = signingDevice else { return }
-
-        await MainActor.run {
-            isSavingSchedule = true
-        }
-
-        do {
-            try await apiService.deleteResetSchedule(
-                locationId: location.id,
-                credentials: credentials,
-                signingDevice: signing
-            )
-            await MainActor.run {
-                isSavingSchedule = false
-            }
-        } catch {
-            print("Error deleting reset schedule: \(error)")
-            await MainActor.run {
-                isSavingSchedule = false
-            }
-        }
-    }
+//    private var dailyResetSection: some View {
+//        Section(header: Text("Daily Reset"), footer: Text("All counter counts will reset to 0 at this time every day.")) {
+//            if isLoadingSchedule {
+//                HStack {
+//                    ProgressView().scaleEffect(0.8)
+//                    Text("Loading schedule...").foregroundColor(.secondary)
+//                }
+//            } else {
+//                Toggle(isOn: $hasResetSchedule) { Text("Enable Daily Reset") }
+//                    .disabled(isSavingSchedule || location.deviceIds.isEmpty)
+//                    .onChange(of: hasResetSchedule) { _, newValue in
+//                        Task { await handleScheduleToggle(enabled: newValue) }
+//                    }
+//                if hasResetSchedule {
+//                    DatePicker("Reset Time", selection: $selectedResetTime, displayedComponents: .hourAndMinute)
+//                        .disabled(isSavingSchedule)
+//                        .onChange(of: selectedResetTime) { _, newValue in
+//                            Task { await saveResetSchedule(time: newValue) }
+//                        }
+//                    Picker("Timezone", selection: $selectedTimezone) {
+//                        if !commonTimezones.contains(where: { $0.id == TimeZone.current.identifier }) {
+//                            Text("Device (\(TimeZone.current.identifier))").tag(TimeZone.current.identifier)
+//                        }
+//                        ForEach(commonTimezones, id: \.id) { tz in Text(tz.label).tag(tz.id) }
+//                    }
+//                    .disabled(isSavingSchedule)
+//                    .onChange(of: selectedTimezone) { _, _ in
+//                        Task { await saveResetSchedule(time: selectedResetTime) }
+//                    }
+//                }
+//            }
+//        }
+//    }
+//
+//    private func loadResetSchedule() {
+//        guard !location.deviceIds.isEmpty, let signing = signingDevice else {
+//            isLoadingSchedule = false
+//            return
+//        }
+//        Task {
+//            do {
+//                if let schedule = try await apiService.fetchResetSchedule(locationId: location.id, credentials: credentials, signingDevice: signing) {
+//                    hasResetSchedule = true
+//                    if let time = Calendar.current.date(from: DateComponents(hour: schedule.resetHour, minute: schedule.resetMinute)) {
+//                        selectedResetTime = time
+//                    }
+//                    selectedTimezone = schedule.timezone
+//                } else {
+//                    hasResetSchedule = false
+//                    selectedTimezone = TimeZone.current.identifier
+//                }
+//            } catch {
+//                hasResetSchedule = false
+//                selectedTimezone = TimeZone.current.identifier
+//            }
+//            isLoadingSchedule = false
+//        }
+//    }
+//
+//    private func handleScheduleToggle(enabled: Bool) async {
+//        if enabled { await saveResetSchedule(time: selectedResetTime) } else { await deleteSchedule() }
+//    }
+//
+//    private func saveResetSchedule(time: Date) async {
+//        guard hasResetSchedule, let signing = signingDevice else { return }
+//        isSavingSchedule = true
+//        let components = Calendar.current.dateComponents([.hour, .minute], from: time)
+//        do {
+//            _ = try await apiService.setResetSchedule(locationId: location.id, hour: components.hour ?? 6, minute: components.minute ?? 0, timezone: selectedTimezone, credentials: credentials, signingDevice: signing)
+//        } catch { }
+//        isSavingSchedule = false
+//    }
+//
+//    private func deleteSchedule() async {
+//        guard let signing = signingDevice else { return }
+//        isSavingSchedule = true
+//        do {
+//            try await apiService.deleteResetSchedule(locationId: location.id, credentials: credentials, signingDevice: signing)
+//        } catch { }
+//        isSavingSchedule = false
+//    }
 
     // MARK: - Reset Location Data
 

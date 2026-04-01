@@ -277,6 +277,7 @@ struct ContentView: View {
                     startHeartbeat()
                     alertViewModel.checkForAlert()
                     Task { await migrateLocationsToAutoIds() }
+                    Task { await POSStatusManager.shared.refreshAllStatuses(locations: locations, devices: devices) }
                 }
                 .onReceive(NotificationCenter.default.publisher(for: NSNotification.Name("DevicePasswordChanged"))) { notification in
                     if let userInfo = notification.userInfo,

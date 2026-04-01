@@ -48,6 +48,13 @@ struct HistoricCountsContentView: View {
     let hasDataForSelectedYearEntries: Bool
     let isEntryYearLoading: Bool
 
+    // POS data
+    var posDayData: [String: POSTransactionData.POSHourlyEntry]? = nil
+    var posWeekData: [String: Int]? = nil
+    var posYearData: [String: Int]? = nil
+    var hasPOS: Bool = false
+    @AppStorage("crowdcount_showPOSOverlay") var showPOSOverlay: Bool = true
+
     // Callbacks
     let onDaySelected: (String) -> Void
     let onWeekSelected: (WeekInfo) -> Void
@@ -63,6 +70,52 @@ struct HistoricCountsContentView: View {
     var body: some View {
         ScrollView {
             VStack(spacing: 20) {
+                // POS toggle — always shown, greyed out when not connected
+                if hasPOS {
+                    Button {
+                        showPOSOverlay.toggle()
+                    } label: {
+                        HStack(spacing: 8) {
+                            Image(systemName: showPOSOverlay ? "checkmark.square.fill" : "square")
+                                .foregroundColor(showPOSOverlay ? .green : .secondary)
+                                .font(.body)
+                            RoundedRectangle(cornerRadius: 2)
+                                .fill(Color.green)
+                                .frame(width: 18, height: 3)
+                            Text("Show Transactions")
+                                .font(.subheadline)
+                                .fontWeight(.medium)
+                                .foregroundColor(.primary)
+                        }
+                        .padding(.horizontal, 16)
+                        .padding(.vertical, 10)
+                        .background(
+                            RoundedRectangle(cornerRadius: 10)
+                                .stroke(showPOSOverlay ? Color.green.opacity(0.5) : Color.secondary.opacity(0.3), lineWidth: 1)
+                        )
+                    }
+                    .frame(maxWidth: .infinity)
+                    .padding(.top, 5)
+                } else {
+                    HStack(spacing: 8) {
+                        Image(systemName: "square")
+                            .foregroundColor(.secondary)
+                            .font(.body)
+                        Text("Connect a POS system to overlay transactions")
+                            .font(.caption)
+                            .foregroundColor(.secondary)
+                    }
+                    .padding(.horizontal, 16)
+                    .padding(.vertical, 10)
+                    .background(
+                        RoundedRectangle(cornerRadius: 10)
+                            .stroke(Color.secondary.opacity(0.3), style: StrokeStyle(lineWidth: 1, dash: [5, 3]))
+                    )
+                    .opacity(0.5)
+                    .frame(maxWidth: .infinity)
+                    .padding(.top, 5)
+                }
+
                 // Day view with chart and download button
                 daySection
 
@@ -119,7 +172,9 @@ struct HistoricCountsContentView: View {
                             isTodayView: selectedDay == "Today",
                             selectedDate: selectedDay,
                             isDeviceOnline: isDeviceOnline,
-                            mostRecentDataTime: mostRecentDataTime
+                            mostRecentDataTime: mostRecentDataTime,
+                            posHourlyData: (showPOSOverlay && hasPOS) ? posDayData : nil,
+                            showPOSOverlay: showPOSOverlay && hasPOS
                         )
                         .frame(height: 250)
                     } else {
@@ -133,7 +188,9 @@ struct HistoricCountsContentView: View {
                             isTodayView: selectedDay == "Today",
                             selectedDate: selectedDay,
                             isDeviceOnline: isDeviceOnline,
-                            mostRecentDataTime: findMostRecentDataTime(entryDayData)
+                            mostRecentDataTime: findMostRecentDataTime(entryDayData),
+                            posHourlyData: (showPOSOverlay && hasPOS) ? posDayData : nil,
+                            showPOSOverlay: showPOSOverlay && hasPOS
                         )
                         .frame(height: 250)
                     } else {
@@ -193,7 +250,9 @@ struct HistoricCountsContentView: View {
                         BarGraphWeek(
                             weekData: weekData,
                             averageWeekData: averageWeekData ?? [:],
-                            selectedDate: selectedWeek?.label ?? ""
+                            selectedDate: selectedWeek?.label ?? "",
+                            posWeekData: (showPOSOverlay && hasPOS) ? posWeekData : nil,
+                            showPOSOverlay: showPOSOverlay && hasPOS
                         )
                         .frame(height: 250)
                     } else {
@@ -204,7 +263,9 @@ struct HistoricCountsContentView: View {
                         BarGraphWeek(
                             weekData: entryWeekData,
                             averageWeekData: averageEntryWeekData ?? [:],
-                            selectedDate: selectedWeek?.label ?? ""
+                            selectedDate: selectedWeek?.label ?? "",
+                            posWeekData: (showPOSOverlay && hasPOS) ? posWeekData : nil,
+                            showPOSOverlay: showPOSOverlay && hasPOS
                         )
                         .frame(height: 250)
                     } else {
@@ -265,7 +326,9 @@ struct HistoricCountsContentView: View {
                         BarGraphYear(
                             yearData: yearData,
                             averageYearData: averageYearData,
-                            selectedYear: selectedYear
+                            selectedYear: selectedYear,
+                            posYearData: (showPOSOverlay && hasPOS) ? posYearData : nil,
+                            showPOSOverlay: showPOSOverlay && hasPOS
                         )
                         .frame(height: 250)
                     } else {
@@ -276,7 +339,9 @@ struct HistoricCountsContentView: View {
                         BarGraphYear(
                             yearData: entryYearData,
                             averageYearData: averageEntryYearData,
-                            selectedYear: selectedYear
+                            selectedYear: selectedYear,
+                            posYearData: (showPOSOverlay && hasPOS) ? posYearData : nil,
+                            showPOSOverlay: showPOSOverlay && hasPOS
                         )
                         .frame(height: 250)
                     } else {
