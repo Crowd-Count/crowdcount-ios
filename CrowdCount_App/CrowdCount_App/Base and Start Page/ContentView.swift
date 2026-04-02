@@ -568,6 +568,13 @@ struct ContentView: View {
 
     @MainActor
     func checkServerStatusAsync() async {
+        if AppSettings.demo {
+            self.serverStatus = "Server is running"
+            self.serverStatusColor = .gray
+            self.isServerRunning = true
+            return
+        }
+
         let isRunning = await apiService.checkServerStatus()
 
         if isRunning {
@@ -602,6 +609,7 @@ struct ContentView: View {
         var newDeviceCounts: [String: Int] = [:]
         await withTaskGroup(of: (String, Int?).self) { group in
             for device in devices {
+                if AppSettings.demo && device.deviceId == "Demo" { continue }
                 group.addTask {
                     let result = try? await self.apiService.fetchCurrentCount(deviceId: device.deviceId, password: device.password)
                     return (device.deviceId, result?.count)
@@ -611,10 +619,20 @@ struct ContentView: View {
                 if let count { newDeviceCounts[deviceId] = count }
             }
         }
+        if AppSettings.demo && AppSettings.hasDevicesAddedForDemo {
+            newDeviceCounts["Demo"] = 86
+        }
         deviceCounts = newDeviceCounts
+
+        // Inject demo location count
+        if AppSettings.demo && AppSettings.hasDevicesAddedForDemo {
+            locationCounts[DemoData.demoAppLocation.id] = 86
+            locationClosedStates[DemoData.demoAppLocation.id] = false
+        }
 
         // Fetch location-level counts and metadata from server
         for location in locations {
+            if AppSettings.demo && location.id == DemoData.demoAppLocation.id { continue }
             if let lastChange = lastManualCountChange[location.id],
                Date().timeIntervalSince(lastChange) < 2.0 {
                 continue
@@ -681,6 +699,7 @@ struct ContentView: View {
     func refreshAllStatuses() async {
         await withTaskGroup(of: (String, String).self) { group in
             for device in devices {
+                if AppSettings.demo && device.deviceId == "Demo" { continue }
                 group.addTask {
                     let status = (try? await self.apiService.checkConnectionStatus(deviceId: device.deviceId, password: device.password)) ?? "offline"
                     return (device.deviceId, status)
@@ -690,11 +709,15 @@ struct ContentView: View {
                 deviceStatuses[deviceId] = status
             }
         }
+        if AppSettings.demo && AppSettings.hasDevicesAddedForDemo {
+            deviceStatuses["Demo"] = "online"
+        }
     }
 
     // MARK: - Heartbeat
 
     func startHeartbeat() {
+        if AppSettings.demo { return }
         heartbeatTimer?.invalidate()
 
         Task {
@@ -716,6 +739,13 @@ struct ContentView: View {
     // MARK: - Login Flow
 
     func autoLoginIfNeeded() {
+        if AppSettings.demo && AppSettings.hasDevicesAddedForDemo {
+            showLoginScreen = false
+            startCountPolling()
+            startStatusPolling()
+            viewingLocationId = DemoData.demoAppLocation.id
+            return
+        }
         if !devices.isEmpty {
             showLoginScreen = false
             startCountPolling()
@@ -732,6 +762,7 @@ struct ContentView: View {
     /// Pre-fetch insights bundle for each location so Count Analytics loads instantly.
     func prefetchLocationHistory() {
         for location in locations {
+            if AppSettings.demo && location.id == DemoData.demoAppLocation.id { continue }
             let creds = devices.filter { location.deviceIds.contains($0.deviceId) }
                 .map { ["device_id": $0.deviceId, "password": $0.password] }
             guard let first = devices.first(where: { location.deviceIds.contains($0.deviceId) }) else { continue }
@@ -1466,7 +1497,8 @@ struct ContentView: View {
     // MARK: - Persistence
 
     func saveDevices() {
-        if let encoded = try? JSONEncoder().encode(devices) {
+        let toSave = AppSettings.demo ? devices.filter { $0.deviceId != "Demo" } : devices
+        if let encoded = try? JSONEncoder().encode(toSave) {
             UserDefaults.standard.set(encoded, forKey: "cc_devices")
         }
     }
@@ -1479,7 +1511,8 @@ struct ContentView: View {
     }
 
     func saveLocations() {
-        if let encoded = try? JSONEncoder().encode(locations) {
+        let toSave = AppSettings.demo ? locations.filter { $0.id != DemoData.demoAppLocation.id } : locations
+        if let encoded = try? JSONEncoder().encode(toSave) {
             UserDefaults.standard.set(encoded, forKey: "cc_locations")
         }
     }
@@ -1491,9 +1524,15 @@ struct ContentView: View {
 
             // Bootstrap signing keys on the server for existing devices
             for device in decoded {
+                if AppSettings.demo && device.deviceId == "Demo" { continue }
                 Task {
                     _ = try? await apiService.checkPassword(deviceId: device.deviceId, password: device.password)
                 }
+            }
+        }
+        if AppSettings.demo && AppSettings.hasDevicesAddedForDemo {
+            if !devices.contains(where: { $0.deviceId == "Demo" }) {
+                devices.append(DemoData.demoDevice)
             }
         }
     }
@@ -1502,6 +1541,11 @@ struct ContentView: View {
         if let data = UserDefaults.standard.data(forKey: "cc_locations"),
            let decoded = try? JSONDecoder().decode([AppLocation].self, from: data) {
             locations = decoded
+        }
+        if AppSettings.demo && AppSettings.hasDevicesAddedForDemo {
+            if !locations.contains(where: { $0.id == DemoData.demoAppLocation.id }) {
+                locations.append(DemoData.demoAppLocation)
+            }
         }
     }
 

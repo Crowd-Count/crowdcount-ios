@@ -78,20 +78,22 @@ struct CombinedChartUIView: UIViewRepresentable {
         // --- Build Combined Data ---
         let combinedData = CombinedChartData()
 
-        // Bar entries
+        // Bar entries — manually position grouped bars (no groupBars() which shifts X values)
         var barDataSets: [BarChartDataSet] = []
+        let isManyBars = labels.count > 12
+        let n = Double(labels.count)
+        let barWidth = hasAverage ? (isManyBars ? 0.35 : 0.4) : (isManyBars ? 0.4 : 0.6)
+        let gap = 0.04
+        let offset = hasAverage ? (barWidth + gap) / 2.0 : 0.0
 
         var currentEntries: [BarChartDataEntry] = []
         var barColors: [UIColor] = []
         for (i, label) in labels.enumerated() {
             let val = barData[label] ?? 0
             let rounded = val.rounded() < 1 ? 0 : val.rounded()
-            currentEntries.append(BarChartDataEntry(x: Double(i), y: rounded))
-            if let hi = highlightIndex, i == hi {
-                barColors.append(.systemGreen)
-            } else {
-                barColors.append(.systemBlue.withAlphaComponent(i % 2 == 0 ? 1.0 : 0.85))
-            }
+            let xPos = Double(i) - offset
+            currentEntries.append(BarChartDataEntry(x: xPos, y: rounded))
+            barColors.append(.systemBlue.withAlphaComponent(i % 2 == 0 ? 1.0 : 0.85))
         }
         let currentSet = BarChartDataSet(entries: currentEntries, label: "Data")
         currentSet.colors = barColors
@@ -104,7 +106,8 @@ struct CombinedChartUIView: UIViewRepresentable {
             for (i, label) in labels.enumerated() {
                 let val = avg[label] ?? 0
                 let rounded = val.rounded() < 1 ? 0 : val.rounded()
-                avgEntries.append(BarChartDataEntry(x: Double(i), y: rounded))
+                let xPos = Double(i) + offset
+                avgEntries.append(BarChartDataEntry(x: xPos, y: rounded))
                 avgColors.append(.systemOrange.withAlphaComponent(i % 2 == 0 ? 0.85 : 0.7))
             }
             let avgSet = BarChartDataSet(entries: avgEntries, label: "Average")
@@ -114,23 +117,10 @@ struct CombinedChartUIView: UIViewRepresentable {
         }
 
         let barChartData = BarChartData(dataSets: barDataSets)
-        let isManyBars = labels.count > 12
-        let n = Double(labels.count)
-        if hasAverage && barDataSets.count > 1 {
-            let groupSpace = isManyBars ? 0.2 : 0.1
-            let barSpace = 0.02
-            let barWidth = isManyBars ? 0.38 : 0.43
-            barChartData.barWidth = barWidth
-            barChartData.groupBars(fromX: 0, groupSpace: groupSpace, barSpace: barSpace)
-            xAxis.centerAxisLabelsEnabled = true
-            xAxis.axisMinimum = 0
-            xAxis.axisMaximum = barChartData.groupWidth(groupSpace: groupSpace, barSpace: barSpace) * n
-        } else {
-            barChartData.barWidth = isManyBars ? 0.4 : 0.6
-            xAxis.centerAxisLabelsEnabled = false
-            xAxis.axisMinimum = -0.5
-            xAxis.axisMaximum = n - 0.5
-        }
+        barChartData.barWidth = barWidth
+        xAxis.centerAxisLabelsEnabled = false
+        xAxis.axisMinimum = -0.5
+        xAxis.axisMaximum = n - 0.5
         combinedData.barData = barChartData
 
         // Line entries (POS)

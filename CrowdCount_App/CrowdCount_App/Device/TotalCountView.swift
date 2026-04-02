@@ -209,13 +209,13 @@ struct LocationTotalCountView: View {
                 }
 
                 // --- Action buttons ---
-                HStack(spacing: 10) {
+                VStack(spacing: 10) {
                     NavigationLink(destination: LocationHistoricView(location: location, devices: devices, initialTab: .historicCounts)) {
-                        actionTile(icon: "chart.bar.xaxis", text: "History", color: .blue)
+                        actionButton(icon: "chart.bar.xaxis", text: "History", bg: .blue)
                     }
 
                     NavigationLink(destination: LocationHistoricView(location: location, devices: devices, initialTab: .insights)) {
-                        actionTile(icon: "lightbulb.fill", text: "Insights", color: .yellow)
+                        actionButton(icon: "lightbulb.fill", text: "Insights", bg: .blue)
                     }
 
                     Button {
@@ -226,10 +226,10 @@ struct LocationTotalCountView: View {
                         }
                         showOvercrowdingSheet = true
                     } label: {
-                        actionTile(
+                        actionButton(
                             icon: isOvercrowdingEnabled && isOvercrowdingNotificationEnabled ? "bell.fill" : "bell.slash",
-                            text: "Alerts",
-                            color: isOvercrowdingEnabled ? .red : .secondary
+                            text: "Overcrowding",
+                            bg: .gray
                         )
                     }
                     .sheet(isPresented: $showOvercrowdingSheet) {
@@ -259,7 +259,7 @@ struct LocationTotalCountView: View {
 
                     if location.isOnMap {
                         if !offlineCounters.isEmpty {
-                            actionTile(icon: "megaphone.fill", text: "Promo", color: .gray)
+                            actionButton(icon: "megaphone.fill", text: "Create a Promo", bg: .gray)
                                 .opacity(0.4)
                         } else {
                             NavigationLink(destination: AdPayView(
@@ -267,16 +267,15 @@ struct LocationTotalCountView: View {
                                 locationName: locationName,
                                 credentials: devices.map { ["device_id": $0.deviceId, "password": $0.password] }
                             )) {
-                                actionTile(icon: "megaphone.fill", text: "Promo", color: .orange)
+                                actionButton(icon: "megaphone.fill", text: "Create a Promo", bg: .orange)
                             }
                         }
                     } else {
                         NavigationLink(destination: GetOnMapInfoView()) {
-                            actionTile(icon: "map.fill", text: "Map", color: .green)
+                            actionButton(icon: "map.fill", text: "Get on the Map", bg: .green)
                         }
                     }
                 }
-                .padding(.horizontal, 20)
 
                 Spacer()
             }
@@ -312,19 +311,19 @@ struct LocationTotalCountView: View {
         }
     }
 
-    private func actionTile(icon: String, text: String, color: Color) -> some View {
-        VStack(spacing: 10) {
+    private func actionButton(icon: String, text: String, bg: Color) -> some View {
+        HStack(spacing: 10) {
             Image(systemName: icon)
-                .font(.title)
-                .foregroundColor(color)
+                .font(.body)
             Text(text)
-                .font(.subheadline)
-                .fontWeight(.semibold)
-                .foregroundColor(.primary)
+                .font(.body)
+//                .fontWeight(.semibold)
         }
-        .frame(maxWidth: .infinity, minHeight: 75)
-        .background(color.opacity(0.2))
-        .cornerRadius(16)
+        .foregroundColor(.primary)
+        .frame(width: 220)
+        .padding(.vertical, 14)
+        .background(bg.opacity(0.75))
+        .cornerRadius(20)
     }
 
     private func saveOvercrowdingLimit(limit: Int) {

@@ -18,12 +18,9 @@ struct MapContentView: View {
     private var previewAds: [ServerAd]?
     private var previewLocations: [Location]?
 
-    // TEMPORARY: Set to true to show demo ads for screenshots
-    private static let useDemoAds = false
-
     init(showAds: Bool = true, previewAds: [ServerAd]? = nil, previewLocations: [Location]? = nil, initialColorFilter: Set<String>? = nil) {
         _showAdCarousel = State(initialValue: showAds)
-        self.previewAds = Self.useDemoAds ? ServerAd.sampleAds : previewAds
+        self.previewAds = AppSettings.demo ? DemoData.ads : previewAds
         self.previewLocations = previewLocations
         if let filter = initialColorFilter {
             _activeColorFilters = State(initialValue: filter)
@@ -531,13 +528,20 @@ class MapViewModel: ObservableObject {
     }
 
     func refreshLocations() {
+        if AppSettings.demo {
+            self.locations = DemoData.locations
+            self.isLoading = false
+            self.updateClusters(for: self.lastClusteredSpan)
+            return
+        }
+
         isLoading = true
         Task {
             // Clear locations on the main thread
             await MainActor.run {
                 self.locations.removeAll()
             }
-            
+
             let fetchedLocations = await fetchLocations()
             var uniqueLocations = [Location]()
             var seenIds = Set<String>()
@@ -727,60 +731,7 @@ struct Location: Identifiable {
     }
 
     // Sample locations for previews (Boulder, CO area)
-    static let sampleLocations: [Location] = [
-        Location(
-            id: "sample-1",
-            name: "CrowdCount HQ",
-            coordinate: CLLocationCoordinate2D(latitude: 40.0192959, longitude: -105.28284905),
-            deviceIds: ["T0001"],
-            color: "red",
-            icon: "flag.2.crossed.fill",
-            currentCount: 5,
-            isClosed: false,
-            comparison: "up",
-            overcrowding: 10,
-            allDevicesOnline: true
-        ),
-        Location(
-            id: "sample-2",
-            name: "City Park",
-            coordinate: CLLocationCoordinate2D(latitude: 40.01783, longitude: -105.2684),
-            deviceIds: ["T0002"],
-            color: "green",
-            icon: "tree.fill",
-            currentCount: 23,
-            isClosed: false,
-            comparison: "down",
-            overcrowding: nil,
-            allDevicesOnline: true
-        ),
-        Location(
-            id: "sample-3",
-            name: "The Pond",
-            coordinate: CLLocationCoordinate2D(latitude: 40.00087, longitude: -105.25944),
-            deviceIds: ["T0000"],
-            color: "blue",
-            icon: "fish.fill",
-            currentCount: 29,
-            isClosed: false,
-            comparison: "neutral",
-            overcrowding: nil,
-            allDevicesOnline: true
-        ),
-        Location(
-            id: "sample-4",
-            name: "McCrowd's Pub",
-            coordinate: CLLocationCoordinate2D(latitude: 40.00846, longitude: -105.27546),
-            deviceIds: ["Demo"],
-            color: "orange",
-            icon: "mug.fill",
-            currentCount: 86,
-            isClosed: false,
-            comparison: "up",
-            overcrowding: 100,
-            allDevicesOnline: true
-        )
-    ]
+    static let sampleLocations: [Location] = DemoData.locations
 }
 
 // MARK: - FadeInView
@@ -1232,7 +1183,7 @@ private struct LocationDetailCard: View {
             }
 
             // Offline warning
-            if !location.allDevicesOnline {
+            if !location.allDevicesOnline && !location.isClosed {
                 HStack(spacing: 8) {
                     Image(systemName: "exclamationmark.triangle.fill")
                         .font(.caption)
@@ -1274,6 +1225,23 @@ private struct LocationDetailCard: View {
         .padding(.top, 20)
         .padding(.bottom, 40)
         .task(id: location.id) {
+            // Demo mode: use static popular times data
+            if AppSettings.demo {
+                if let demoData = DemoData.popularTimes[location.id] {
+                    withAnimation(.easeInOut(duration: 0.3)) {
+                        popularTimesData = demoData
+                        chartCurrentCount = location.currentCount
+                        chartIsClosed = location.isClosed
+                        isLoadingPopularTimes = false
+                        isCollapsingChart = false
+                    }
+                } else {
+                    popularTimesData = nil
+                    isLoadingPopularTimes = false
+                }
+                return
+            }
+
             // First load only: show skeleton while old chart stays visible on switch
             if popularTimesData == nil {
                 isLoadingPopularTimes = true
@@ -1294,7 +1262,8 @@ private struct LocationDetailCard: View {
                     if popularTimesData != nil {
                         let zeroed = PopularTimesData(
                             hourlyAveragesUTC: Dictionary(uniqueKeysWithValues: (0..<24).map { (String($0), 0.0) }),
-                            dayOfWeek: ""
+                            dayOfWeek: "",
+                            busynessLevel: nil
                         )
                         withAnimation(.easeInOut(duration: 0.3)) {
                             popularTimesData = zeroed
@@ -1312,7 +1281,8 @@ private struct LocationDetailCard: View {
                 if popularTimesData != nil {
                     let zeroed = PopularTimesData(
                         hourlyAveragesUTC: Dictionary(uniqueKeysWithValues: (0..<24).map { (String($0), 0.0) }),
-                        dayOfWeek: ""
+                        dayOfWeek: "",
+                        busynessLevel: nil
                     )
                     withAnimation(.easeInOut(duration: 0.3)) {
                         popularTimesData = zeroed

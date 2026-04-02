@@ -71,6 +71,7 @@
 		7CD54D5A2C29EF4C00E144A1 /* SettingsView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 7CD54D592C29EF4800E144A1 /* SettingsView.swift */; };
 		7CE8EF142EF9B85E00C1FA7C /* GetOnMapInfoView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 7CE8EF132EF9B85E00C1FA7C /* GetOnMapInfoView.swift */; };
 		7CF6F7E42EDE6CA900622E57 /* QRScannerView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 7CF6F7E32EDE6CA900622E57 /* QRScannerView.swift */; };
+		AA000001DEMODATA00000001 /* DemoData.swift in Sources */ = {isa = PBXBuildFile; fileRef = AA000001DEMODATA00000000 /* DemoData.swift */; };
 /* End PBXBuildFile section */
 
 /* Begin PBXContainerItemProxy section */
@@ -168,6 +169,7 @@
 		7CD54D592C29EF4800E144A1 /* SettingsView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = SettingsView.swift; sourceTree = "<group>"; };
 		7CE8EF132EF9B85E00C1FA7C /* GetOnMapInfoView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = GetOnMapInfoView.swift; sourceTree = "<group>"; };
 		7CF6F7E32EDE6CA900622E57 /* QRScannerView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = QRScannerView.swift; sourceTree = "<group>"; };
+		AA000001DEMODATA00000000 /* DemoData.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = DemoData.swift; sourceTree = "<group>"; };
 /* End PBXFileReference section */
 
 /* Begin PBXFrameworksBuildPhase section */
@@ -216,6 +218,7 @@
 				7C5A120B2C18D0BB0050C4D8 /* CrowdCount_AppApp.swift */,
 				7CA9C98D2C7E2B1800356DB5 /* AppDelegate.swift */,
 				7C54AF992C5BD1F800D9226B /* AppSettings.swift */,
+				AA000001DEMODATA00000000 /* DemoData.swift */,
 				7C2EF9612F3C450000FB437F /* HistoryPrefetchCache.swift */,
 			);
 			path = "App Foundation";
@@ -552,6 +555,7 @@
 				7C362EFA2C358DBA00F02FDA /* InformationView.swift in Sources */,
 				7CD02E992C2DFD59000EAFC5 /* TotalCountView.swift in Sources */,
 				7C54AF9A2C5BD1FE00D9226B /* AppSettings.swift in Sources */,
+				AA000001DEMODATA00000001 /* DemoData.swift in Sources */,
 				7C2469DD2E09E05200409394 /* BarGraphYear.swift in Sources */,
 				7CF6F7E42EDE6CA900622E57 /* QRScannerView.swift in Sources */,
 				7CC3810B2EF9FA67001C3A41 /* LoginTextViewModel.swift in Sources */,
@@ -731,7 +735,7 @@
 				ASSETCATALOG_COMPILER_INCLUDE_ALL_APPICON_ASSETS = YES;
 				CODE_SIGN_ENTITLEMENTS = CrowdCount_App/CrowdCount_App.entitlements;
 				CODE_SIGN_STYLE = Automatic;
-				CURRENT_PROJECT_VERSION = 43;
+				CURRENT_PROJECT_VERSION = 1;
 				DEVELOPMENT_ASSET_PATHS = "\"CrowdCount_App/Preview Content\"";
 				ENABLE_PREVIEWS = YES;
 				GENERATE_INFOPLIST_FILE = YES;
@@ -753,7 +757,7 @@
 					"$(inherited)",
 					"@executable_path/Frameworks",
 				);
-				MARKETING_VERSION = 5.4.0;
+				MARKETING_VERSION = 5.4.1;
 				PRODUCT_BUNDLE_IDENTIFIER = "CrowdCount.CrowdCount-App";
 				PRODUCT_NAME = "$(TARGET_NAME)";
 				SUPPORTED_PLATFORMS = "iphoneos iphonesimulator";
@@ -774,7 +778,7 @@
 				ASSETCATALOG_COMPILER_INCLUDE_ALL_APPICON_ASSETS = YES;
 				CODE_SIGN_ENTITLEMENTS = CrowdCount_App/CrowdCount_App.entitlements;
 				CODE_SIGN_STYLE = Automatic;
-				CURRENT_PROJECT_VERSION = 43;
+				CURRENT_PROJECT_VERSION = 1;
 				DEVELOPMENT_ASSET_PATHS = "\"CrowdCount_App/Preview Content\"";
 				ENABLE_PREVIEWS = YES;
 				GENERATE_INFOPLIST_FILE = YES;
@@ -796,7 +800,7 @@
 					"$(inherited)",
 					"@executable_path/Frameworks",
 				);
-				MARKETING_VERSION = 5.4.0;
+				MARKETING_VERSION = 5.4.1;
 				PRODUCT_BUNDLE_IDENTIFIER = "CrowdCount.CrowdCount-App";
 				PRODUCT_NAME = "$(TARGET_NAME)";
 				SUPPORTED_PLATFORMS = "iphoneos iphonesimulator";

@@ -54,6 +54,7 @@ struct HistoricCountsContentView: View {
     var posYearData: [String: Int]? = nil
     var hasPOS: Bool = false
     @AppStorage("crowdcount_showPOSOverlay") var showPOSOverlay: Bool = true
+    var onConnectPOS: (() -> Void)? = nil
 
     // Callbacks
     let onDaySelected: (String) -> Void
@@ -97,23 +98,27 @@ struct HistoricCountsContentView: View {
                     .frame(maxWidth: .infinity)
                     .padding(.top, 5)
                 } else {
-                    HStack(spacing: 8) {
-                        Image(systemName: "square")
-                            .foregroundColor(.secondary)
-                            .font(.body)
-                        Text("Connect a POS system to overlay transactions")
-                            .font(.caption)
-                            .foregroundColor(.secondary)
+                    Button {
+                        onConnectPOS?()
+                    } label: {
+                        HStack(spacing: 8) {
+                            Image(systemName: "square")
+                                .foregroundColor(.secondary)
+                                .font(.body)
+                            Text("Connect a POS system to overlay transactions")
+                                .font(.caption)
+                                .foregroundColor(.secondary)
+                        }
+                        .padding(.horizontal, 16)
+                        .padding(.vertical, 10)
+                        .background(
+                            RoundedRectangle(cornerRadius: 10)
+                                .stroke(Color.secondary.opacity(0.3), style: StrokeStyle(lineWidth: 1, dash: [5, 3]))
+                        )
+                        .opacity(0.5)
+                        .frame(maxWidth: .infinity)
+                        .padding(.top, 5)
                     }
-                    .padding(.horizontal, 16)
-                    .padding(.vertical, 10)
-                    .background(
-                        RoundedRectangle(cornerRadius: 10)
-                            .stroke(Color.secondary.opacity(0.3), style: StrokeStyle(lineWidth: 1, dash: [5, 3]))
-                    )
-                    .opacity(0.5)
-                    .frame(maxWidth: .infinity)
-                    .padding(.top, 5)
                 }
 
                 // Day view with chart and download button

@@ -4,6 +4,7 @@ import Charts
 struct PopularTimesData {
     let hourlyAveragesUTC: [String: Double]  // "0"-"23" -> avg count (UTC hours)
     let dayOfWeek: String                    // e.g. "Friday"
+    let busynessLevel: Int?                  // 1-5 server-computed busyness level
 
     /// Shift UTC hour keys to local timezone hours
     var hourlyAverages: [String: Double] {
@@ -44,18 +45,30 @@ struct PopularTimesChart: View {
     }
 
     private var peakValue: Double {
-        localAverages.values.max() ?? 1
+        let todayMax = localAverages.values.max() ?? 0
+        return max(todayMax, Double(currentCount))
     }
 
-    private var liveComparisonLabel: (text: String, color: Color)? {
-        guard !isClosed else { return nil }
+    private var busynessLabel: (text: String, color: Color)? {
+        guard !isClosed, let level = data.busynessLevel else { return nil }
+        switch level {
+        case 1: return ("Not busy", .secondary)
+        case 2: return ("Less busy than usual", .secondary)
+        case 3: return ("As busy as usual", .secondary)
+        case 4: return ("Busy", .orange)
+        case 5: return ("Very busy", .red)
+        default: return nil
+        }
+    }
+
+    private var hourComparisonLabel: (text: String, color: Color)? {
+        guard !isClosed, currentCount > 0 else { return nil }
         guard let avgNow = localAverages[currentHour], avgNow > 0 else { return nil }
         let diff = Double(currentCount) - avgNow
-        if abs(diff) < 3 { return ("About as busy as usual", .secondary) }
-        let pct = abs(diff / avgNow) * 100
-        if pct < 10 { return ("About as busy as usual", .secondary) }
-        if diff > 0 { return ("\(Int(pct))% busier than usual", .green) }
-        return ("\(Int(pct))% less busy than usual", .red)
+        let pct = Int(abs(diff / avgNow) * 100)
+        if pct < 10 { return ("About as expected right now", .secondary) }
+        if diff > 0 { return ("\(pct)% more than expected right now", .secondary) }
+        return ("\(pct)% less than expected right now", .secondary)
     }
 
     private var uses24HourClock: Bool {
@@ -93,15 +106,80 @@ struct PopularTimesChart: View {
                     .foregroundColor(.secondary)
             }
 
+            if let busyness = busynessLabel {
+                HStack(spacing: 4) {
+                    Circle()
+                        .fill(busyness.color)
+                        .frame(width: 6, height: 6)
+                    Text(busyness.text)
+                        .font(.caption)
+                        .foregroundColor(busyness.color)
+                }
+            }
+
+            if let hourComp = hourComparisonLabel {
+                Text(hourComp.text)
+                    .font(.caption)
+                    .foregroundColor(hourComp.color)
+            }
+
             Chart {
                 ForEach(allHours, id: \.self) { hour in
                     let avgValue = localAverages[hour] ?? 0
-                    BarMark(
-                        x: .value("Hour", hour),
-                        y: .value("Count", max(avgValue, 0))
-                    )
-                    .foregroundStyle(Color.secondary.opacity(0.3))
-                    .cornerRadius(3)
+                    let isCurrentHour = hour == currentHour && !isClosed && !data.dayOfWeek.isEmpty
+
+                    if isCurrentHour && avgValue <= 0 {
+                        // No usual data for this hour: just show accent bar
+                        RectangleMark(
+                            x: .value("Hour", hour),
+                            yStart: .value("Start", 0),
+                            yEnd: .value("End", Double(currentCount))
+                        )
+                        .foregroundStyle(accentColor)
+                        .cornerRadius(3)
+                    } else if isCurrentHour && Double(currentCount) > avgValue {
+                        // Current > usual: accent bar behind, usual bar overlays on top
+                        RectangleMark(
+                            x: .value("Hour", hour),
+                            yStart: .value("Start", 0),
+                            yEnd: .value("End", Double(currentCount))
+                        )
+                        .foregroundStyle(accentColor.opacity(0.8))
+                        .cornerRadius(3)
+
+                        BarMark(
+                            x: .value("Hour", hour),
+                            y: .value("Count", avgValue)
+                        )
+                        .foregroundStyle(Color.secondary.opacity(0.65))
+                        .cornerRadius(3)
+                    } else if isCurrentHour {
+                        // Current <= usual: usual bar behind (only if taller), accent bar on top
+                        if avgValue > Double(currentCount) {
+                            RectangleMark(
+                                x: .value("Hour", hour),
+                                yStart: .value("Start", 0),
+                                yEnd: .value("End", avgValue)
+                            )
+                            .foregroundStyle(Color.secondary.opacity(0.3))
+                            .cornerRadius(3)
+                        }
+
+                        RectangleMark(
+                            x: .value("Hour", hour),
+                            yStart: .value("Start", 0),
+                            yEnd: .value("End", Double(currentCount))
+                        )
+                        .foregroundStyle(accentColor)
+                        .cornerRadius(3)
+                    } else {
+                        BarMark(
+                            x: .value("Hour", hour),
+                            y: .value("Count", max(avgValue, 0))
+                        )
+                        .foregroundStyle(Color.secondary.opacity(0.3))
+                        .cornerRadius(3)
+                    }
                 }
             }
             .chartXScale(domain: allHours)
@@ -124,13 +202,25 @@ struct PopularTimesChart: View {
             .frame(height: 120)
 
             // Legend
-            HStack(spacing: 4) {
-                RoundedRectangle(cornerRadius: 2)
-                    .fill(Color.secondary.opacity(0.3))
-                    .frame(width: 10, height: 10)
-                Text("Usual")
-                    .font(.caption2)
-                    .foregroundColor(.secondary)
+            HStack(spacing: 12) {
+                HStack(spacing: 4) {
+                    RoundedRectangle(cornerRadius: 2)
+                        .fill(Color.secondary.opacity(0.3))
+                        .frame(width: 10, height: 10)
+                    Text("Usual")
+                        .font(.caption2)
+                        .foregroundColor(.secondary)
+                }
+                if !isClosed {
+                    HStack(spacing: 4) {
+                        RoundedRectangle(cornerRadius: 2)
+                            .fill(accentColor)
+                            .frame(width: 10, height: 10)
+                        Text("Right now")
+                            .font(.caption2)
+                            .foregroundColor(.secondary)
+                    }
+                }
             }
         }
     }
@@ -144,7 +234,8 @@ struct PopularTimesChart: View {
                 "12": 35.0, "13": 30.0, "14": 25.0, "15": 20.0, "16": 18.0,
                 "17": 22.0, "18": 28.0, "19": 25.0, "20": 15.0, "21": 8.0, "22": 4.0
             ],
-            dayOfWeek: "Friday"
+            dayOfWeek: "Friday",
+            busynessLevel: 4
         ),
         accentColor: .blue,
         currentCount: 28,
@@ -162,7 +253,8 @@ struct PopularTimesChart: View {
                 "12": 35.0, "13": 30.0, "14": 25.0, "15": 22.0, "16": 20.0,
                 "17": 24.0, "18": 28.0, "19": 22.0, "20": 15.0, "21": 10.0, "22": 7.0, "23": 4.0
             ],
-            dayOfWeek: "Tuesday"
+            dayOfWeek: "Tuesday",
+            busynessLevel: 2
         ),
         accentColor: .orange,
         currentCount: 8,
@@ -178,7 +270,8 @@ struct PopularTimesChart: View {
             "12": 35.0, "13": 30.0, "14": 25.0, "15": 20.0, "16": 18.0,
             "17": 22.0, "18": 28.0, "19": 25.0, "20": 15.0, "21": 8.0, "22": 4.0
         ],
-        dayOfWeek: "Friday"
+        dayOfWeek: "Friday",
+        busynessLevel: 4
     )
 
     VStack {

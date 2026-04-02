@@ -207,10 +207,6 @@ class APIService: ObservableObject {
             }
 
             guard (200...299).contains(httpResponse.statusCode) else {
-                // Log server error details for debugging
-                if let errorBody = String(data: data, encoding: .utf8) {
-                    print("[APIService] HTTP \(httpResponse.statusCode) for \(endpoint): \(errorBody)")
-                }
                 throw APIError.httpError(httpResponse.statusCode)
             }
 
@@ -1038,7 +1034,9 @@ class APIService: ObservableObject {
             }
         }
 
-        return PopularTimesData(hourlyAveragesUTC: hourlyAverages, dayOfWeek: dayOfWeek)
+        let busynessLevel = json["busyness_level"] as? Int
+
+        return PopularTimesData(hourlyAveragesUTC: hourlyAverages, dayOfWeek: dayOfWeek, busynessLevel: busynessLevel)
     }
 
     // MARK: - Promotion Pricing

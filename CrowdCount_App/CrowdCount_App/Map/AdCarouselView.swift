@@ -104,80 +104,7 @@ struct ServerAd: Identifiable, Codable {
     }
 
     // Sample ads for previews (Boulder, CO - device IDs match Location.sampleLocations)
-    static let sampleAds: [ServerAd] = [
-        ServerAd(
-            id: "sample-1",
-            title: "CrowdCount HQ",
-            description: "Visit our headquarters! Free demo and swag.",
-            imagePath: nil,
-            locationId: "T0001",
-            durationHours: 24,
-            totalPrice: 120.0,
-            ctaText: "Visit Us",
-            ctaLinkType: "default",
-            ctaURL: nil,
-            status: "approved",
-            createdAt: ISO8601DateFormatter().string(from: Date()),
-            expirationDate: ISO8601DateFormatter().string(from: Date().addingTimeInterval(2 * 3600 + 34 * 60)),
-            demoIcon: "flag.2.crossed.fill",
-            demoColor: "red",
-            demoCoordinate: CLLocationCoordinate2D(latitude: 40.0192959, longitude: -105.28284905)
-        ),
-        ServerAd(
-            id: "sample-2",
-            title: "McCrowd's Pub",
-            description: "$2 draft pints for the next hour!",
-            imagePath: nil,
-            locationId: "Demo",
-            durationHours: 1,
-            totalPrice: 5.0,
-            ctaText: "View Details",
-            ctaLinkType: "default",
-            ctaURL: nil,
-            status: "approved",
-            createdAt: ISO8601DateFormatter().string(from: Date()),
-            expirationDate: ISO8601DateFormatter().string(from: Date().addingTimeInterval(1 * 3600)),
-            demoIcon: "mug.fill",
-            demoColor: "orange",
-            demoCoordinate: CLLocationCoordinate2D(latitude: 40.00846, longitude: -105.27546)
-        ),
-        ServerAd(
-            id: "sample-3",
-            title: "City Park",
-            description: "Nature walks every weekend. Join the community!",
-            imagePath: nil,
-            locationId: "T0002",
-            durationHours: 48,
-            totalPrice: 240.0,
-            ctaText: "Join Now",
-            ctaLinkType: "custom",
-            ctaURL: "https://crowdcount.tech",
-            status: "approved",
-            createdAt: ISO8601DateFormatter().string(from: Date()),
-            expirationDate: ISO8601DateFormatter().string(from: Date().addingTimeInterval(5 * 3600 + 12 * 60)),
-            demoIcon: "tree.fill",
-            demoColor: "green",
-            demoCoordinate: CLLocationCoordinate2D(latitude: 40.01783, longitude: -105.2684)
-        ),
-        ServerAd(
-            id: "sample-4",
-            title: "The Pond",
-            description: "Fresh seafood daily. Best fish tacos in Boulder!",
-            imagePath: nil,
-            locationId: "T0000",
-            durationHours: 12,
-            totalPrice: 60.0,
-            ctaText: "Order Now",
-            ctaLinkType: "default",
-            ctaURL: nil,
-            status: "approved",
-            createdAt: ISO8601DateFormatter().string(from: Date()),
-            expirationDate: ISO8601DateFormatter().string(from: Date().addingTimeInterval(45 * 60)),
-            demoIcon: "fish.fill",
-            demoColor: "blue",
-            demoCoordinate: CLLocationCoordinate2D(latitude: 40.00087, longitude: -105.25944)
-        )
-    ]
+    static let sampleAds: [ServerAd] = DemoData.ads
 }
 
 // MARK: - Safari View (In-App Browser)
@@ -206,6 +133,11 @@ class AdService: ObservableObject {
     @Published var isLoading = false
 
     func fetchActiveAds() async {
+        if AppSettings.demo {
+            self.activeAds = DemoData.ads
+            return
+        }
+
         isLoading = true
         defer { isLoading = false }
 

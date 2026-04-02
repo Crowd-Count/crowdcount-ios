@@ -3,7 +3,9 @@ import Combine
 
 class AppSettings: ObservableObject {
     // MARK: - API Configuration
-    static let testing = true
+    static let testing = false
+    static let demo = true
+    static let hasDevicesAddedForDemo = true  // requires demo = true
 
     static let apiBaseURL: String = testing
         ? "https://api-staging.crowdcount.tech"

@@ -14,18 +14,19 @@ struct BarGraphDay: View {
 
     private let allHours = (0..<24).map { String($0) }
 
-    private var isLiveData: Bool {
-        guard isTodayView && isDeviceOnline else { return false }
-        guard let mostRecentDataTime = mostRecentDataTime,
-              let mostRecentHour = Int(mostRecentDataTime) else { return false }
-        let currentHour = Calendar.current.component(.hour, from: Date())
-        return mostRecentHour == currentHour
-    }
-
-    private var highlightIndex: Int? {
-        guard isLiveData, let h = mostRecentDataTime, let hour = Int(h) else { return nil }
-        return hour
-    }
+    // Live data highlight (commented out — POS transactions line uses green now)
+//    private var isLiveData: Bool {
+//        guard isTodayView && isDeviceOnline else { return false }
+//        guard let mostRecentDataTime = mostRecentDataTime,
+//              let mostRecentHour = Int(mostRecentDataTime) else { return false }
+//        let currentHour = Calendar.current.component(.hour, from: Date())
+//        return mostRecentHour == currentHour
+//    }
+//
+//    private var highlightIndex: Int? {
+//        guard isLiveData, let h = mostRecentDataTime, let hour = Int(h) else { return nil }
+//        return hour
+//    }
 
     /// Convert POS hourly data to [String: Int] for the chart wrapper
     private var posTransactionCounts: [String: Int]? {
@@ -44,18 +45,14 @@ struct BarGraphDay: View {
                 averageData: averageDayData,
                 labels: allHours,
                 posData: posTransactionCounts,
-                showPOS: showPOSOverlay,
-                highlightIndex: highlightIndex
+                showPOS: showPOSOverlay
             )
             .frame(height: 200)
             .padding(.horizontal)
 
             LegendViewDay(
                 selectedDate: selectedDate,
-                isTodayView: isTodayView,
-                isDeviceOnline: isDeviceOnline,
                 showAverage: averageDayData != nil,
-                isLiveData: isLiveData,
                 showPOS: showPOSOverlay
             )
             .padding(.top, 20)
@@ -73,13 +70,9 @@ struct YAxisOffsetModifier: ViewModifier {
 
 struct LegendViewDay: View {
     var selectedDate: String
-    var isTodayView: Bool
-    var isDeviceOnline: Bool
     var showAverage: Bool
-    var isLiveData: Bool
     var showPOS: Bool = false
     @State private var showAlert = false
-    @State private var showLiveAlert = false
 
     var body: some View {
         FlowLayout(spacing: 6) {
@@ -94,16 +87,17 @@ struct LegendViewDay: View {
                       dismissButton: .default(Text("OK")))
             }
 
-            if isLiveData {
-                Button(action: { self.showLiveAlert = true }) {
-                    legendItem(color: .green, text: "Live Data", showInfo: true)
-                }
-                .alert(isPresented: $showLiveAlert) {
-                    Alert(title: Text("Info for Live Data"),
-                          message: Text("The Live Data shows real-time data for the current hour. This updates automatically every 30 seconds to reflect the latest count."),
-                          dismissButton: .default(Text("OK")))
-                }
-            }
+            // Live data legend (commented out — POS transactions line uses green now)
+//            if isLiveData {
+//                Button(action: { self.showLiveAlert = true }) {
+//                    legendItem(color: .green, text: "Live Data", showInfo: true)
+//                }
+//                .alert(isPresented: $showLiveAlert) {
+//                    Alert(title: Text("Info for Live Data"),
+//                          message: Text("The Live Data shows real-time data for the current hour. This updates automatically every 30 seconds to reflect the latest count."),
+//                          dismissButton: .default(Text("OK")))
+//                }
+//            }
 
             if showPOS {
                 legendItem(color: .green, text: "Transactions", isDashed: true)

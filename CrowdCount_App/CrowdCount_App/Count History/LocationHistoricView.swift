@@ -168,6 +168,7 @@ struct LocationHistoricView: View {
                         posWeekData: posWeekTransactions,
                         posYearData: posYearTransactions,
                         hasPOS: hasPOS,
+                        onConnectPOS: { showPOSConnectFromInsights = true },
                         onDaySelected: { date in
                             let displayDate = (date == getCurrentDate()) ? "Today" : formattedDateLong(from: date)
                             selectedDay = displayDate
@@ -279,15 +280,17 @@ struct LocationHistoricView: View {
         .preferredColorScheme(appSettings.isDarkMode ? .dark : .light)
         .navigationBarTitle(selectedTab == .historicCounts ? "History" : "Insights", displayMode: .inline)
         .sheet(isPresented: $showPOSConnectFromInsights) {
-            POSConnectView(
-                locationId: location.id,
-                locationName: location.name,
-                credentials: credentials,
-                signingDevice: signingDevice ?? ("", ""),
-                onConnected: {
-                    Task { await loadPOSData() }
-                }
-            )
+            if let signing = signingDevice {
+                POSConnectView(
+                    locationId: location.id,
+                    locationName: location.name,
+                    credentials: credentials,
+                    signingDevice: signing,
+                    onConnected: {
+                        Task { await loadPOSData() }
+                    }
+                )
+            }
         }
         .onAppear {
             selectedTab = initialTab
@@ -309,6 +312,7 @@ struct LocationHistoricView: View {
     // MARK: - Auto-Refresh Timer
 
     private func startAutoRefreshTimer() {
+        if AppSettings.demo && location.id == DemoData.demoAppLocation.id { return }
         guard selectedDay == "Today" else { return }
         stopAutoRefreshTimer()
         refreshTimer = Timer.scheduledTimer(withTimeInterval: refreshInterval, repeats: true) { _ in
@@ -323,6 +327,7 @@ struct LocationHistoricView: View {
 
     @MainActor
     private func refreshTodayData() async {
+        if AppSettings.demo && location.id == DemoData.demoAppLocation.id { return }
         guard let signing = signingDevice else { return }
 
         // Refresh connection status for first device
@@ -375,6 +380,72 @@ struct LocationHistoricView: View {
     private func loadInitialData() async {
         isLoading = true
         selectedDayRaw = getCurrentDate()
+
+        // Demo mode: inject static demo data, skip all API calls
+        if AppSettings.demo && location.id == DemoData.demoAppLocation.id {
+            // History data (local-time keys, no TZ shifting needed)
+            dayData = DemoData.demoDayData
+            averageDayData = DemoData.demoAvgDayData
+            entryDayData = DemoData.demoEntryDayData
+            averageEntryDayData = DemoData.demoAvgEntryDayData
+            weekData = DemoData.demoWeekData
+            averageWeekData = DemoData.demoAvgWeekData
+            entryWeekData = DemoData.demoEntryWeekData
+            averageEntryWeekData = DemoData.demoAvgEntryWeekData
+            yearData = DemoData.demoYearData
+            averageYearData = DemoData.demoAvgYearData
+            entryYearData = DemoData.demoEntryYearData
+            averageEntryYearData = DemoData.demoAvgEntryYearData
+
+            // Insights state (always today/this week/this year)
+            insightsTodayData = dayData
+            insightsTodayAverage = averageDayData
+            insightsThisWeekData = weekData
+            insightsThisWeekAverage = averageWeekData
+            insightsThisYearData = yearData
+            insightsThisYearAverage = averageYearData
+            insightsEntryTodayData = entryDayData
+            insightsEntryThisWeekData = entryWeekData
+            insightsEntryThisYearData = entryYearData
+            insightsAvgEntryTodayData = averageEntryDayData
+            insightsAvgEntryThisWeekData = averageEntryWeekData
+            insightsAvgEntryThisYearData = averageEntryYearData
+
+            // Dwell time
+            insightsDwellTimeMinutes = DemoData.demoDwellTimeMinutes
+            insightsWeekDwellTime = DemoData.demoWeekDwellTime
+            insightsYearDwellTime = DemoData.demoYearDwellTime
+
+            // POS
+            hasPOS = true
+            posDayTransactions = DemoData.posDayTransactions
+            posWeekTransactions = DemoData.posWeekTransactions
+            posYearTransactions = DemoData.posYearTransactions
+            posInsights = DemoData.posInsights
+
+            // Available dates / selections
+            availableDates = [getCurrentDate()]
+            let weekStart = getCurrentWeekStartDate()
+            availableWeeks = [WeekInfo(label: "This Week", startDate: weekStart)]
+            availableYears = [getCurrentYear()]
+            selectedWeek = availableWeeks.first
+            insightsSelectedDayRaw = getCurrentDate()
+            insightsSelectedWeek = availableWeeks.first
+
+            // Flags
+            isDeviceOnline = true
+            hasDataForSelectedDay = true
+            hasDataForSelectedWeek = true
+            hasDataForSelectedYear = true
+            hasDataForSelectedDayEntries = true
+            hasDataForSelectedWeekEntries = true
+            hasDataForSelectedYearEntries = true
+            mostRecentDataTime = findMostRecentDataTime(in: dayData)
+            mostRecentWeekDay = findMostRecentWeekDay(in: weekData)
+            insightsInitialLoadComplete = true
+            isLoading = false
+            return
+        }
 
         // Check POS status early so the toggle appears immediately
         if let signing = signingDevice {
@@ -506,11 +577,8 @@ struct LocationHistoricView: View {
                     credentials: self.credentials,
                     signingDevice: signing
                 )
-                print("[POS] Day transactions loaded: \(txData.hourlyBreakdown.count) hours, total: \(txData.totalTransactions)")
                 await MainActor.run { self.posDayTransactions = txData.hourlyBreakdown }
-            } catch {
-                print("[POS] Day transactions failed: \(error)")
-            }
+            } catch { }
         }()
 
         async let weekTxTask: Void = {
@@ -533,10 +601,8 @@ struct LocationHistoricView: View {
                 credentials: credentials,
                 signingDevice: signing
             )
-            print("[POS] Day transactions loaded: \(txData.hourlyBreakdown.count) hours, total: \(txData.totalTransactions)")
             await MainActor.run { posDayTransactions = txData.hourlyBreakdown }
         } catch {
-            print("[POS] Day transactions failed: \(error)")
             await MainActor.run { posDayTransactions = nil }
         }
     }
@@ -575,7 +641,6 @@ struct LocationHistoricView: View {
             }
         }
 
-        print("[POS] Week transactions loaded: \(weekSales)")
         await MainActor.run { posWeekTransactions = weekSales }
     }
 
@@ -588,8 +653,9 @@ struct LocationHistoricView: View {
             for i in 0..<12 {
                 let monthNum = String(format: "%02d", i + 1)
                 let startDate = "\(year)-\(monthNum)-01"
-                let lastDay = Calendar.current.range(of: .day, in: .month,
-                    for: Calendar.current.date(from: DateComponents(year: year, month: i + 1))!)!.count
+                guard let monthDate = Calendar.current.date(from: DateComponents(year: year, month: i + 1)),
+                      let dayRange = Calendar.current.range(of: .day, in: .month, for: monthDate) else { continue }
+                let lastDay = dayRange.count
                 let endDate = "\(year)-\(monthNum)-\(String(format: "%02d", lastDay))"
                 let monthName = monthNames[i]
 
@@ -700,6 +766,8 @@ struct LocationHistoricView: View {
     /// Falls back to individual calls if the bundle endpoint is unavailable.
     @MainActor
     private func fetchDataViaBundle(dayDate: String, weekStartDate: String, year: Int) async {
+        if AppSettings.demo && location.id == DemoData.demoAppLocation.id { return }
+
         isDayLoading = true
         isWeekLoading = true
         isYearLoading = true
@@ -1015,6 +1083,10 @@ struct LocationHistoricView: View {
 
     @MainActor
     private func fetchConnectionStatusAsync() async {
+        if AppSettings.demo && location.id == DemoData.demoAppLocation.id {
+            isDeviceOnline = true
+            return
+        }
         // Check if any device in location is online
         var anyOnline = false
         for deviceId in location.deviceIds {
@@ -1032,6 +1104,7 @@ struct LocationHistoricView: View {
 
     @MainActor
     private func fetchInsightsDayData(date: String) async {
+        if AppSettings.demo && location.id == DemoData.demoAppLocation.id { return }
         isInsightsDayLoading = true
         defer { isInsightsDayLoading = false }
 
@@ -1097,6 +1170,7 @@ struct LocationHistoricView: View {
 
     @MainActor
     private func fetchInsightsWeekData(weekDate: String) async {
+        if AppSettings.demo && location.id == DemoData.demoAppLocation.id { return }
         isInsightsWeekLoading = true
         defer { isInsightsWeekLoading = false }
 
@@ -1138,6 +1212,7 @@ struct LocationHistoricView: View {
 
     @MainActor
     private func fetchInsightsYearData(year: Int) async {
+        if AppSettings.demo && location.id == DemoData.demoAppLocation.id { return }
         isInsightsYearLoading = true
         defer { isInsightsYearLoading = false }
 

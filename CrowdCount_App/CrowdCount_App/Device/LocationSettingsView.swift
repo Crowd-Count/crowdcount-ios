@@ -38,6 +38,7 @@ struct LocationSettingsView: View {
     @State private var showPOSConnectSheet: Bool = false
     @State private var showPOSDisconnectConfirmation: Bool = false
     @State private var posDisconnecting: Bool = false
+    @State private var posDisconnectError: Bool = false
 
     // Operating Hours state
     @State private var hasClosingTime: Bool = false
@@ -145,6 +146,11 @@ struct LocationSettingsView: View {
             } message: {
                 Text(resetAllResult ?? "")
             }
+            .alert("Disconnect Failed", isPresented: $posDisconnectError) {
+                Button("OK", role: .cancel) { }
+            } message: {
+                Text("Could not disconnect the POS system. Please check your connection and try again.")
+            }
             .alert("Disconnect POS?", isPresented: $showPOSDisconnectConfirmation) {
                 Button("Cancel", role: .cancel) { }
                 Button("Disconnect", role: .destructive) {
@@ -154,15 +160,17 @@ struct LocationSettingsView: View {
                 Text("This will disconnect the POS system from this location. Sales data will no longer be synced.")
             }
             .sheet(isPresented: $showPOSConnectSheet) {
-                POSConnectView(
-                    locationId: location.id,
-                    locationName: location.name,
-                    credentials: credentials,
-                    signingDevice: signingDevice ?? ("", ""),
-                    onConnected: {
-                        loadPOSStatus()
-                    }
-                )
+                if let signing = signingDevice {
+                    POSConnectView(
+                        locationId: location.id,
+                        locationName: location.name,
+                        credentials: credentials,
+                        signingDevice: signing,
+                        onConnected: {
+                            loadPOSStatus()
+                        }
+                    )
+                }
             }
             .alert("Remove Counter?", isPresented: $showRemoveDeviceConfirmation) {
                 Button("Cancel", role: .cancel) {
@@ -380,7 +388,7 @@ struct LocationSettingsView: View {
             POSStatusManager.shared.clearStatus(for: location.id)
             posStatus = nil
         } catch {
-            // Silently handle
+            posDisconnectError = true
         }
         posDisconnecting = false
     }
